@@ -1,0 +1,16 @@
+{
+  "admin": {
+    "email": "admin@example.com",
+    "password": "AdminTest123!"
+  },
+  "reviews": [
+    {
+      "title": "Sample Review",
+      "content": "Great product!",
+      "rating": 5,
+      "author": "user123",
+      "imageUrl": "https://via.placeholder.com/150",
+      "link": "https://example.com/product/123"
+    }
+  ]
+}
