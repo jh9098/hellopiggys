@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../firebaseConfig';
 import {
+  db,
   collection,
   query,
   where,
   orderBy,
   getDocs,
-} from 'firebase/firestore';
+} from '../firebaseConfig';
 import './MyReviews.css';
 
 export default function MyReviews() {
   const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
   const nav = useNavigate();
 
   useEffect(() => {
@@ -28,9 +27,7 @@ export default function MyReviews() {
         orderBy('createdAt', 'desc')
       );
       const snap = await getDocs(q);
-      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setRows(list);
-      setLoading(false);
+      setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     })();
   }, [nav]);
 

@@ -1,13 +1,21 @@
 import { useState } from 'react';
+import { auth, signInWithEmailAndPassword } from '../firebaseConfig';
+import { useNavigate } from 'react-router-dom';
 
-function AdminLogin() {
+export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
+  const nav = useNavigate();
 
-  const handleLogin = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Firebase Auth 혹은 백엔드 /admin/login 연동
-    alert(`관리자 로그인: ${email} / ${pw}\n(여기에 실제 로그인 로직 예정)`);
+    const cred = await signInWithEmailAndPassword(auth, email, pw);
+    const token = await cred.user.getIdTokenResult();
+    if (token.claims.admin) {
+      nav('/admin/reviews');
+    } else {
+      alert('관리자 권한이 없습니다.');
+    }
   };
 
   return (

@@ -1,11 +1,17 @@
 import { useState } from 'react';
-import axios from 'axios';
-import './WriteReview.css';        // ❗ 아래 CSS 함께 생성
-
-const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+import {
+  storage,
+  db,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  addDoc,
+  collection,
+  serverTimestamp,
+} from '../firebaseConfig';
+import './WriteReview.css';
 
 export default function WriteReview() {
-  /* ---------- 상태 ---------- */
   const [form, setForm] = useState({
     name: '',
     phoneNumber: '',
@@ -17,18 +23,14 @@ export default function WriteReview() {
     bankNumber: '',
     accountHolderName: '',
     rewardAmount: '',
+    title: '',
+    content: '',
   });
-  const [images, setImages] = useState({
-    likeImage: null,
-    orderImage: null,
-    secondOrderImage: null,
-    reviewImage: null,
-  });
+  const [images, setImages] = useState({});
   const [preview, setPreview] = useState({});
   const [msg, setMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  /* ---------- 헬퍼 ---------- */
   const onChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -40,45 +42,43 @@ export default function WriteReview() {
   };
 
   const uploadOne = async (file) => {
-    const fd = new FormData();
-    fd.append('image', file);
-    const res = await axios.post(`${API}/api/upload`, fd);
-    return res.data.url;
+    const storageRef = ref(
+      storage,
+      `reviewImages/${Date.now()}_${file.name}`
+    );
+    await uploadBytes(storageRef, file);
+    return await getDownloadURL(storageRef);
   };
 
-  /* ---------- 제출 ---------- */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
       const urlMap = {};
-      for (const [k, f] of Object.entries(images)) {
-        if (f) urlMap[k + 'Url'] = await uploadOne(f);
+      for (const [key, file] of Object.entries(images)) {
+        if (file) urlMap[key + 'Url'] = await uploadOne(file);
       }
-      await axios.post(`${API}/api/reviews`, { ...form, ...urlMap });
-      setMsg('🎉 리뷰가 등록되었습니다!');
-      // 초기화
-      setForm({ ...Object.fromEntries(Object.keys(form).map(k => [k, ''])) });
+      await addDoc(collection(db, 'reviews'), {
+        ...form,
+        ...urlMap,
+        createdAt: serverTimestamp(),
+      });
+      setMsg('🎉 제출되었습니다!');
+      setForm(Object.fromEntries(Object.keys(form).map((k) => [k, ''])));
       setImages({});
       setPreview({});
     } catch (err) {
       console.error(err);
-      setMsg('❌ 오류가 발생했습니다');
+      setMsg('❌ 오류: ' + err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  /* ---------- 렌더 ---------- */
+  /* ---- JSX (캡처 레이아웃 그대로) ---- */
   return (
     <div className="page-wrap">
-      {/* 상단 안내 (관리자 입력 영역) */}
-      <section className="notice-box">
-        {/* 👉 관리자 설정용 영역 – 필요 시 Firestore로부터 불러와 렌더링 */}
-      </section>
-
       <h2 className="title">🟢환영🟢별리⭐</h2>
-
       <form onSubmit={handleSubmit}>
         {/* ───────── 기본 정보 ───────── */}
         <div className="field">
@@ -203,7 +203,6 @@ export default function WriteReview() {
             <input type="checkbox" required /> 약관을 확인하였어요
           </label>
         </div>
-
         <button className="submit-btn" disabled={submitting}>
           {submitting ? '제출 중…' : '제출하기'}
         </button>

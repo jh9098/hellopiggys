@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import {
+  db,
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  doc,
+  getDoc,
+} from '../firebaseConfig';
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
