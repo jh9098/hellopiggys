@@ -1,11 +1,10 @@
 // src/pages/AdminLogin.jsx (전체 수정 코드)
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth, signInWithEmailAndPassword, onAuthStateChanged, db, doc, getDoc } from '../firebaseConfig';
+import { auth, signInWithEmailAndPassword, db, doc, getDoc } from '../firebaseConfig';
 import './AdminLogin.css';
 
-// 관리자 여부를 확인하는 비동기 함수
 const checkAdminStatus = async (user) => {
   if (!user) return false;
   
@@ -25,7 +24,6 @@ export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [err, setErr] = useState('');
-  const [loading, setLoading] = useState(true); // 로딩 상태 추가
   const nav = useNavigate();
 
   // 이미 로그인 상태인지 확인
