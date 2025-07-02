@@ -170,7 +170,6 @@ export default function DynamicWriteReview() {
           { key: 'likeImage', label: '상품 찜 캡처 (필수)', req: true },
           { key: 'orderImage', label: '구매 인증 캡처 (최대 2개)', req: true },
           { key: 'secondOrderImage', label: '추가 구매 인증 (선택)', req: false },
-          { key: 'reviewImage', label: '리뷰 인증 캡처 (필수)', req: true },
         ].map(({ key, label, req }) => (
           <div className="field" key={key}>
             <label>{label}</label>
