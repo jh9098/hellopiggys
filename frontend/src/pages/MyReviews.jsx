@@ -187,11 +187,18 @@ export default function MyReviews() {
               <div className="detail-view">
                 <h3>구매 내역</h3>
                 <div className="form-grid">
-                  {/* ... (생략된 필드들) ... */}
+                  {/* 이름과 전화번호 필드 */}
                   <div className="field">
                     <label>구매자(수취인)</label>
                     {isEditing ? (
-                      <input name="name" value={editableData.name || ''} onChange={handleDataChange} />
+                      // disabled 속성과 회색 배경 스타일 추가
+                      <input 
+                        name="name" 
+                        value={editableData.name || ''} 
+                        onChange={handleDataChange} 
+                        disabled 
+                        style={{ backgroundColor: '#f0f0f0', cursor: 'not-allowed' }}
+                      />
                     ) : (
                       <p>{cur?.name}</p>
                     )}
@@ -199,13 +206,20 @@ export default function MyReviews() {
                   <div className="field">
                     <label>전화번호</label>
                     {isEditing ? (
-                      <input name="phoneNumber" value={editableData.phoneNumber || ''} onChange={handleDataChange} />
+                      // disabled 속성과 회색 배경 스타일 추가
+                      <input 
+                        name="phoneNumber" 
+                        value={editableData.phoneNumber || ''} 
+                        onChange={handleDataChange} 
+                        disabled
+                        style={{ backgroundColor: '#f0f0f0', cursor: 'not-allowed' }}
+                      />
                     ) : (
                       <p>{cur?.phoneNumber}</p>
                     )}
                   </div>
                 </div>
-                {/* 1열 필드 */}
+                {/* 1열 필드 (이 부분은 변경 없음) */}
                 {[
                   { key: 'orderNumber', label: '주문번호' },
                   { key: 'address', label: '주소' },
@@ -235,7 +249,7 @@ export default function MyReviews() {
                   )}
                 </div>
 
-                {/* 이미지 섹션 */}
+                {/* 이미지 섹션 및 하단 버튼 (이 부분도 변경 없음) */}
                 {[
                   { key: 'likeImageUrl', label: '상품 찜 캡처' },
                   { key: 'orderImageUrl', label: '구매 인증 캡처' },
@@ -250,7 +264,6 @@ export default function MyReviews() {
                   ) : null
                 )}
 
-                {/* 하단 버튼 */}
                 <div className="modal-actions">
                   {isEditing ? (
                     <>
