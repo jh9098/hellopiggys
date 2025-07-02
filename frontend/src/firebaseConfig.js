@@ -15,6 +15,7 @@ import {
   orderBy,
   serverTimestamp,
   doc,
+  updateDoc,
   getDoc,
 } from 'firebase/firestore';
 import {
@@ -52,6 +53,7 @@ export {
   orderBy,
   serverTimestamp,
   doc,
+  updateDoc,
   getDoc,
   ref,
   uploadBytes,
