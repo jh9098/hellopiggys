@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';   // React-Router 훅
+import { useNavigate } from 'react-router-dom';
 import {
-  getStorageInstance,
   db,
+  getStorageInstance,
   ref,
   uploadBytes,
   getDownloadURL,
@@ -13,8 +13,8 @@ import {
 import './WriteReview.css';
 
 export default function WriteReview() {
-  const navigate = useNavigate();                // SPA 내비게이터
-  const storage   = getStorageInstance();            // ✅ 한 번만 확보
+  const navigate = useNavigate();
+  const storage  = getStorageInstance();      // 필요 시만 초기화
 
   /* ───────────────────────── state ───────────────────────── */
   const [form, setForm] = useState({
@@ -31,8 +31,8 @@ export default function WriteReview() {
     title: '',
     content: '',
   });
-  const [images] = useState({});
-  const [previews, setPreviews] = useState({});
+  const [images, setImages]   = useState({});
+  const [preview, setPreview] = useState({});
   const [msg, setMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -43,14 +43,20 @@ export default function WriteReview() {
   const onFile = (e) => {
     const { name, files } = e.target;
     if (!files[0]) return;
-    images[name] = files[0];
-    setPreviews({ ...previews, [name]: URL.createObjectURL(files[0]) });
+    setImages({ ...images, [name]: files[0] });
+    setPreview({ ...preview, [name]: URL.createObjectURL(files[0]) });
   };
 
+  // ⬇️ 실패하면 null 반환 — Firestore에 넣지 않음
   const uploadOne = async (file) => {
-    const r = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
-    await uploadBytes(r, file);
-    return await getDownloadURL(r);
+    try {
+      const r = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
+      await uploadBytes(r, file);
+      return await getDownloadURL(r);
+    } catch (err) {
+      console.warn('❌ 이미지 업로드 실패 (무시):', err.message);
+      return null;
+    }
   };
 
   /* ───────────────────── submit ───────────────────── */
@@ -61,7 +67,8 @@ export default function WriteReview() {
       /* 이미지 업로드 */
       const urlMap = {};
       for (const [key, file] of Object.entries(images)) {
-        if (file) urlMap[key + 'Url'] = await uploadOne(file);
+        const url = await uploadOne(file);
+        if (url) urlMap[key + 'Url'] = url; // 성공한 것만 저장
       }
 
       /* 리뷰 문서 저장 */
@@ -79,8 +86,7 @@ export default function WriteReview() {
       navigate('/reviewer-login', { replace: true });
 
     } catch (err) {
-      console.error(err);
-      setMsg('❌ 오류: ' + err.message);
+      setMsg('❌ 제출 실패: ' + err.message);
     } finally {
       setSubmitting(false);
     }
@@ -89,7 +95,7 @@ export default function WriteReview() {
   /* ───────────────────── JSX ───────────────────── */
   return (
     <div className="page-wrap">
-      <h2 className="title">현영/별리⭐</h2>
+      <h2 className="title">🟢환영🟢별리⭐</h2>
 
       <form onSubmit={handleSubmit}>
         {/* 기본 정보 */}
@@ -158,8 +164,8 @@ export default function WriteReview() {
               onChange={onFile}
               required={req}
             />
-              {previews[key] && (
-                <img className="thumb" src={previews[key]} alt={key} />
+              {preview[key] && (
+                <img className="thumb" src={preview[key]} alt={key} />
               )}
           </div>
         ))}
