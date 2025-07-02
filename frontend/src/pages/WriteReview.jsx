@@ -14,6 +14,7 @@ import './WriteReview.css';
 
 export default function WriteReview() {
   const navigate = useNavigate();                // SPA 내비게이터
+  const storage   = getStorageInstance();            // ✅ 한 번만 확보
 
   /* ───────────────────────── state ───────────────────────── */
   const [form, setForm] = useState({
@@ -30,8 +31,8 @@ export default function WriteReview() {
     title: '',
     content: '',
   });
-  const [images, setImages] = useState({});
-  const [preview, setPreview] = useState({});
+  const [images] = useState({});
+  const [previews, setPreviews] = useState({});
   const [msg, setMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -42,15 +43,14 @@ export default function WriteReview() {
   const onFile = (e) => {
     const { name, files } = e.target;
     if (!files[0]) return;
-    setImages({ ...images, [name]: files[0] });
-    setPreview({ ...preview, [name]: URL.createObjectURL(files[0]) });
+    images[name] = files[0];
+    setPreviews({ ...previews, [name]: URL.createObjectURL(files[0]) });
   };
 
   const uploadOne = async (file) => {
-    const storageRef = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
-    const storage = getStorageInstance();
-    await uploadBytes(storageRef, file);
-    return await getDownloadURL(storageRef);
+    const r = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
+    await uploadBytes(r, file);
+    return await getDownloadURL(r);
   };
 
   /* ───────────────────── submit ───────────────────── */
@@ -78,10 +78,6 @@ export default function WriteReview() {
       /* 로그인 화면으로 이동 (SPA 라우팅) */
       navigate('/reviewer-login', { replace: true });
 
-      /* 폼 초기화 */
-      setForm(Object.fromEntries(Object.keys(form).map((k) => [k, ''])));
-      setImages({});
-      setPreview({});
     } catch (err) {
       console.error(err);
       setMsg('❌ 오류: ' + err.message);
@@ -162,9 +158,9 @@ export default function WriteReview() {
               onChange={onFile}
               required={req}
             />
-            {preview[key] && (
-              <img className="thumb" src={preview[key]} alt={key} />
-            )}
+              {previews[key] && (
+                <img className="thumb" src={previews[key]} alt={key} />
+              )}
           </div>
         ))}
 

@@ -2,22 +2,16 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   db,
-  storage,
-  collection,
-  query,
-  where,
-  orderBy,
-  getDocs,
-  doc,
-  updateDoc,
-  ref,
-  uploadBytes,
-  getDownloadURL,
+  getStorageInstance,
+  collection, query, where, orderBy, getDocs,
+  doc, updateDoc,
+  ref, uploadBytes, getDownloadURL,
 } from '../firebaseConfig';
 import './MyReviews.css';
 
 export default function MyReviews() {
-  const nav = useNavigate();
+  const nav      = useNavigate();
+  const storage  = getStorageInstance();           // ✅ 확보
 
   /* 리스트 로드 */
   const [loading, setLoading] = useState(true);
@@ -64,20 +58,15 @@ export default function MyReviews() {
     try {
       const urls = [];
       for (const f of files) {
-        const rf = ref(storage, `confirmImages/${Date.now()}_${f.name}`);
-        await uploadBytes(rf, f);
-        urls.push(await getDownloadURL(rf));
+        const r = ref(storage, `confirmImages/${Date.now()}_${f.name}`);
+        await uploadBytes(r, f);
+        urls.push(await getDownloadURL(r));
       }
-      await updateDoc(doc(db, 'reviews', cur.id), {
-        confirmImageUrls: urls,
-        confirmedAt: new Date(),
-      });
-      alert('업로드 완료!');
-      close();
-    } catch (err) {
-      console.error(err);
-      alert('업로드 실패: ' + err.message);
-    }
+      await updateDoc(doc(db, 'reviews', cur.id),
+        {confirmImageUrls: urls, confirmedAt: new Date()});
+      alert('업로드 완료'); setModal(null);
+    } catch (e) { alert('업로드 실패:' + e.message); }
+    finally { setUploading(false); setFiles([]); }
   };
 
   /* ───────── 렌더 ───────── */
