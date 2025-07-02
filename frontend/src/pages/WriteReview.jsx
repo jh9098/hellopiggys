@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';   // React-Router 훅
 import {
-  storage,
+  getStorageInstance,
   db,
   ref,
   uploadBytes,
@@ -48,6 +48,7 @@ export default function WriteReview() {
 
   const uploadOne = async (file) => {
     const storageRef = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
+    const storage = getStorageInstance();
     await uploadBytes(storageRef, file);
     return await getDownloadURL(storageRef);
   };
