@@ -1,18 +1,15 @@
-// src/pages/AdminLogin.jsx (전체 수정 코드)
-
-import { useState } from 'react';
+import { useState } from 'react'; // useEffect를 import 문에서 제거
 import { useNavigate } from 'react-router-dom';
 import { auth, signInWithEmailAndPassword, db, doc, getDoc } from '../firebaseConfig';
 import './AdminLogin.css';
 
+// 관리자 여부를 확인하는 비동기 함수
 const checkAdminStatus = async (user) => {
   if (!user) return false;
   
   try {
-    const adminDocRef = doc(db, 'admins', user.uid); // 'admins' 컬렉션에서 사용자 uid로 문서 참조
+    const adminDocRef = doc(db, 'admins', user.uid);
     const adminDocSnap = await getDoc(adminDocRef);
-    
-    // 문서가 존재하고, role 필드가 'admin'이면 true 반환
     return adminDocSnap.exists() && adminDocSnap.data().role === 'admin';
   } catch (error) {
     console.error("관리자 상태 확인 중 오류:", error);
@@ -26,22 +23,9 @@ export default function AdminLogin() {
   const [err, setErr] = useState('');
   const nav = useNavigate();
 
-  // 이미 로그인 상태인지 확인
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const isAdmin = await checkAdminStatus(user);
-        if (isAdmin) {
-          nav('/admin/review-management', { replace: true });
-        } else {
-          setLoading(false); // 관리자가 아니면 로그인 폼 표시
-        }
-      } else {
-        setLoading(false); // 로그인 상태가 아니면 폼 표시
-      }
-    });
-    return () => unsubscribe(); // 클린업
-  }, [nav]);
+  // PrivateRoute가 인증 상태 확인을 담당하므로, 
+  // AdminLogin 페이지에서는 로그인 로직만 처리합니다.
+  // 따라서 useEffect 훅이 필요 없습니다.
 
   const submit = async (e) => {
     e.preventDefault();
@@ -51,13 +35,12 @@ export default function AdminLogin() {
       const isAdmin = await checkAdminStatus(cred.user);
 
       if (isAdmin) {
-        nav('/admin/review-management');
+        nav('/admin/members', { replace: true }); // 로그인 성공 시 기본 페이지로 이동
       } else {
-        await auth.signOut(); // 관리자가 아니면 즉시 로그아웃 처리
+        await auth.signOut();
         setErr('관리자 권한이 없습니다.');
       }
     } catch (e) {
-      // Firebase 인증 에러 코드에 따라 더 친절한 메시지 표시 가능
       if (e.code === 'auth/invalid-credential') {
         setErr('이메일 또는 비밀번호가 올바르지 않습니다.');
       } else {
@@ -66,10 +49,6 @@ export default function AdminLogin() {
       console.error(e);
     }
   };
-
-  if (loading) {
-    return <p style={{textAlign: 'center', padding: '50px'}}>인증 상태 확인 중...</p>;
-  }
 
   return (
     <div className="admin-login-wrap">
