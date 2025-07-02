@@ -1,54 +1,46 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  db,
-  collection,
-  getDocs,
-  query,
-  orderBy,
+  auth,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
 } from '../firebaseConfig';
-import './AdminReviewList.css';
 
-export default function AdminReviewList() {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+function AdminLogin() {
+  const [email, setEmail] = useState('');
+  const [pw, setPw] = useState('');
+  const nav = useNavigate();
 
-  useEffect(() => {
-    (async () => {
-      const q = query(
-        collection(db, 'reviews'),
-        orderBy('createdAt', 'desc')
-      );
-      const snap = await getDocs(q);
-      setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    })();
-  }, []);
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    const cred = await signInWithEmailAndPassword(auth, email, pw);
+    const token = await cred.user.getIdTokenResult();
+    if (token.claims.admin) nav('/admin/reviews');
+    else alert('관리자 권한이 없습니다.');
+  };
 
-  if (loading) return <p style={{ padding: 24 }}>로딩중…</p>;
-
+  /* 간단 JSX */
   return (
-    <div className="admin-wrap">
-      <h2>리뷰 목록 ({rows.length})</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th><th>이름</th><th>전화</th><th>제목</th><th>작성일</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.id}>
-              <td>{r.id.slice(0,6)}…</td>
-              <td>{r.name}</td>
-              <td>{r.phoneNumber}</td>
-              <td>{r.title}</td>
-              <td>{r.createdAt?.seconds
-                     ? new Date(r.createdAt.seconds*1000).toLocaleString()
-                     : ''}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div style={{ padding: 24 }}>
+      <h2>관리자 로그인</h2>
+      <form onSubmit={onSubmit}>
+        <input
+          placeholder="이메일"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="비밀번호"
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+          required
+        />
+        <button>로그인</button>
+      </form>
     </div>
   );
 }
+
+export default AdminLogin;   // ✅ 한 번만 남기고 중복 제거
