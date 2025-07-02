@@ -1,72 +1,17 @@
-.my-wrap {
-    max-width: 480px;
-    margin: 0 auto;
-    padding: 16px;
-    font-family: 'Pretendard', sans-serif;
-  }
-  
-  .logout {
-    float: right;
-    margin-bottom: 8px;
-    background: #fff;
-    border: 1px solid #ccc;
-    padding: 6px 12px;
-    border-radius: 4px;
-  }
-  
-  .card {
-    border: 1px solid #ddd;
-    border-radius: 12px;
-    margin-bottom: 24px;
-    overflow: hidden;
-  }
-  
-  .card-head {
-    background: #f5f5f5;
-    padding: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .badge {
-    font-weight: 600;
-  }
-  
-  .timestamp {
-    font-size: 12px;
-    color: #666;
-  }
-  
-  .btn-wrap {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 12px;
-  }
-  
-  .btn-wrap button {
-    padding: 10px 0;
-    border: none;
-    background: #666;
-    color: #fff;
-    border-radius: 6px;
-  }
-  
-  .btn-wrap .outline {
-    background: #fff;
-    color: #000;
-    border: 1px solid #000;
-  }
-  
-  .product {
-    padding: 12px;
-    font-weight: 600;
-  }
-  
-  .status,
-  .price {
-    padding: 0 12px 12px;
-    color: #555;
-  }
-  
+.my-wrap{max-width:480px;margin:0 auto;padding:16px;font-family:Pretendard,sans-serif}
+.logout{float:right;margin-bottom:8px;background:#fff;border:1px solid #ccc;padding:6px 12px;border-radius:4px}
+.card{border:1px solid #ddd;border-radius:12px;margin:24px 0;overflow:hidden}
+.card-head{background:#f5f5f5;padding:12px;display:flex;justify-content:space-between;align-items:center}
+.badge{font-weight:600}
+.timestamp{font-size:12px;color:#666}
+.btn-wrap{display:grid;gap:8px;padding:12px}
+.btn-wrap button{padding:10px 0;border:none;background:#666;color:#fff;border-radius:6px}
+.btn-wrap .outline{background:#fff;color:#000;border:1px solid #000}
+.product{padding:12px;font-weight:600}
+.status,.price{padding:0 12px 12px;color:#555}
+
+.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:1000}
+.modal{background:#fff;border-radius:8px;padding:24px;max-width:380px;width:90%;max-height:80vh;overflow:auto;position:relative}
+.modal .close{position:absolute;top:8px;right:8px;border:none;background:none;font-size:20px;cursor:pointer}
+.detail-grid{display:grid;grid-template-columns:100px 1fr;row-gap:6px}
+.detail-grid .k{font-weight:600}
