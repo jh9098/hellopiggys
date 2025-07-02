@@ -99,8 +99,8 @@ export default function AdminMemberManagement() {
 
             {/* 페이지네이션 UI */}
             <div className="pagination">
-                <button onClick={() => goToPage(1)} disabled={currentPage === 1}><<</button>
-                <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}><</button>
+                <button onClick={() => goToPage(1)} disabled={currentPage === 1}>&laquo;</button>
+                <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>&lt;</button>
                 
                 {/* 페이지 번호들 (예: ... 3 4 5 6 7 ...) */}
                 {[...Array(totalPages).keys()].map(num => (
