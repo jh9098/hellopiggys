@@ -1,4 +1,4 @@
-// src/pages/AdminReviewManagement.jsx
+// src/pages/AdminReviewManagement.jsx (수정된 전체 코드)
 
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, updateDoc, doc } from '../firebaseConfig';
@@ -55,9 +55,12 @@ export default function AdminReviewManagement() {
     }
   };
 
+  // '리뷰 인증'은 리뷰가 제출되었을 때 관리자가 최종 확인하는 프로세스
+  // '리뷰 제출'은 사용자가 이미지를 업로드했는지 여부
   const markVerified = async () => {
     if (selected.size === 0) return;
     for (const id of selected) {
+      // 'verified' 필드를 true로 업데이트
       await updateDoc(doc(db, 'reviews', id), { verified: true });
     }
     setRows(rows.map((r) => (selected.has(r.id) ? { ...r, verified: true } : r)));
@@ -66,13 +69,14 @@ export default function AdminReviewManagement() {
 
   const downloadCsv = () => {
     const csvData = filteredRows.map((r, i) => ({
-      순번: i + 1,
-      등록일시: r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '',
-      리뷰제목: r.title,
-      상품명: r.productName || '-',
-      이름: r.name,
-      전화번호: r.phoneNumber,
-      인증: r.verified ? 'O' : 'X',
+      '순번': i + 1,
+      '등록일시': r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '',
+      '리뷰 제목': r.title,
+      '상품명': r.productName || '-',
+      '이름': r.name,
+      '전화번호': r.phoneNumber,
+      '리뷰 제출': r.confirmImageUrls && r.confirmImageUrls.length > 0 ? 'O' : 'X',
+      '최종 인증': r.verified ? 'O' : 'X',
     }));
     const csv = Papa.unparse(csvData);
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
@@ -91,7 +95,7 @@ export default function AdminReviewManagement() {
       <h2>리뷰 관리 ({filteredRows.length})</h2>
       <div className="toolbar">
         <button onClick={markVerified} disabled={selected.size === 0}>
-          선택 항목 리뷰 인증
+          선택 항목 최종 인증
         </button>
         <input placeholder="검색" value={search} onChange={(e) => setSearch(e.target.value)} />
         <button onClick={downloadCsv}>엑셀 다운로드</button>
@@ -100,11 +104,7 @@ export default function AdminReviewManagement() {
         <thead>
           <tr>
             <th>
-              <input
-                type="checkbox"
-                checked={selected.size === filteredRows.length && filteredRows.length > 0}
-                onChange={toggleSelectAll}
-              />
+              <input type="checkbox" checked={selected.size === filteredRows.length && filteredRows.length > 0} onChange={toggleSelectAll} />
             </th>
             <th>순번</th>
             <th>등록일시</th>
@@ -112,18 +112,15 @@ export default function AdminReviewManagement() {
             <th>상품명</th>
             <th>이름</th>
             <th>전화번호</th>
-            <th>인증</th>
+            <th>리뷰 제출</th>
+            <th>최종 인증</th>
           </tr>
         </thead>
         <tbody>
           {filteredRows.map((r, idx) => (
             <tr key={r.id}>
               <td>
-                <input
-                  type="checkbox"
-                  checked={selected.has(r.id)}
-                  onChange={() => toggleSelect(r.id)}
-                />
+                <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} />
               </td>
               <td>{idx + 1}</td>
               <td>{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleDateString() : ''}</td>
@@ -131,6 +128,9 @@ export default function AdminReviewManagement() {
               <td>{r.productName || '-'}</td>
               <td>{r.name}</td>
               <td>{r.phoneNumber}</td>
+              {/* 리뷰 제출 여부 표시 */}
+              <td>{r.confirmImageUrls && r.confirmImageUrls.length > 0 ? 'O' : 'X'}</td>
+              {/* 최종 인증 여부 표시 */}
               <td>{r.verified ? 'O' : 'X'}</td>
             </tr>
           ))}
