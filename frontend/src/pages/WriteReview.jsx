@@ -68,7 +68,8 @@ export default function WriteReview() {
       localStorage.setItem('REVIEWER_PHONE', form.phoneNumber.trim());
       
       // ⬇️ 로그인 화면으로 이동 (Vite 내장 라우터 사용)
-      window.location.href = '/reviewer-login';
+      nav('/reviewer-login', { replace: true });
+
       setForm(Object.fromEntries(Object.keys(form).map((k) => [k, ''])));
       setImages({});
       setPreview({});
