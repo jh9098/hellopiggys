@@ -43,8 +43,12 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db   = getFirestore(app);
 
-// Storage 는 실제 필요할 때만 가져오기 (지연 로딩)
+// Storage는 지연 로딩 + 필요하면 직접 꺼내 씀
 export const getStorageInstance = () => getStorage(app);
+
+// *빌드 시 MyReviews·WriteReview에서 static import가 필요하므로
+//   기본 storage 객체도 함께 내보냅니다.
+export const storage = getStorageInstance();
 
 /* ───────── 자주 쓰는 파이어스토어/스토리지 함수 재수출 ───────── */
 export {

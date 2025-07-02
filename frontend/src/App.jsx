@@ -17,8 +17,9 @@ function App() {
       <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/admin/reviews" element={<AdminReviewList />} />
       <Route path="/reviews/:id" element={<ReviewDetail />} />
-      <Route path="*" element={<Navigate to="/" />} />
-      <route path="/admin/review-management" element={<AdminReviewManagement />} />
+      <Route path="/admin/review-management"
+             element={<AdminReviewManagement />} />
+      <Route path="*" element={<Navigate to="/" />} />   {/* catch-all 마지막 */}
     </Routes>
   );
 }
