@@ -1,0 +1,72 @@
+.my-wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 16px;
+    font-family: 'Pretendard', sans-serif;
+  }
+  
+  .logout {
+    float: right;
+    margin-bottom: 8px;
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 6px 12px;
+    border-radius: 4px;
+  }
+  
+  .card {
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  
+  .card-head {
+    background: #f5f5f5;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .badge {
+    font-weight: 600;
+  }
+  
+  .timestamp {
+    font-size: 12px;
+    color: #666;
+  }
+  
+  .btn-wrap {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+  
+  .btn-wrap button {
+    padding: 10px 0;
+    border: none;
+    background: #666;
+    color: #fff;
+    border-radius: 6px;
+  }
+  
+  .btn-wrap .outline {
+    background: #fff;
+    color: #000;
+    border: 1px solid #000;
+  }
+  
+  .product {
+    padding: 12px;
+    font-weight: 600;
+  }
+  
+  .status,
+  .price {
+    padding: 0 12px 12px;
+    color: #555;
+  }
+  

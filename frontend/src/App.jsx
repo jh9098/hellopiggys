@@ -4,6 +4,7 @@ import MyReviews from './pages/MyReviews';
 import AdminLogin from './pages/AdminLogin';
 import AdminReviewList from './pages/AdminReviewList';
 import ReviewDetail from './pages/ReviewDetail';
+import ReviewerLogin from './pages/ReviewerLogin';   // ✅ 추가
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin/reviews" element={<AdminReviewList />} />
       <Route path="/reviews/:id" element={<ReviewDetail />} />
+      <Route path="/reviewer-login" element={<ReviewerLogin />} />
     </Routes>
   );
 }

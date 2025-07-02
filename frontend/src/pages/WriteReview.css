@@ -1,0 +1,76 @@
+.page-wrap {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 16px;
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+  }
+  
+  .title {
+    text-align: center;
+    margin: 12px 0 20px;
+    font-size: 20px;
+  }
+  
+  .notice-box {
+    border: 1px dashed #ccc;
+    min-height: 80px;      /* 관리자 메시지를 넣을 공간 */
+    padding: 8px;
+    margin-bottom: 12px;
+    white-space: pre-line;
+    font-size: 14px;
+  }
+  
+  .field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 12px;
+  }
+  
+  .field label {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  
+  .field input[type='file'] {
+    padding: 6px 0;
+  }
+  
+  input,
+  select,
+  textarea {
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .thumb {
+    margin-top: 6px;
+    width: 100%;
+    max-height: 160px;
+    object-fit: cover;
+    border: 1px solid #eee;
+    border-radius: 4px;
+  }
+  
+  .submit-btn {
+    width: 100%;
+    background: #0c9;
+    color: #fff;
+    padding: 12px 0;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  .submit-btn:disabled {
+    background: #999;
+  }
+  
+  .msg {
+    margin-top: 10px;
+    font-weight: 600;
+    text-align: center;
+  }
+  
