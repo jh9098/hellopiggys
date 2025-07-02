@@ -17,7 +17,7 @@ import {
   serverTimestamp,
   doc,
   updateDoc,
-  getDoc,
+  deleteDoc, // <--- deleteDoc을 firebase/firestore에서 import
 } from 'firebase/firestore';
 import {
   getStorage,
@@ -68,6 +68,7 @@ export {
   doc,
   updateDoc,
   getDoc,
+  deleteDoc, // <--- deleteDoc을 firebase/firestore에서 export
 
   /* Storage helpers */
   ref,

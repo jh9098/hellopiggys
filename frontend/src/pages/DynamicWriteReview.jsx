@@ -197,7 +197,6 @@ export default function DynamicWriteReview() {
         <button className="submit-btn" disabled={submitting}>
           {submitting ? '제출 중…' : '제출하기'}
         </button>
-        {msg && <p className="msg">{msg}</p>}
       </form>    </div>
   );
 }
