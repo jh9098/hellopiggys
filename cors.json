@@ -1,8 +1,15 @@
 [
   {
-    "origin": ["https://hellopiggy.netlify.app"],
-    "method": ["GET", "POST", "PUT"],
-    "maxAgeSeconds": 3600,
-    "responseHeader": ["Content-Type"]
+    "origin": [
+      "https://hellopiggy.netlify.app",
+      "http://localhost:5173" 
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "X-Goog-Resumable"
+    ],
+    "maxAgeSeconds": 3600
   }
 ]
