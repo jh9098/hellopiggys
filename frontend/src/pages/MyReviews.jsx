@@ -11,23 +11,36 @@ import {
 import './MyReviews.css';
 
 export default function MyReviews() {
-  const [rows, setRows] = useState([]);
   const nav = useNavigate();
 
+  /* ✅ 로딩 상태 포함 */
+  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState([]);
+
   useEffect(() => {
-    const name = localStorage.getItem('REVIEWER_NAME');
+    const name  = localStorage.getItem('REVIEWER_NAME');
     const phone = localStorage.getItem('REVIEWER_PHONE');
-    if (!name || !phone) return nav('/reviewer-login', { replace: true });
+
+    if (!name || !phone) {
+      nav('/reviewer-login', { replace: true });
+      return;
+    }
 
     (async () => {
-      const q = query(
-        collection(db, 'reviews'),
-        where('name', '==', name),
-        where('phoneNumber', '==', phone),
-        orderBy('createdAt', 'desc')
-      );
-      const snap = await getDocs(q);
-      setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      try {
+        const q = query(
+          collection(db, 'reviews'),
+          where('name', '==', name),
+          where('phoneNumber', '==', phone),
+          orderBy('createdAt', 'desc')
+        );
+        const snap = await getDocs(q);
+        setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [nav]);
 
@@ -37,6 +50,7 @@ export default function MyReviews() {
     nav('/reviewer-login', { replace: true });
   };
 
+  /* ───── 렌더 ───── */
   if (loading) return <p style={{ padding: 24 }}>로딩중…</p>;
 
   return (
@@ -52,7 +66,9 @@ export default function MyReviews() {
           <div className="card-head">
             <span className="badge">🟢현영🟢별리⭐</span>
             <span className="timestamp">
-              {new Date(r.createdAt.seconds * 1000).toLocaleString()}
+              {r.createdAt?.seconds
+                ? new Date(r.createdAt.seconds * 1000).toLocaleString()
+                : ''}
             </span>
           </div>
 
@@ -64,7 +80,9 @@ export default function MyReviews() {
 
           <div className="product">{r.title}</div>
           <div className="status">구매 완료</div>
-          <div className="price">{Number(r.rewardAmount || 0).toLocaleString()}원</div>
+          <div className="price">
+            {Number(r.rewardAmount || 0).toLocaleString()}원
+          </div>
         </div>
       ))}
     </div>
