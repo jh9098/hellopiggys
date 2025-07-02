@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';   // React-Router 훅
 import {
   storage,
   db,
@@ -12,6 +13,9 @@ import {
 import './WriteReview.css';
 
 export default function WriteReview() {
+  const navigate = useNavigate();                // SPA 내비게이터
+
+  /* ───────────────────────── state ───────────────────────── */
   const [form, setForm] = useState({
     name: '',
     phoneNumber: '',
@@ -31,6 +35,7 @@ export default function WriteReview() {
   const [msg, setMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  /* ────────────────────── helpers ────────────────────── */
   const onChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -42,34 +47,37 @@ export default function WriteReview() {
   };
 
   const uploadOne = async (file) => {
-    const storageRef = ref(
-      storage,
-      `reviewImages/${Date.now()}_${file.name}`
-    );
+    const storageRef = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
     await uploadBytes(storageRef, file);
     return await getDownloadURL(storageRef);
   };
 
+  /* ───────────────────── submit ───────────────────── */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
+      /* 이미지 업로드 */
       const urlMap = {};
       for (const [key, file] of Object.entries(images)) {
         if (file) urlMap[key + 'Url'] = await uploadOne(file);
       }
+
+      /* 리뷰 문서 저장 */
       await addDoc(collection(db, 'reviews'), {
         ...form,
         ...urlMap,
         createdAt: serverTimestamp(),
       });
-      // ⬇️ 이름·전화번호를 localStorage에 저장
+
+      /* 이름·전화 localStorage 저장 */
       localStorage.setItem('REVIEWER_NAME', form.name.trim());
       localStorage.setItem('REVIEWER_PHONE', form.phoneNumber.trim());
-      
-      // ⬇️ 로그인 화면으로 이동 (Vite 내장 라우터 사용)
-      nav('/reviewer-login', { replace: true });
 
+      /* 로그인 화면으로 이동 (SPA 라우팅) */
+      navigate('/reviewer-login', { replace: true });
+
+      /* 폼 초기화 */
       setForm(Object.fromEntries(Object.keys(form).map((k) => [k, ''])));
       setImages({});
       setPreview({});
@@ -81,113 +89,69 @@ export default function WriteReview() {
     }
   };
 
-  /* ---- JSX (캡처 레이아웃 그대로) ---- */
+  /* ───────────────────── JSX ───────────────────── */
   return (
     <div className="page-wrap">
-      <h2 className="title">🟢환영🟢별리⭐</h2>
-      <form onSubmit={handleSubmit}>
-        {/* ───────── 기본 정보 ───────── */}
-        <div className="field">
-          <label>구매자(수취인)</label>
-          <input
-            name="name"
-            value={form.name}
-            onChange={onChange}
-            placeholder="이름을 입력하세요."
-            required
-          />
-        </div>
-        <div className="field">
-          <label>전화번호</label>
-          <input
-            name="phoneNumber"
-            value={form.phoneNumber}
-            onChange={onChange}
-            placeholder="숫자만 입력하세요."
-            required
-          />
-        </div>
-        <div className="field">
-          <label>참가자ID</label>
-          <input
-            name="participantId"
-            value={form.participantId}
-            onChange={onChange}
-            required
-          />
-        </div>
-        <div className="field">
-          <label>주문번호</label>
-          <input
-            name="orderNumber"
-            value={form.orderNumber}
-            onChange={onChange}
-            required
-          />
-        </div>
-        <div className="field">
-          <label>주소</label>
-          <input
-            name="address"
-            value={form.address}
-            onChange={onChange}
-            placeholder="도로명 주소"
-            required
-          />
-        </div>
-        <div className="field">
-          <label>상세주소</label>
-          <input
-            name="detailAddress"
-            value={form.detailAddress}
-            onChange={onChange}
-          />
-        </div>
+      <h2 className="title">현영/별리⭐</h2>
 
-        {/* ───────── 입금 정보 ───────── */}
+      <form onSubmit={handleSubmit}>
+        {/* 기본 정보 */}
+        {[
+          { key: 'name', label: '구매자(수취인)', ph: '이름을 입력하세요.' },
+          { key: 'phoneNumber', label: '전화번호', ph: '숫자만 입력하세요.', type: 'tel' },
+          { key: 'participantId', label: '참가자ID', ph: '' },
+          { key: 'orderNumber', label: '주문번호', ph: '' },
+          { key: 'address', label: '주소', ph: '도로명 주소' },
+          { key: 'detailAddress', label: '상세주소', ph: '' },
+        ].map(({ key, label, ph, type }) => (
+          <div className="field" key={key}>
+            <label>{label}</label>
+            <input
+              name={key}
+              value={form[key]}
+              onChange={onChange}
+              placeholder={ph}
+              type={type || 'text'}
+              required={key !== 'detailAddress'}
+            />
+          </div>
+        ))}
+
+        {/* 입금 정보 */}
         <div className="field">
           <label>은행</label>
           <select name="bank" value={form.bank} onChange={onChange} required>
             <option value="">은행 선택</option>
-            {['국민','농협','신한','우리','하나','카카오뱅크'].map((b) => (
-              <option key={b} value={b}>{b}</option>
+            {['국민', '농협', '신한', '우리', '하나', '카카오뱅크'].map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
             ))}
           </select>
         </div>
-        <div className="field">
-          <label>계좌번호</label>
-          <input
-            name="bankNumber"
-            value={form.bankNumber}
-            onChange={onChange}
-            required
-          />
-        </div>
-        <div className="field">
-          <label>예금주</label>
-          <input
-            name="accountHolderName"
-            value={form.accountHolderName}
-            onChange={onChange}
-            required
-          />
-        </div>
-        <div className="field">
-          <label>금액</label>
-          <input
-            name="rewardAmount"
-            value={form.rewardAmount}
-            onChange={onChange}
-          />
-        </div>
-
-        {/* ───────── 이미지 업로드 ───────── */}
         {[
-          { key: 'likeImage', label: '상품 찜 캡처 (필수)' },
-          { key: 'orderImage', label: '구매 인증 캡처 (최대 2개)' },
-          { key: 'secondOrderImage', label: '추가 구매 인증 (선택)' },
-          { key: 'reviewImage', label: '리뷰 인증 캡처 (필수)' },
+          { key: 'bankNumber', label: '계좌번호' },
+          { key: 'accountHolderName', label: '예금주' },
+          { key: 'rewardAmount', label: '금액' },
         ].map(({ key, label }) => (
+          <div className="field" key={key}>
+            <label>{label}</label>
+            <input
+              name={key}
+              value={form[key]}
+              onChange={onChange}
+              required={key !== 'rewardAmount'}
+            />
+          </div>
+        ))}
+
+        {/* 이미지 업로드 */}
+        {[
+          { key: 'likeImage', label: '상품 찜 캡처 (필수)', req: true },
+          { key: 'orderImage', label: '구매 인증 캡처 (최대 2개)', req: true },
+          { key: 'secondOrderImage', label: '추가 구매 인증 (선택)', req: false },
+          { key: 'reviewImage', label: '리뷰 인증 캡처 (필수)', req: true },
+        ].map(({ key, label, req }) => (
           <div className="field" key={key}>
             <label>{label}</label>
             <input
@@ -195,7 +159,7 @@ export default function WriteReview() {
               accept="image/*"
               name={key}
               onChange={onFile}
-              required={key === 'likeImage' || key === 'orderImage' || key === 'reviewImage'}
+              required={req}
             />
             {preview[key] && (
               <img className="thumb" src={preview[key]} alt={key} />
@@ -203,12 +167,13 @@ export default function WriteReview() {
           </div>
         ))}
 
-        {/* ───────── 약관 ───────── */}
+        {/* 약관 */}
         <div className="field">
           <label>
             <input type="checkbox" required /> 약관을 확인하였어요
           </label>
         </div>
+
         <button className="submit-btn" disabled={submitting}>
           {submitting ? '제출 중…' : '제출하기'}
         </button>
