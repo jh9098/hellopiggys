@@ -3,28 +3,40 @@ import { useNavigate } from 'react-router-dom';
 import {
   db,
   getStorageInstance,
-  collection, query, where, orderBy, getDocs,
-  doc, updateDoc,
-  ref, uploadBytes, getDownloadURL,
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  doc,
+  updateDoc,
+  ref,
+  uploadBytes,
+  getDownloadURL,
 } from '../firebaseConfig';
 import './MyReviews.css';
 
 export default function MyReviews() {
-  const nav      = useNavigate();
-  const storage  = getStorageInstance();           // ✅ 확보
+  const nav = useNavigate();
+  const storage = getStorageInstance();
 
-  /* 리스트 로드 */
+  /* ───── 데이터 및 상태 관리 ───── */
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
+  const [modal, setModal] = useState(null); // 'guide' | 'detail' | 'upload' | null
+  const [cur, setCur] = useState(null); // 선택된 원본 리뷰 객체
 
-  /* 모달 상태 */
-  const [modal, setModal] = useState(null);     // 'guide' | 'detail' | 'upload' | null
-  const [cur, setCur] = useState(null);         // 선택 리뷰 객체
-  const [files, setFiles] = useState([]);       // 업로드 파일 리스트
+  // 수정 모드 상태
+  const [isEditing, setIsEditing] = useState(false);
+  const [editableData, setEditableData] = useState({});
+
+  // 리뷰 인증 업로드 상태
+  const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
 
+  /* ───── 데이터 로딩 ───── */
   useEffect(() => {
-    const name  = localStorage.getItem('REVIEWER_NAME');
+    const name = localStorage.getItem('REVIEWER_NAME');
     const phone = localStorage.getItem('REVIEWER_PHONE');
     if (!name || !phone) return nav('/reviewer-login', { replace: true });
 
@@ -41,16 +53,53 @@ export default function MyReviews() {
     })();
   }, [nav]);
 
-  /* 버튼 핸들러 */
+  /* ───── 핸들러: 모달 및 수정 ───── */
   const open = (type, r) => {
     setCur(r);
     setModal(type);
-  };
-  const close = () => {
-    setModal(null); setFiles([]); setUploading(false);
+    setIsEditing(false); // 모달 열 때 항상 보기 모드로 초기화
   };
 
-  /* 리뷰 인증 업로드 */
+  const close = () => {
+    setModal(null);
+    setFiles([]);
+    setUploading(false);
+    setIsEditing(false);
+  };
+
+  const handleEdit = () => {
+    setEditableData({ ...cur }); // 현재 데이터를 수정용 상태에 복사
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  const handleDataChange = (e) => {
+    setEditableData({ ...editableData, [e.target.name]: e.target.value });
+  };
+
+  const handleSave = async () => {
+    if (!cur) return;
+    setUploading(true); // 저장 중 상태로 변경
+    try {
+      await updateDoc(doc(db, 'reviews', cur.id), editableData);
+      
+      // 로컬 상태도 업데이트하여 새로고침 없이 변경사항 반영
+      setRows(rows.map(row => row.id === cur.id ? { ...row, ...editableData } : row));
+
+      alert('수정이 완료되었습니다.');
+      setIsEditing(false); // 보기 모드로 전환
+      setCur({ ...cur, ...editableData }); // 현재 보고 있는 데이터도 업데이트
+    } catch (e) {
+      alert('수정 실패: ' + e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  /* ───── 핸들러: 리뷰 인증 업로드 ───── */
   const onFile = (e) => setFiles(Array.from(e.target.files || []));
   const uploadConfirm = async () => {
     if (files.length === 0) return alert('파일을 선택하세요');
@@ -62,21 +111,32 @@ export default function MyReviews() {
         await uploadBytes(r, f);
         urls.push(await getDownloadURL(r));
       }
-      await updateDoc(doc(db, 'reviews', cur.id),
-        {confirmImageUrls: urls, confirmedAt: new Date()});
-      alert('업로드 완료'); setModal(null);
-    } catch (e) { alert('업로드 실패:' + e.message); }
-    finally { setUploading(false); setFiles([]); }
+      const updatedData = { confirmImageUrls: urls, confirmedAt: new Date() };
+      await updateDoc(doc(db, 'reviews', cur.id), updatedData);
+
+      setRows(rows.map(row => row.id === cur.id ? { ...row, ...updatedData } : row));
+
+      alert('업로드 완료');
+      close();
+    } catch (e) {
+      alert('업로드 실패:' + e.message);
+    } finally {
+      setUploading(false);
+      setFiles([]);
+    }
   };
 
-  /* ───────── 렌더 ───────── */
+  /* ───────── 렌더링 ───────── */
   if (loading) return <p style={{ padding: 24 }}>로딩중…</p>;
 
   return (
     <div className="my-wrap">
       <button
         className="logout"
-        onClick={() => { localStorage.clear(); nav('/reviewer-login', {replace:true}); }}
+        onClick={() => {
+          localStorage.clear();
+          nav('/reviewer-login', { replace: true });
+        }}
       >
         로그아웃 ➡
       </button>
@@ -100,7 +160,7 @@ export default function MyReviews() {
             </button>
           </div>
 
-          <div className="product">{r.title}</div>
+          <div className="product">{r.title || '제목 없음'}</div>
           <div className="status">구매 완료</div>
           <div className="price">
             {Number(r.rewardAmount || 0).toLocaleString()}원
@@ -108,51 +168,113 @@ export default function MyReviews() {
         </div>
       ))}
 
-      {/* ───── 모달 공통 레이아웃 ───── */}
+      {/* ───── 모달 렌더링 ───── */}
       {modal && (
         <div className="modal-back" onClick={close}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <button className="close" onClick={close}>✖</button>
 
+            {/* 진행 가이드 모달 */}
             {modal === 'guide' && (
               <>
                 <h3>진행 가이드</h3>
-                <p style={{ whiteSpace: 'pre-line' }}>
-                  {cur?.content || '준비 중입니다.'}
-                </p>
+                <p style={{ whiteSpace: 'pre-line' }}>{cur?.content || '준비 중입니다.'}</p>
               </>
             )}
 
+            {/* 구매내역 모달 (새로운 디자인 적용) */}
             {modal === 'detail' && (
-              <>
+              <div className="detail-view">
                 <h3>구매 내역</h3>
-                <div className="detail-grid">
-                  {Object.entries({
-                    이름: cur?.name,
-                    전화번호: cur?.phoneNumber,
-                    참가자ID: cur?.participantId,
-                    주문번호: cur?.orderNumber,
-                    주소: `${cur?.address} ${cur?.detailAddress || ''}`,
-                    은행: cur?.bank,
-                    계좌번호: cur?.bankNumber,
-                    예금주: cur?.accountHolderName,
-                    금액: cur?.rewardAmount,
-                  }).map(([k, v]) => (
-                    <><span className="k">{k}</span><span>{v}</span></>
-                  ))}
+                <div className="form-grid">
+                  {/* ... (생략된 필드들) ... */}
+                  <div className="field">
+                    <label>구매자(수취인)</label>
+                    {isEditing ? (
+                      <input name="name" value={editableData.name || ''} onChange={handleDataChange} />
+                    ) : (
+                      <p>{cur?.name}</p>
+                    )}
+                  </div>
+                  <div className="field">
+                    <label>전화번호</label>
+                    {isEditing ? (
+                      <input name="phoneNumber" value={editableData.phoneNumber || ''} onChange={handleDataChange} />
+                    ) : (
+                      <p>{cur?.phoneNumber}</p>
+                    )}
+                  </div>
                 </div>
-              </>
-            )}
+                {/* 1열 필드 */}
+                {[
+                  { key: 'orderNumber', label: '주문번호' },
+                  { key: 'address', label: '주소' },
+                  { key: 'detailAddress', label: '상세주소' },
+                  { key: 'bankNumber', label: '계좌번호' },
+                  { key: 'accountHolderName', label: '예금주' },
+                  { key: 'rewardAmount', label: '금액' },
+                ].map(({ key, label }) => (
+                  <div className="field" key={key}>
+                    <label>{label}</label>
+                    {isEditing ? (
+                      <input name={key} value={editableData[key] || ''} onChange={handleDataChange} />
+                    ) : (
+                      <p>{cur?.[key]}</p>
+                    )}
+                  </div>
+                ))}
+                <div className="field">
+                  <label>은행</label>
+                  {isEditing ? (
+                    <select name="bank" value={editableData.bank || ''} onChange={handleDataChange}>
+                      <option value="">은행 선택</option>
+                      {['국민', '농협', '신한', '우리', '하나', '카카오뱅크'].map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  ) : (
+                    <p>{cur?.bank}</p>
+                  )}
+                </div>
 
+                {/* 이미지 섹션 */}
+                {[
+                  { key: 'likeImageUrl', label: '상품 찜 캡처' },
+                  { key: 'orderImageUrl', label: '구매 인증 캡처' },
+                  { key: 'secondOrderImageUrl', label: '추가 구매 인증' },
+                  { key: 'reviewImageUrl', label: '리뷰 인증 캡처' },
+                ].map(({ key, label }) =>
+                  cur?.[key] ? (
+                    <div className="field" key={key}>
+                      <label>{label}</label>
+                      <img src={cur[key]} alt={label} className="thumb" />
+                    </div>
+                  ) : null
+                )}
+
+                {/* 하단 버튼 */}
+                <div className="modal-actions">
+                  {isEditing ? (
+                    <>
+                      <button onClick={handleSave} disabled={uploading}>
+                        {uploading ? '저장 중...' : '저장'}
+                      </button>
+                      <button onClick={handleCancelEdit} className="secondary">취소</button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={handleEdit}>수정</button>
+                      <button onClick={close} className="secondary">닫기</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* 리뷰 인증 업로드 모달 */}
             {modal === 'upload' && (
               <>
                 <h3>리뷰 인증 이미지 업로드</h3>
                 <input type="file" accept="image/*" multiple onChange={onFile} />
-                <button
-                  onClick={uploadConfirm}
-                  disabled={uploading}
-                  style={{ marginTop: 16 }}
-                >
+                <button onClick={uploadConfirm} disabled={uploading} style={{ marginTop: 16 }}>
                   {uploading ? '업로드 중…' : '완료'}
                 </button>
               </>
