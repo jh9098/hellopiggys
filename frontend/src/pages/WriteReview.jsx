@@ -63,7 +63,12 @@ export default function WriteReview() {
         ...urlMap,
         createdAt: serverTimestamp(),
       });
-      setMsg('🎉 제출되었습니다!');
+      // ⬇️ 이름·전화번호를 localStorage에 저장
+      localStorage.setItem('REVIEWER_NAME', form.name.trim());
+      localStorage.setItem('REVIEWER_PHONE', form.phoneNumber.trim());
+      
+      // ⬇️ 로그인 화면으로 이동 (Vite 내장 라우터 사용)
+      window.location.href = '/reviewer-login';
       setForm(Object.fromEntries(Object.keys(form).map((k) => [k, ''])));
       setImages({});
       setPreview({});
