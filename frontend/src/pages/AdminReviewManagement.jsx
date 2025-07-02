@@ -1,121 +1,141 @@
-import { useState, useEffect, useMemo } from 'react';
-import { db, collection, getDocs, query, orderBy } from '../firebaseConfig';
+// src/pages/AdminReviewManagement.jsx
 
-// 날짜를 'YYYY. MM. DD.' 형식으로 변환하는 헬퍼 함수
-const formatDate = (date) => {
-    if (!date) return 'N/A';
-    const d = date.toDate(); // Firebase Timestamp를 JavaScript Date 객체로 변환
-    return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
-};
+import { useEffect, useState, useMemo } from 'react';
+import { db, collection, getDocs, query, orderBy, updateDoc, doc } from '../firebaseConfig';
+import Papa from 'papaparse';
 
-export default function AdminMemberManagement() {
-    const [members, setMembers] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10; // 한 페이지에 10개씩 표시
+export default function AdminReviewManagement() {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(new Set());
+  const [search, setSearch] = useState('');
 
-    useEffect(() => {
-        const fetchMembers = async () => {
-            setLoading(true);
-            const reviewsQuery = query(collection(db, 'reviews'), orderBy('createdAt', 'desc'));
-            const querySnapshot = await getDocs(reviewsQuery);
-            const reviews = querySnapshot.docs.map(doc => doc.data());
-
-            // 전화번호를 기준으로 리뷰를 그룹화하고 사용자 데이터 집계
-            const memberData = reviews.reduce((acc, review) => {
-                const { phoneNumber, name, createdAt } = review;
-
-                if (!acc[phoneNumber]) {
-                    // 이 전화번호의 첫 번째 리뷰인 경우, 새 멤버 정보 생성
-                    acc[phoneNumber] = {
-                        phoneNumber,
-                        name, // 가장 최근 이름으로 덮어쓰여짐
-                        joinDate: createdAt, // 가장 최근 날짜로 덮어쓰여짐
-                        submissionCount: 0, // 참여 횟수 카운터 초기화
-                    };
-                }
-                
-                // 참여 횟수 증가
-                acc[phoneNumber].submissionCount += 1;
-                // 항상 최신 이름과 가입일로 유지 (orderBy 덕분에 첫 데이터가 최신)
-                // (만약 이름을 바꿨을 경우를 대비)
-                acc[phoneNumber].name = name; 
-                acc[phoneNumber].joinDate = createdAt;
-
-                return acc;
-            }, {});
-
-            // 객체를 배열로 변환
-            const memberList = Object.values(memberData);
-            setMembers(memberList);
-            setLoading(false);
-        };
-
-        fetchMembers();
-    }, []);
-
-    // 페이지네이션 로직
-    const paginatedMembers = useMemo(() => {
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        return members.slice(startIndex, endIndex);
-    }, [members, currentPage]);
-
-    const totalPages = Math.ceil(members.length / itemsPerPage);
-
-    const goToPage = (page) => {
-        if (page > 0 && page <= totalPages) {
-            setCurrentPage(page);
-        }
+  useEffect(() => {
+    const fetchReviews = async () => {
+      setLoading(true);
+      const snap = await getDocs(query(collection(db, 'reviews'), orderBy('createdAt', 'desc')));
+      setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setLoading(false);
     };
+    fetchReviews();
+  }, []);
 
-    if (loading) {
-        return <p>회원 정보를 불러오는 중...</p>;
-    }
-
-    return (
-        <>
-            <h2>회원 관리 ({members.length}명)</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>이름</th>
-                        <th>전화번호</th>
-                        <th>참여횟수</th>
-                        <th>최근 참여일</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {paginatedMembers.map(member => (
-                        <tr key={member.phoneNumber}>
-                            <td>{member.name}</td>
-                            <td>{member.phoneNumber}</td>
-                            <td>{member.submissionCount}회</td>
-                            <td>{formatDate(member.joinDate)}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-
-            {/* 페이지네이션 UI */}
-            <div className="pagination">
-                <button onClick={() => goToPage(1)} disabled={currentPage === 1}>&laquo;</button>
-                <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>&lt;</button>
-                
-                {/* 페이지 번호들 (예: ... 3 4 5 6 7 ...) */}
-                {[...Array(totalPages).keys()].map(num => (
-                    <button
-                        key={num + 1}
-                        onClick={() => goToPage(num + 1)}
-                        className={currentPage === num + 1 ? 'active' : ''}
-                    >
-                        {num + 1}
-                    </button>
-                ))}
-                
-                <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>></button>
-                <button onClick={() => goToPage(totalPages)} disabled={currentPage === totalPages}>>></button>
-            </div>
-        </>
+  const filteredRows = useMemo(() => {
+    if (!search) return rows;
+    const s = search.toLowerCase();
+    return rows.filter((r) =>
+      [
+        r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '',
+        r.productName,
+        r.name,
+        r.phoneNumber,
+        r.title,
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(s)
     );
+  }, [rows, search]);
+
+  const toggleSelect = (id) => {
+    const newSelected = new Set(selected);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelected(newSelected);
+  };
+
+  const toggleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelected(new Set(filteredRows.map((r) => r.id)));
+    } else {
+      setSelected(new Set());
+    }
+  };
+
+  const markVerified = async () => {
+    if (selected.size === 0) return;
+    for (const id of selected) {
+      await updateDoc(doc(db, 'reviews', id), { verified: true });
+    }
+    setRows(rows.map((r) => (selected.has(r.id) ? { ...r, verified: true } : r)));
+    setSelected(new Set());
+  };
+
+  const downloadCsv = () => {
+    const csvData = filteredRows.map((r, i) => ({
+      순번: i + 1,
+      등록일시: r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '',
+      리뷰제목: r.title,
+      상품명: r.productName || '-',
+      이름: r.name,
+      전화번호: r.phoneNumber,
+      인증: r.verified ? 'O' : 'X',
+    }));
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `reviews_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (loading) return <p>리뷰 정보를 불러오는 중...</p>;
+
+  return (
+    <>
+      <h2>리뷰 관리 ({filteredRows.length})</h2>
+      <div className="toolbar">
+        <button onClick={markVerified} disabled={selected.size === 0}>
+          선택 항목 리뷰 인증
+        </button>
+        <input placeholder="검색" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <button onClick={downloadCsv}>엑셀 다운로드</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>
+              <input
+                type="checkbox"
+                checked={selected.size === filteredRows.length && filteredRows.length > 0}
+                onChange={toggleSelectAll}
+              />
+            </th>
+            <th>순번</th>
+            <th>등록일시</th>
+            <th>리뷰 제목</th>
+            <th>상품명</th>
+            <th>이름</th>
+            <th>전화번호</th>
+            <th>인증</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredRows.map((r, idx) => (
+            <tr key={r.id}>
+              <td>
+                <input
+                  type="checkbox"
+                  checked={selected.has(r.id)}
+                  onChange={() => toggleSelect(r.id)}
+                />
+              </td>
+              <td>{idx + 1}</td>
+              <td>{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleDateString() : ''}</td>
+              <td>{r.title}</td>
+              <td>{r.productName || '-'}</td>
+              <td>{r.name}</td>
+              <td>{r.phoneNumber}</td>
+              <td>{r.verified ? 'O' : 'X'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
 }
