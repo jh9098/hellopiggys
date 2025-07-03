@@ -66,17 +66,20 @@ export default function AdminLinkManagement() {
             </tr>
           </thead>
           <tbody>
-            {links.map(link => (
+          {links.map(link => (
               <tr key={link.id}>
                 <td style={{textAlign: 'left'}}>{link.title}</td>
-                <td style={{textAlign: 'left'}}>
+                {/* 아래 td 태그의 style을 수정합니다. */}
+                <td style={{
+                  textAlign: 'left',
+                  wordBreak: 'break-all', // <-- 이 속성을 추가!
+                }}>
                   <a href={link.generatedLink} target="_blank" rel="noopener noreferrer">
                     {link.generatedLink}
                   </a>
                 </td>
                 <td>{formatDate(link.createdAt)}</td>
                 <td style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
-                  {/* 수정 버튼 추가 */}
                   <Link to={`/admin/links/edit/${link.id}`} style={{
                     backgroundColor: '#1976d2', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', textDecoration: 'none'
                   }}>

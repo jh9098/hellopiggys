@@ -173,7 +173,7 @@ export default function WriteReview() {
         {/* 약관 */}
         <div className="field">
           <label>
-            <input type="checkbox" required /> 약관을 확인하였어요
+            <input type="checkbox" required /> 개인정보 이용에 동의합니다
           </label>
         </div>
 
