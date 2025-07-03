@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, doc, getDoc, setDoc, collection, serverTimestamp, getDocs, query, where, updateDoc, increment } from '../firebaseConfig';
 import AccountModal from '../components/AccountModal';
-import './App.css';
+
 
 export default function DynamicWriteReview() {
   const { linkId } = useParams();
