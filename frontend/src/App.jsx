@@ -17,7 +17,6 @@ import AdminLinkManagement from './pages/AdminLinkManagement'; // 링크 관리 
 import AdminGenerateLink from './pages/AdminGenerateLink'; // 링크 생성 import
 import AdminSettlement from './pages/AdminSettlement'; // 실제 컴포넌트로 교체
 import AdminSettlementComplete from './pages/AdminSettlementComplete'; // 실제 컴포넌트로 교체
-import AdminGenerateLink from './pages/AdminGenerateLink';
 
 // 임시 컴포넌트
 // 잘못된 링크로 접근 시 보여줄 페이지
