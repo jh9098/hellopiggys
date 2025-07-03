@@ -108,7 +108,7 @@ export default function DynamicWriteReview() {
       
       await addDoc(collection(db, 'reviews'), {
         ...form,
-        productName: form.productName, // Ensure productName is explicitly saved
+        productName: form.participantId, // Use participantId as the product name
         ...urlMap,
         linkId: linkId,
         mainAccountId: selectedMainAccountId,
