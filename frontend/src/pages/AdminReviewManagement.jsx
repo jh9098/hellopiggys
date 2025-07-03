@@ -29,6 +29,7 @@ export default function AdminReviewManagement() {
         r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '',
         r.productName,
         r.name,
+        r.subAccountName, // Added for sub-account name
         r.phoneNumber,
         r.title,
       ]
@@ -80,6 +81,7 @@ export default function AdminReviewManagement() {
       '리뷰 제목': r.title,
       '상품명': r.productName || '-',
       '이름': r.name,
+      '타계정 이름': r.subAccountName || '-',
       '전화번호': r.phoneNumber,
       '리뷰 제출': r.confirmImageUrls && r.confirmImageUrls.length > 0 ? 'O' : 'X',
     }));
@@ -113,7 +115,8 @@ export default function AdminReviewManagement() {
             <th>등록일시</th>
             <th>리뷰 제목</th>
             <th>상품명</th>
-            <th>이름</th>
+            <th>본계정 이름</th>
+            <th>타계정 이름</th>
             <th>전화번호</th>
             <th>리뷰 제출</th>
           </tr>
@@ -127,6 +130,7 @@ export default function AdminReviewManagement() {
               <td>{r.title}</td>
               <td>{r.productName || '-'}</td>
               <td>{r.name}</td>
+              <td>{r.subAccountName || '-'}</td>
               <td>{r.phoneNumber}</td>
               <td>{r.confirmImageUrls && r.confirmImageUrls.length > 0 ? 'O' : 'X'}</td>
             </tr>
