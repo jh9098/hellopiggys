@@ -1,4 +1,4 @@
-// src/pages/AdminLinkManagement.jsx
+// src/pages/AdminLinkManagement.jsx (수정된 전체 코드)
 
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -11,6 +11,7 @@ export default function AdminLinkManagement() {
   const [loading, setLoading] = useState(true);
 
   const fetchLinks = async () => {
+    setLoading(true); // 데이터를 다시 불러올 때 로딩 상태로 설정
     const q = query(collection(db, 'links'), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     setLinks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -37,7 +38,7 @@ export default function AdminLinkManagement() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h2>링크 관리 ({links.length})</h2>
         <Link to="/admin/links/new" style={{
             padding: '8px 16px', 
@@ -50,33 +51,48 @@ export default function AdminLinkManagement() {
         </Link>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th style={{width: '30%'}}>제목</th>
-            <th style={{width: '45%'}}>등록링크</th>
-            <th style={{width: '15%'}}>등록날짜</th>
-            <th style={{width: '10%'}}>관리</th>
-          </tr>
-        </thead>
-        <tbody>
-          {links.map(link => (
-            <tr key={link.id}>
-              <td style={{textAlign: 'left'}}>{link.title}</td>
-              <td style={{textAlign: 'left'}}>
-                <a href={link.generatedLink} target="_blank" rel="noopener noreferrer">
-                  {link.generatedLink}
-                </a>
-              </td>
-              <td>{formatDate(link.createdAt)}</td>
-              <td>
-                <button onClick={() => handleDelete(link.id)} style={{backgroundColor: '#e53935', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer'}}>삭제</button>
-                {/* 수정 기능은 추후 확장 가능 */}
-              </td>
+      {links.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '50px', border: '1px dashed #ccc', borderRadius: '8px' }}>
+          <p>생성된 링크가 없습니다.</p>
+        </div>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th style={{width: '30%'}}>제목</th>
+              <th style={{width: '45%'}}>등록링크</th>
+              <th style={{width: '15%'}}>등록날짜</th>
+              <th style={{width: '10%'}}>관리</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {links.map(link => (
+              <tr key={link.id}>
+                <td style={{textAlign: 'left'}}>{link.title}</td>
+                <td style={{textAlign: 'left'}}>
+                  <a href={link.generatedLink} target="_blank" rel="noopener noreferrer">
+                    {link.generatedLink}
+                  </a>
+                </td>
+                <td>{formatDate(link.createdAt)}</td>
+                <td style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                  {/* 수정 버튼 추가 */}
+                  <Link to={`/admin/links/edit/${link.id}`} style={{
+                    backgroundColor: '#1976d2', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', textDecoration: 'none'
+                  }}>
+                    수정
+                  </Link>
+                  <button onClick={() => handleDelete(link.id)} style={{
+                    backgroundColor: '#e53935', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer'
+                  }}>
+                    삭제
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </>
   );
 }
