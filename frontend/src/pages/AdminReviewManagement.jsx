@@ -46,7 +46,7 @@ export default function AdminReviewManagement() {
     return rows.filter((r) =>
       [
         r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '',
-        r.productName,
+        r.participantId,
         r.name,
         r.mainAccountName, // Added for main account name
         r.subAccountName, // Added for sub-account name
@@ -99,7 +99,7 @@ export default function AdminReviewManagement() {
       '순번': i + 1,
       '등록일시': r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '',
       '리뷰 제목': r.title,
-      '상품명': r.productName || '-',
+      '상품명': r.participantId || '-',
       '본계정 이름': r.mainAccountName || '-',
       '타계정 이름': r.subAccountName || '-',
       '전화번호': r.phoneNumber,
@@ -148,7 +148,7 @@ export default function AdminReviewManagement() {
               <td>{idx + 1}</td>
               <td>{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}</td>
               <td>{r.title}</td>
-              <td>{r.productName || '-'}</td>
+              <td>{r.participantId || '-'}</td>
               <td>{r.mainAccountName || '-'}</td>
               <td>{r.subAccountName || '-'}</td>
               <td>{r.phoneNumber}</td>
