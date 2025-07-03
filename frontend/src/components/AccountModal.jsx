@@ -88,7 +88,7 @@ export default function AccountModal({ mode, mainAccount, onClose, onSelectAccou
         
         {step === 1 && (
           <form onSubmit={handleMainAccountSubmit}>
-            <h3>본계정 정보 입력</h3>
+            <h3>회원 정보 입력</h3>
             <p>서비스 이용을 위해 본인 정보를 입력해주세요.</p>
             <input type="text" placeholder="이름" value={mainName} onChange={e => setMainName(e.target.value)} required />
             <input type="tel" placeholder="전화번호" value={mainPhone} onChange={e => setMainPhone(e.target.value)} required />
@@ -99,11 +99,11 @@ export default function AccountModal({ mode, mainAccount, onClose, onSelectAccou
 
         {step === 2 && (
           <div>
-            <h3>작업 계정 선택 또는 생성</h3>
+            <h3>구매할 계정 선택 또는 생성</h3>
             {/* 기존 타계정 목록 */}
             {subAccounts.length > 0 && (
               <div className="sub-account-list">
-                <h4>기존 계정 선택</h4>
+                <h4>계정 선택</h4>
                 {subAccounts.map(acc => (
                   <button key={acc.id} onClick={() => handleSelectSubAccount(acc)} className="sub-account-item">
                     {acc.name} ({acc.phoneNumber})
@@ -115,8 +115,8 @@ export default function AccountModal({ mode, mainAccount, onClose, onSelectAccou
             {/* 새 타계정 생성 폼 */}
             <form onSubmit={handleCreateSubAccount} className="sub-account-form">
               <h4>새 계정 추가</h4>
-              <input type="text" placeholder="이름 (타계정)" value={newSubAccount.name} onChange={e => setNewSubAccount({...newSubAccount, name: e.target.value})} required/>
-              <input type="tel" placeholder="전화번호 (타계정)" value={newSubAccount.phoneNumber} onChange={e => setNewSubAccount({...newSubAccount, phoneNumber: e.target.value})} required/>
+              <input type="text" placeholder="이름" value={newSubAccount.name} onChange={e => setNewSubAccount({...newSubAccount, name: e.target.value})} required/>
+              <input type="tel" placeholder="전화번호" value={newSubAccount.phoneNumber} onChange={e => setNewSubAccount({...newSubAccount, phoneNumber: e.target.value})} required/>
               <input type="text" placeholder="주소" value={newSubAccount.address} onChange={e => setNewSubAccount({...newSubAccount, address: e.target.value})} />
               <input type="text" placeholder="상세주소" value={newSubAccount.detailAddress} onChange={e => setNewSubAccount({...newSubAccount, detailAddress: e.target.value})} />
               <input type="text" placeholder="은행" value={newSubAccount.bank} onChange={e => setNewSubAccount({...newSubAccount, bank: e.target.value})} />
