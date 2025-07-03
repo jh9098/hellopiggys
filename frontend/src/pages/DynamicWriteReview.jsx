@@ -25,7 +25,7 @@ export default function DynamicWriteReview() {
     bankNumber: '',
     accountHolderName: '',
     rewardAmount: '',
-    title: '', // 이 값은 linkData에서 채워짐
+    productName: '', // 이 값은 linkData에서 채워짐
   });
   const [images, setImages] = useState({});
   const [preview, setPreview] = useState({});
@@ -49,7 +49,7 @@ export default function DynamicWriteReview() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setLinkData(data);
-        setForm(prev => ({ ...prev, title: data.title }));
+        setForm(prev => ({ ...prev, productName: data.title }));
       } else {
         setError('해당 링크를 찾을 수 없습니다.');
       }
@@ -108,6 +108,7 @@ export default function DynamicWriteReview() {
       
       await addDoc(collection(db, 'reviews'), {
         ...form,
+        productName: form.productName, // Ensure productName is explicitly saved
         ...urlMap,
         linkId: linkId,
         mainAccountId: selectedMainAccountId,
@@ -184,7 +185,7 @@ export default function DynamicWriteReview() {
         
         {/* 사용자가 직접 입력해야 하는 필드 */}
         {[
-          { key: 'participantId', label: '상품명', ph: '상품명을 그대로 복사하세요' },
+          { key: 'participantId', label: '참여자 ID', ph: '참여자 ID를 입력하세요' },
           { key: 'orderNumber', label: '주문번호', ph: '주문번호를 그대로 복사하세요' },
           { key: 'rewardAmount', label: '금액', ph: '결제금액을 입력하세요' },
         ].map(({ key, label, ph }) => (
