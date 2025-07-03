@@ -19,6 +19,7 @@ import {
   updateDoc,
   getDoc,
   deleteDoc, // <--- deleteDoc을 firebase/firestore에서 import
+  setDoc, // <--- 여기에 setDoc 추가
 } from 'firebase/firestore';
 import {
   getStorage,
@@ -70,6 +71,7 @@ export {
   updateDoc,
   getDoc,
   deleteDoc, // <--- deleteDoc을 firebase/firestore에서 export
+  setDoc, // <--- 여기 export 블록에도 setDoc 추가
 
   /* Storage helpers */
   ref,
