@@ -14,6 +14,7 @@ import {
   uploadBytes,
   getDownloadURL,
 } from '../firebaseConfig';
+import { createMainAccountId } from '../utils'; // 본계정 ID 생성 함수
 import './MyReviews.css';
 
 export default function MyReviews() {
@@ -23,14 +24,12 @@ export default function MyReviews() {
   /* ───── 데이터 및 상태 관리 ───── */
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
-  const [modal, setModal] = useState(null); // 'guide' | 'detail' | 'upload' | null
-  const [cur, setCur] = useState(null); // 선택된 원본 리뷰 객체
+  const [modal, setModal] = useState(null); 
+  const [cur, setCur] = useState(null); 
 
-  // 수정 모드 상태
   const [isEditing, setIsEditing] = useState(false);
   const [editableData, setEditableData] = useState({});
 
-  // 리뷰 인증 업로드 상태
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
 
@@ -40,17 +39,28 @@ export default function MyReviews() {
     const phone = localStorage.getItem('REVIEWER_PHONE');
     if (!name || !phone) return nav('/reviewer-login', { replace: true });
 
-    (async () => {
-      const q = query(
-        collection(db, 'reviews'),
-        where('name', '==', name),
-        where('phoneNumber', '==', phone),
-        orderBy('createdAt', 'desc')
-      );
-      const snap = await getDocs(q);
-      setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    })();
+    const fetchAllReviews = async () => {
+      try {
+        // 1. 본계정 ID 생성
+        const mainAccountId = createMainAccountId(name, phone);
+
+        // 2. 해당 본계정 ID를 가진 모든 리뷰 조회
+        const q = query(
+          collection(db, 'reviews'),
+          where('mainAccountId', '==', mainAccountId),
+          orderBy('createdAt', 'desc')
+        );
+        const snap = await getDocs(q);
+        setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (error) {
+        console.error("리뷰를 불러오는 중 오류 발생:", error);
+        alert('리뷰 정보를 가져오는 데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllReviews();
   }, [nav]);
 
   /* ───── 핸들러: 모달 및 수정 ───── */
