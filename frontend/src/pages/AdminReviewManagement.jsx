@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp } from '../firebaseConfig';
+import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, getDoc } from '../firebaseConfig';
 import Papa from 'papaparse';
 
 export default function AdminReviewManagement() {
@@ -13,7 +13,26 @@ export default function AdminReviewManagement() {
     // status가 'submitted'이거나, status 필드가 없는 예전 데이터를 함께 조회
     const q = query(collection(db, 'reviews'), where('status', 'in', ['submitted', null]), orderBy('createdAt', 'desc'));
     const snap = await getDocs(q);
-    setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    const reviewsData = await Promise.all(snap.docs.map(async (d) => {
+      const review = { id: d.id, ...d.data() };
+      if (review.subAccountId) {
+        const subAccountRef = doc(db, 'subAccounts', review.subAccountId);
+        const subAccountSnap = await getDoc(subAccountRef);
+        if (subAccountSnap.exists()) {
+          const subAccountData = subAccountSnap.data();
+          review.subAccountName = subAccountData.name; // 타계정 이름
+          if (subAccountData.mainAccountId) {
+            const mainAccountRef = doc(db, 'mainAccounts', subAccountData.mainAccountId);
+            const mainAccountSnap = await getDoc(mainAccountRef);
+            if (mainAccountSnap.exists()) {
+              review.mainAccountName = mainAccountSnap.data().name; // 본계정 이름
+            }
+          }
+        }
+      }
+      return review;
+    }));
+    setRows(reviewsData);
     setLoading(false);
   };
 
@@ -29,6 +48,7 @@ export default function AdminReviewManagement() {
         r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '',
         r.productName,
         r.name,
+        r.mainAccountName, // Added for main account name
         r.subAccountName, // Added for sub-account name
         r.phoneNumber,
         r.title,
@@ -80,7 +100,7 @@ export default function AdminReviewManagement() {
       '등록일시': r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '',
       '리뷰 제목': r.title,
       '상품명': r.productName || '-',
-      '이름': r.name,
+      '본계정 이름': r.mainAccountName || '-',
       '타계정 이름': r.subAccountName || '-',
       '전화번호': r.phoneNumber,
       '리뷰 제출': r.confirmImageUrls && r.confirmImageUrls.length > 0 ? 'O' : 'X',
@@ -129,7 +149,7 @@ export default function AdminReviewManagement() {
               <td>{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}</td>
               <td>{r.title}</td>
               <td>{r.productName || '-'}</td>
-              <td>{r.name}</td>
+              <td>{r.mainAccountName || '-'}</td>
               <td>{r.subAccountName || '-'}</td>
               <td>{r.phoneNumber}</td>
               <td>{r.confirmImageUrls && r.confirmImageUrls.length > 0 ? 'O' : 'X'}</td>
