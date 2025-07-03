@@ -6,8 +6,6 @@
   font-family: Pretendard, sans-serif;
 }
 .logout {
-  float: right;
-  margin-bottom: 8px;
   background: #fff;
   border: 1px solid #ccc;
   padding: 6px 12px;
@@ -169,3 +167,12 @@
   background: #e0e0e0;
   color: #333;
 }
+.header-actions {
+    display: flex;
+    justify-content: flex-end; /* 버튼들을 오른쪽으로 정렬 */
+    align-items: center;
+    gap: 10px; /* 버튼 사이 간격 */
+    margin-bottom: 16px;
+  }
+  
+  
