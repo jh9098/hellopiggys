@@ -184,9 +184,9 @@ export default function DynamicWriteReview() {
         
         {/* 사용자가 직접 입력해야 하는 필드 */}
         {[
-          { key: 'participantId', label: '참가자ID', ph: '참가자ID를 입력하세요' },
-          { key: 'orderNumber', label: '주문번호', ph: '주문번호를 입력하세요' },
-          { key: 'rewardAmount', label: '금액', ph: '지급받을 금액을 입력하세요' },
+          { key: 'participantId', label: '상품명', ph: '상품명을 그대로 복사하세요' },
+          { key: 'orderNumber', label: '주문번호', ph: '주문번호를 그대로 복사하세요' },
+          { key: 'rewardAmount', label: '금액', ph: '결제금액을 입력하세요' },
         ].map(({ key, label, ph }) => (
           <div className="field" key={key}>
             <label>{label}</label>
