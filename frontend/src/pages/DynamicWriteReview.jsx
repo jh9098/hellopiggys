@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { db, doc, getDoc, setDoc, collection, serverTimestamp, getDocs, query, where, updateDoc, increment } from '../firebaseConfig';
 import AccountModal from '../components/AccountModal';
 
-
 export default function DynamicWriteReview() {
   const { linkId } = useParams();
   const navigate = useNavigate();
@@ -70,7 +69,7 @@ export default function DynamicWriteReview() {
         회원 정보 입력/선택
       </button>
 
-      {isAccountSelected && selectedAccountForReview && (
+      {selectedAccountForReview && (
         <div className="selected-account-info">
           <p><strong>리뷰 작성 계정:</strong> {selectedAccountForReview.name} ({selectedAccountForReview.phoneNumber})</p>
         </div>
@@ -84,11 +83,9 @@ export default function DynamicWriteReview() {
         />
       )}
 
-      {isAccountSelected && (
-        <form onSubmit={handleSubmit} className="review-form">
-          {/* Rating, Text, Image inputs here */}
-        </form>
-      )}
+      <form onSubmit={handleSubmit} className="review-form" style={{ display: isAccountSelected ? 'block' : 'none' }}>
+        {/* Rating, Text, Image inputs here */}
+      </form>
     </div>
   );
 }
