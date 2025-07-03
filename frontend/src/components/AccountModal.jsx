@@ -93,9 +93,9 @@ export default function AccountModal({ mode, mainAccount, onClose, onSelectAccou
   };
   
   return (
-    <div class="modal-back" onClick={onClose}>
-      <div class="account-modal" onClick={(e) => e.stopPropagation()}>
-        <button class="close" onClick={onClose}>✖</button>
+    <div className="modal-back">
+      <div className="account-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="close-btn" onClick={onClose}>✖</button>
         
         {step === 1 && (
           <form onSubmit={handleMainAccountSubmit}>
