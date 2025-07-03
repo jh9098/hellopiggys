@@ -83,12 +83,13 @@ export default function DynamicWriteReview() {
         const url = await uploadOne(file);
         if (url) urlMap[key + 'Url'] = url;
       }
-      // 리뷰 문서 저장 시 linkId 포함
+      // 리뷰 문서 저장 시 status: 'submitted' 추가
       await addDoc(collection(db, 'reviews'), {
         ...form,
         ...urlMap,
-        linkId: linkId, // 어떤 링크를 통해 들어왔는지 기록
+        linkId: linkId,
         createdAt: serverTimestamp(),
+        status: 'submitted', // <-- 이 라인을 추가합니다!
       });
       localStorage.setItem('REVIEWER_NAME', form.name.trim());
       localStorage.setItem('REVIEWER_PHONE', form.phoneNumber.trim());

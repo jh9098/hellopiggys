@@ -1,7 +1,5 @@
-// src/pages/AdminReviewManagement.jsx (수정된 전체 코드)
-
 import { useEffect, useState, useMemo } from 'react';
-import { db, collection, getDocs, query, orderBy, updateDoc, doc } from '../firebaseConfig';
+import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp } from '../firebaseConfig';
 import Papa from 'papaparse';
 
 export default function AdminReviewManagement() {
@@ -10,13 +8,16 @@ export default function AdminReviewManagement() {
   const [selected, setSelected] = useState(new Set());
   const [search, setSearch] = useState('');
 
+  const fetchReviews = async () => {
+    setLoading(true);
+    // status가 'submitted'이거나, status 필드가 없는 예전 데이터를 함께 조회
+    const q = query(collection(db, 'reviews'), where('status', 'in', ['submitted', null]), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchReviews = async () => {
-      setLoading(true);
-      const snap = await getDocs(query(collection(db, 'reviews'), orderBy('createdAt', 'desc')));
-      setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    };
     fetchReviews();
   }, []);
 
@@ -55,15 +56,20 @@ export default function AdminReviewManagement() {
     }
   };
 
-  // '리뷰 인증'은 리뷰가 제출되었을 때 관리자가 최종 확인하는 프로세스
-  // '리뷰 제출'은 사용자가 이미지를 업로드했는지 여부
-  const markVerified = async () => {
+  // '리뷰 인증' 버튼 핸들러 (이름: handleVerify)
+  const handleVerify = async () => {
     if (selected.size === 0) return;
+    if (!window.confirm(`${selected.size}개의 항목을 리뷰 인증 처리하고 정산내역으로 넘기시겠습니까?`)) return;
+
     for (const id of selected) {
-      // 'verified' 필드를 true로 업데이트
-      await updateDoc(doc(db, 'reviews', id), { verified: true });
+      await updateDoc(doc(db, 'reviews', id), {
+        status: 'verified',
+        verifiedAt: serverTimestamp(),
+      });
     }
-    setRows(rows.map((r) => (selected.has(r.id) ? { ...r, verified: true } : r)));
+
+    alert('리뷰 인증이 완료되었습니다.');
+    setRows(rows.filter(r => !selected.has(r.id)));
     setSelected(new Set());
   };
 
@@ -76,7 +82,6 @@ export default function AdminReviewManagement() {
       '이름': r.name,
       '전화번호': r.phoneNumber,
       '리뷰 제출': r.confirmImageUrls && r.confirmImageUrls.length > 0 ? 'O' : 'X',
-      '최종 인증': r.verified ? 'O' : 'X',
     }));
     const csv = Papa.unparse(csvData);
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
@@ -87,15 +92,15 @@ export default function AdminReviewManagement() {
     a.click();
     URL.revokeObjectURL(url);
   };
-
   if (loading) return <p>리뷰 정보를 불러오는 중...</p>;
 
   return (
     <>
       <h2>리뷰 관리 ({filteredRows.length})</h2>
       <div className="toolbar">
-        <button onClick={markVerified} disabled={selected.size === 0}>
-          선택 항목 최종 인증
+        {/* onClick 핸들러를 handleVerify로 수정하고 버튼 텍스트도 맞춥니다. */}
+        <button onClick={handleVerify} disabled={selected.size === 0}>
+          선택 항목 리뷰 인증
         </button>
         <input placeholder="검색" value={search} onChange={(e) => setSearch(e.target.value)} />
         <button onClick={downloadCsv}>엑셀 다운로드</button>
@@ -103,9 +108,7 @@ export default function AdminReviewManagement() {
       <table>
         <thead>
           <tr>
-            <th>
-              <input type="checkbox" checked={selected.size === filteredRows.length && filteredRows.length > 0} onChange={toggleSelectAll} />
-            </th>
+            <th><input type="checkbox" checked={selected.size === filteredRows.length && filteredRows.length > 0} onChange={toggleSelectAll} /></th>
             <th>순번</th>
             <th>등록일시</th>
             <th>리뷰 제목</th>
@@ -113,25 +116,19 @@ export default function AdminReviewManagement() {
             <th>이름</th>
             <th>전화번호</th>
             <th>리뷰 제출</th>
-            <th>최종 인증</th>
           </tr>
         </thead>
         <tbody>
           {filteredRows.map((r, idx) => (
             <tr key={r.id}>
-              <td>
-                <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} />
-              </td>
+              <td><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></td>
               <td>{idx + 1}</td>
-              <td>{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleDateString() : ''}</td>
+              <td>{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}</td>
               <td>{r.title}</td>
               <td>{r.productName || '-'}</td>
               <td>{r.name}</td>
               <td>{r.phoneNumber}</td>
-              {/* 리뷰 제출 여부 표시 */}
               <td>{r.confirmImageUrls && r.confirmImageUrls.length > 0 ? 'O' : 'X'}</td>
-              {/* 최종 인증 여부 표시 */}
-              <td>{r.verified ? 'O' : 'X'}</td>
             </tr>
           ))}
         </tbody>

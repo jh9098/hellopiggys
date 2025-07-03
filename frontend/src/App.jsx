@@ -15,11 +15,10 @@ import AdminReviewManagement from './pages/AdminReviewManagement';
 import AdminMemberManagement from './pages/AdminMemberManagement';
 import AdminLinkManagement from './pages/AdminLinkManagement'; // 링크 관리 import
 import AdminGenerateLink from './pages/AdminGenerateLink'; // 링크 생성 import
+import AdminSettlement from './pages/AdminSettlement'; // 실제 컴포넌트로 교체
+import AdminSettlementComplete from './pages/AdminSettlementComplete'; // 실제 컴포넌트로 교체
 
 // 임시 컴포넌트
-const AdminSettlement = () => <h2>정산내역 (준비 중)</h2>;
-const AdminSettlementComplete = () => <h2>정산완료 (준비 중)</h2>;
-
 // 잘못된 링크로 접근 시 보여줄 페이지
 const InvalidLinkPage = () => <p style={{textAlign: 'center', padding: '50px'}}>잘못된 접근입니다. 제공된 링크를 통해 접속해주세요.</p>
 
