@@ -60,9 +60,9 @@ export default function AdminLinkManagement() {
           <thead>
             <tr>
               <th style={{width: '30%'}}>제목</th>
-              <th style={{width: '45%'}}>등록링크</th>
+              <th style={{width: '30%'}}>등록링크</th>
               <th style={{width: '15%'}}>등록날짜</th>
-              <th style={{width: '10%'}}>관리</th>
+              <th style={{width: '25%'}}>관리</th>
             </tr>
           </thead>
           <tbody>
