@@ -18,7 +18,22 @@ export default function AdminSettlement() {
     fetchSettlementList();
   }, []);
 
-  const toggleSelect = (id) => { /* ... 동일 ... */ };
+  const toggleSelect = (id) => {
+    const newSelected = new Set(selected);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelected(newSelected);
+  };
+  const toggleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelected(new Set(rows.map(r => r.id)));
+    } else {
+      setSelected(new Set());
+    }
+  };
 
   const handleDelete = async () => {
     if (selected.size === 0) return;
