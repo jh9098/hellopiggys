@@ -33,13 +33,18 @@ const getStatusInfo = (review) => {
       return { text: '정산 완료', className: 'settled' };
     case 'submitted':
     default:
-      // 'submitted' 또는 status가 없는 경우, 이미지 유무로 '리뷰 완료' 판단
       if (confirmImageUrls && confirmImageUrls.length > 0) {
         return { text: '리뷰 완료', className: 'review-completed' };
       }
       return { text: '구매 완료', className: 'submitted' };
   }
 };
+
+const bankOptions = [
+  '신한', '국민', '산업', 'KEB하나', '케이뱅크', '경남', '저축', '우리', 
+  '카카오뱅크', '광주', '새마을금고', '우체국', '토스뱅크', '기업', '수협', 
+  '전북', '농협', 'SC', '아이엠뱅크', '신협', '제주', '부산', '씨티', 'HSBC'
+];
 
 export default function MyReviews() {
   const nav = useNavigate();
@@ -48,6 +53,10 @@ export default function MyReviews() {
   const [rows, setRows] = useState([]);
   const [modal, setModal] = useState(null); 
   const [cur, setCur] = useState(null); 
+  
+  // ▼▼▼ 누락되었던 상태들 복원 ▼▼▼
+  const [isEditing, setIsEditing] = useState(false);
+  const [editableData, setEditableData] = useState({});
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
 
@@ -79,11 +88,51 @@ export default function MyReviews() {
   const open = (type, r) => {
     setCur(r);
     setModal(type);
+    setIsEditing(false); // 모달 열 때 항상 보기 모드로 초기화
   };
+
   const close = () => {
     setModal(null);
     setFiles([]);
     setUploading(false);
+    setIsEditing(false);
+  };
+
+  // ▼▼▼ 누락되었던 핸들러 함수들 복원 ▼▼▼
+  const handleEdit = () => {
+    setEditableData({ ...cur });
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  const handleDataChange = (e) => {
+    setEditableData({ ...editableData, [e.target.name]: e.target.value });
+  };
+
+  const handleSave = async () => {
+    if (!cur) return;
+    setUploading(true);
+    try {
+      await updateDoc(doc(db, 'reviews', cur.id), editableData);
+      
+      setRows(rows.map(row => row.id === cur.id ? { ...row, ...editableData } : row));
+      setCur({ ...cur, ...editableData });
+
+      alert('수정이 완료되었습니다.');
+      setIsEditing(false);
+    } catch (e) {
+      alert('수정 실패: ' + e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+  
+  // ▼▼▼ 여기가 문제의 원인! onFile 함수를 다시 정의합니다. ▼▼▼
+  const onFile = (e) => {
+    setFiles(Array.from(e.target.files || []));
   };
   
   const uploadConfirm = async () => {
@@ -97,7 +146,6 @@ export default function MyReviews() {
         urls.push(await getDownloadURL(storageRef));
       }
       
-      // status를 'review_completed'로 변경
       const updatedData = { 
         confirmImageUrls: urls, 
         confirmedAt: new Date(),
@@ -141,14 +189,13 @@ export default function MyReviews() {
             <div className="btn-wrap">
               <button onClick={() => open('guide', r)}>진행 가이드</button>
               <button onClick={() => open('detail', r)}>구매 내역</button>
-              <button className="outline" onClick={() => open('upload', r)} disabled={r.status === 'settled'}>
+              <button className="outline" onClick={() => open('upload', r)} disabled={r.status === 'settled' || r.status === 'rejected'}>
                 리뷰 인증하기
               </button>
             </div>
             
             <div className="product">{r.participantId || r.title || '제목 없음'}</div>
 
-            {/* 반려 사유가 있을 경우 표시 */}
             {statusInfo.reason && (
               <div className="rejection-reason">
                 <strong>반려 사유:</strong> {statusInfo.reason}
@@ -171,44 +218,19 @@ export default function MyReviews() {
               <><h3>진행 가이드</h3><p style={{ whiteSpace: 'pre-line' }}>{cur?.content || '준비 중입니다.'}</p></>
             )}
 
-            {/* 구매내역 모달 (새로운 디자인 적용) */}
             {modal === 'detail' && (
               <div className="detail-view">
                 <h3>구매 내역</h3>
                 <div className="form-grid">
-                  {/* 이름과 전화번호 필드 */}
                   <div className="field">
                     <label>구매자(수취인)</label>
-                    {isEditing ? (
-                      // disabled 속성과 회색 배경 스타일 추가
-                      <input 
-                        name="name" 
-                        value={editableData.name || ''} 
-                        onChange={handleDataChange} 
-                        disabled 
-                        style={{ backgroundColor: '#f0f0f0', cursor: 'not-allowed' }}
-                      />
-                    ) : (
-                      <p>{cur?.name}</p>
-                    )}
+                    <p>{cur?.name}</p>
                   </div>
                   <div className="field">
                     <label>전화번호</label>
-                    {isEditing ? (
-                      // disabled 속성과 회색 배경 스타일 추가
-                      <input 
-                        name="phoneNumber" 
-                        value={editableData.phoneNumber || ''} 
-                        onChange={handleDataChange} 
-                        disabled
-                        style={{ backgroundColor: '#f0f0f0', cursor: 'not-allowed' }}
-                      />
-                    ) : (
-                      <p>{cur?.phoneNumber}</p>
-                    )}
+                    <p>{cur?.phoneNumber}</p>
                   </div>
                 </div>
-                {/* 1열 필드 (이 부분은 변경 없음) */}
                 {[
                   { key: 'orderNumber', label: '주문번호' },
                   { key: 'address', label: '주소' },
@@ -230,14 +252,13 @@ export default function MyReviews() {
                   {isEditing ? (
                     <select name="bank" value={editableData.bank || ''} onChange={handleDataChange}>
                       <option value="">은행 선택</option>
-                      {['국민', '농협', '신한', '우리', '하나', '카카오뱅크'].map(b => <option key={b} value={b}>{b}</option>)}
+                      {bankOptions.map(b => <option key={b} value={b}>{b}</option>)}
                     </select>
                   ) : (
                     <p>{cur?.bank}</p>
                   )}
                 </div>
 
-                {/* 이미지 섹션 및 하단 버튼 (이 부분도 변경 없음) */}
                 {[
                   { key: 'likeImageUrl', label: '상품 찜' },
                   { key: 'orderImageUrl', label: '구매 인증' },
@@ -270,12 +291,12 @@ export default function MyReviews() {
               </div>
             )}
             
-            {/* 리뷰 인증 업로드 모달 */}
             {modal === 'upload' && (
               <>
                 <h3>리뷰 인증 이미지 업로드</h3>
+                {/* ▼▼▼ 여기 onChange에 onFile 함수를 연결합니다. ▼▼▼ */}
                 <input type="file" accept="image/*" multiple onChange={onFile} />
-                <button onClick={uploadConfirm} disabled={uploading} style={{ marginTop: 16 }}>
+                <button onClick={uploadConfirm} disabled={uploading || files.length === 0} style={{ marginTop: 16 }}>
                   {uploading ? '업로드 중…' : '완료'}
                 </button>
               </>
