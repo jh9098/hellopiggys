@@ -35,6 +35,9 @@ export default function DynamicWriteReview() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMainAccountId, setSelectedMainAccountId] = useState(null);
   const [selectedSubAccountId, setSelectedSubAccountId] = useState(null);
+  
+  // 🔽 1. 폼 표시 여부를 제어할 상태 추가
+  const [isAccountSelected, setIsAccountSelected] = useState(false);
 
   // --- 데이터 로딩 ---
   useEffect(() => {
@@ -72,6 +75,9 @@ export default function DynamicWriteReview() {
     }));
     setSelectedMainAccountId(mainAccountId);
     setSelectedSubAccountId(subAccount.id);
+
+    // 🔽 2. 계정 선택 시, 폼을 표시하도록 상태 변경
+    setIsAccountSelected(true);
   };
 
   const onFile = (e) => {
@@ -154,77 +160,80 @@ export default function DynamicWriteReview() {
         />
       )}
 
-      <form onSubmit={handleSubmit}>
-        {/* 기본 정보 (읽기 전용) */}
-        {[
-          { key: 'name', label: '구매자(수취인)' },
-          { key: 'phoneNumber', label: '전화번호' },
-          { key: 'address', label: '주소' },
-          { key: 'detailAddress', label: '상세주소' },
-        ].map(({ key, label }) => (
-          <div className="field" key={key}>
-            <label>{label}</label>
-            <input name={key} value={form[key]} readOnly style={{background: '#f0f0f0', cursor: 'not-allowed'}}/>
-          </div>
-        ))}
+      {/* 🔽 3. isAccountSelected가 true일 때만 form 전체를 렌더링 */}
+      {isAccountSelected && (
+        <form onSubmit={handleSubmit}>
+          {/* 기본 정보 (읽기 전용) */}
+          {[
+            { key: 'name', label: '구매자(수취인)' },
+            { key: 'phoneNumber', label: '전화번호' },
+            { key: 'address', label: '주소' },
+            { key: 'detailAddress', label: '상세주소' },
+          ].map(({ key, label }) => (
+            <div className="field" key={key}>
+              <label>{label}</label>
+              <input name={key} value={form[key]} readOnly style={{background: '#f0f0f0', cursor: 'not-allowed'}}/>
+            </div>
+          ))}
 
-        {/* 입금 정보 (읽기 전용) */}
-        <div className="field">
-          <label>은행</label>
-          <input name="bank" value={form.bank} readOnly style={{background: '#f0f0f0', cursor: 'not-allowed'}}/>
-        </div>
-        {[
-          { key: 'bankNumber', label: '계좌번호' },
-          { key: 'accountHolderName', label: '예금주' },
-        ].map(({ key, label }) => (
-          <div className="field" key={key}>
-            <label>{label}</label>
-            <input name={key} value={form[key]} readOnly style={{background: '#f0f0f0', cursor: 'not-allowed'}}/>
+          {/* 입금 정보 (읽기 전용) */}
+          <div className="field">
+            <label>은행</label>
+            <input name="bank" value={form.bank} readOnly style={{background: '#f0f0f0', cursor: 'not-allowed'}}/>
           </div>
-        ))}
-        
-        {/* 사용자가 직접 입력해야 하는 필드 */}
-        {[
-          { key: 'participantId', label: '참여자 ID', ph: '참여자 ID를 입력하세요' },
-          { key: 'orderNumber', label: '주문번호', ph: '주문번호를 그대로 복사하세요' },
-          { key: 'rewardAmount', label: '금액', ph: '결제금액을 입력하세요' },
-        ].map(({ key, label, ph }) => (
-          <div className="field" key={key}>
-            <label>{label}</label>
-            <input
-              name={key}
-              value={form[key]}
-              onChange={(e) => setForm({...form, [e.target.name]: e.target.value})}
-              placeholder={ph}
-              required
-            />
+          {[
+            { key: 'bankNumber', label: '계좌번호' },
+            { key: 'accountHolderName', label: '예금주' },
+          ].map(({ key, label }) => (
+            <div className="field" key={key}>
+              <label>{label}</label>
+              <input name={key} value={form[key]} readOnly style={{background: '#f0f0f0', cursor: 'not-allowed'}}/>
+            </div>
+          ))}
+          
+          {/* 사용자가 직접 입력해야 하는 필드 */}
+          {[
+            { key: 'participantId', label: '참여자 ID', ph: '참여자 ID를 입력하세요' },
+            { key: 'orderNumber', label: '주문번호', ph: '주문번호를 그대로 복사하세요' },
+            { key: 'rewardAmount', label: '금액', ph: '결제금액을 입력하세요' },
+          ].map(({ key, label, ph }) => (
+            <div className="field" key={key}>
+              <label>{label}</label>
+              <input
+                name={key}
+                value={form[key]}
+                onChange={(e) => setForm({...form, [e.target.name]: e.target.value})}
+                placeholder={ph}
+                required
+              />
+            </div>
+          ))}
+
+          {/* 이미지 업로드 */}
+          {[
+            { key: 'likeImage', label: '상품 찜 캡처 (필수)', req: true },
+            { key: 'orderImage', label: '구매 인증 캡처 (필수)', req: true },
+            { key: 'secondOrderImage', label: '추가 구매 인증 (선택)', req: false },
+          ].map(({ key, label, req }) => (
+            <div className="field" key={key}>
+              <label>{label}</label>
+              <input type="file" accept="image/*" name={key} onChange={onFile} required={req} />
+              {preview[key] && (<img className="thumb" src={preview[key]} alt={key} />)}
+            </div>
+          ))}
+
+          {/* 약관 */}
+          <div className="field">
+            <label>
+              <input type="checkbox" required /> 약관을 확인하였어요
+            </label>
           </div>
-        ))}
 
-        {/* 이미지 업로드 */}
-        {[
-          { key: 'likeImage', label: '상품 찜 캡처 (필수)', req: true },
-          { key: 'orderImage', label: '구매 인증 캡처 (필수)', req: true },
-          { key: 'secondOrderImage', label: '추가 구매 인증 (선택)', req: false },
-        ].map(({ key, label, req }) => (
-          <div className="field" key={key}>
-            <label>{label}</label>
-            <input type="file" accept="image/*" name={key} onChange={onFile} required={req} />
-            {preview[key] && (<img className="thumb" src={preview[key]} alt={key} />)}
-          </div>
-        ))}
-
-        {/* 약관 */}
-        <div className="field">
-          <label>
-            <input type="checkbox" required /> 약관을 확인하였어요
-          </label>
-        </div>
-
-        <button className="submit-btn" type="submit" disabled={submitting}>
-          {submitting ? '제출 중…' : '제출하기'}
-        </button>
-      </form>
+          <button className="submit-btn" type="submit" disabled={submitting}>
+            {submitting ? '제출 중…' : '제출하기'}
+          </button>
+        </form>
+      )}
     </div>
   );
 }
