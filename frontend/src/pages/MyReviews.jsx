@@ -233,7 +233,6 @@ export default function MyReviews() {
                 {[
                   { key: 'orderNumber', label: '주문번호' },
                   { key: 'address', label: '주소' },
-                  { key: 'detailAddress', label: '상세주소' },
                   { key: 'bankNumber', label: '계좌번호' },
                   { key: 'accountHolderName', label: '예금주' },
                   { key: 'rewardAmount', label: '금액' },

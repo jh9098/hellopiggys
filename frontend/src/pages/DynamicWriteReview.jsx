@@ -168,7 +168,6 @@ export default function DynamicWriteReview() {
             { key: 'name', label: '구매자(수취인)' },
             { key: 'phoneNumber', label: '전화번호' },
             { key: 'address', label: '주소' },
-            { key: 'detailAddress', label: '상세주소' },
           ].map(({ key, label }) => (
             <div className="field" key={key}>
               <label>{label}</label>
@@ -193,7 +192,7 @@ export default function DynamicWriteReview() {
           
           {/* 사용자가 직접 입력해야 하는 필드 */}
           {[
-            { key: 'participantId', label: '참여자 ID', ph: '참여자 ID를 입력하세요' },
+            { key: 'participantId', label: '상품명', ph: '상품명을 그대로 복사하세요' },
             { key: 'orderNumber', label: '주문번호', ph: '주문번호를 그대로 복사하세요' },
             { key: 'rewardAmount', label: '금액', ph: '결제금액을 입력하세요' },
           ].map(({ key, label, ph }) => (
@@ -213,7 +212,8 @@ export default function DynamicWriteReview() {
           {[
             { key: 'likeImage', label: '상품 찜 캡처 (필수)', req: true },
             { key: 'orderImage', label: '구매 인증 캡처 (필수)', req: true },
-            { key: 'secondOrderImage', label: '추가 구매 인증 (선택)', req: false },
+            { key: 'cashcardImage', label: '현영/매출전표(필수)', req: true },
+            { key: 'keywordImage', label: '키워드 인증(필수)', req: true },
           ].map(({ key, label, req }) => (
             <div className="field" key={key}>
               <label>{label}</label>

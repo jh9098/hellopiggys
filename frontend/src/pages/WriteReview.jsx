@@ -105,7 +105,6 @@ export default function WriteReview() {
           { key: 'participantId', label: '참가자ID', ph: '' },
           { key: 'orderNumber', label: '주문번호', ph: '' },
           { key: 'address', label: '주소', ph: '도로명 주소' },
-          { key: 'detailAddress', label: '상세주소', ph: '' },
         ].map(({ key, label, ph, type }) => (
           <div className="field" key={key}>
             <label>{label}</label>
@@ -125,7 +124,10 @@ export default function WriteReview() {
           <label>은행</label>
           <select name="bank" value={form.bank} onChange={onChange} required>
             <option value="">은행 선택</option>
-            {['국민', '농협', '신한', '우리', '하나', '카카오뱅크'].map((b) => (
+            {[  '신한', '국민', '산업', 'KEB하나', '케이뱅크', '경남', '저축', '우리', 
+  '카카오뱅크', '광주', '새마을금고', '우체국', '토스뱅크', '기업', '수협', 
+  '전북', '농협', 'SC', '아이엠뱅크', '신협', '제주', '부산', '씨티', 'HSBC'
+].map((b) => (
               <option key={b} value={b}>
                 {b}
               </option>
