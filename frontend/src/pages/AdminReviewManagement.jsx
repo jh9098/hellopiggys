@@ -2,6 +2,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, getDoc } from '../firebaseConfig';
 import Papa from 'papaparse';
+import ReviewDetailModal from '../components/ReviewDetailModal'; // 1. 모달 컴포넌트 임포트
 
 // 상태(status)에 따른 텍스트를 반환하는 헬퍼 함수
 const getStatusText = (status) => {
@@ -18,6 +19,9 @@ export default function AdminReviewManagement() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(new Set());
   const [search, setSearch] = useState('');
+  // 2. 모달 상태와 선택된 리뷰를 관리하는 상태 추가
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedReview, setSelectedReview] = useState(null);
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -148,6 +152,17 @@ export default function AdminReviewManagement() {
     a.click();
     URL.revokeObjectURL(url);
   };
+    // 3. 모달을 열고 닫는 함수 추가
+  const openDetailModal = (review) => {
+    setSelectedReview(review);
+    setIsModalOpen(true);
+  };
+
+  const closeDetailModal = () => {
+    setIsModalOpen(false);
+    setSelectedReview(null);
+  };
+
   if (loading) return <p>리뷰 정보를 불러오는 중...</p>;
 
   return (
@@ -170,6 +185,7 @@ export default function AdminReviewManagement() {
             <th>본계정 이름</th>
             <th>타계정 이름</th>
             <th>전화번호</th>
+            <th>리뷰 확인</th> {/* 4. 컬럼명 변경/추가 */}            
             <th>작업</th> {/* 반려 버튼을 위한 컬럼 */}
           </tr>
         </thead>
@@ -185,6 +201,15 @@ export default function AdminReviewManagement() {
               <td>{r.mainAccountName || '-'}</td>
               <td>{r.subAccountName || '-'}</td>
               <td>{r.phoneNumber}</td>
+              {/* 5. 클릭 가능한 'O' / 'X' 버튼으로 변경 */}
+              <td>
+                <button 
+                  className={`link-button ${r.confirmImageUrls?.length > 0 ? 'completed' : ''}`}
+                  onClick={() => openDetailModal(r)}
+                >
+                  {r.confirmImageUrls?.length > 0 ? 'O' : 'X'}
+                </button>
+              </td>
               <td>
                 <button onClick={() => handleReject(r.id)} className="reject-button">반려</button>
               </td>
@@ -192,6 +217,14 @@ export default function AdminReviewManagement() {
           ))}
         </tbody>
       </table>
+
+      {/* 6. 모달을 렌더링하는 코드 추가 */}
+      {isModalOpen && (
+        <ReviewDetailModal 
+          review={selectedReview} 
+          onClose={closeDetailModal} 
+        />
+      )}
     </>
   );
 }
