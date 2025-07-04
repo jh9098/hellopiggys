@@ -1,3 +1,5 @@
+/* D:\hellopiggy\frontend\src\components\AccountModal.css */
+
 /* General Modal Styling */
 .modal-back {
   position: fixed;
@@ -10,16 +12,18 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  overflow-y: auto; /* 내용이 길어지면 스크롤 가능하도록 추가 */
+  padding: 20px 0;
 }
 
 .account-modal {
   background: white;
-  padding: 25px;
-  border-radius: 10px;
+  padding: 25px 30px; /* 좌우 여백 추가 */
+  border-radius: 12px; /* 좀 더 둥글게 */
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   width: 90%;
   max-width: 480px;
-  position: relative; /* Needed for positioning the close button */
+  position: relative;
   z-index: 1001;
   text-align: center;
 }
@@ -44,8 +48,9 @@
 /* Headers and Paragraphs */
 .account-modal h3 {
   margin-top: 0;
-  margin-bottom: 10px;
+  margin-bottom: 25px; /* 제목과 내용 사이 여백 추가 */
   color: #333;
+  font-size: 1.5rem; /* 제목 폰트 크기 키움 */
 }
 
 .account-modal p {
@@ -73,64 +78,90 @@
 .account-modal button[type="submit"] {
   background-color: #007bff;
   color: white;
-  padding: 12px;
+  padding: 14px; /* 버튼 높이 키움 */
   border: none;
-  border-radius: 5px;
+  border-radius: 8px; /* 버튼 둥글게 */
   cursor: pointer;
   font-size: 1.1rem;
+  font-weight: bold; /* 폰트 굵게 */
   transition: background-color 0.2s;
   margin-top: 10px;
 }
 
 .account-modal button[type="submit"]:disabled {
   background-color: #a0c8f0;
+  cursor: not-allowed;
 }
 
 .account-modal button[type="submit"]:hover:not(:disabled) {
   background-color: #0056b3;
 }
 
+/* === ▼▼▼ 여기부터가 주요 변경 부분입니다 ▼▼▼ === */
+
+/* Sub-account List & Form Section Titles */
+.sub-account-list h4,
+.sub-account-form h4 {
+  margin-top: 0;
+  margin-bottom: 25px; /* 제목과 내용 사이 여백 */
+  color: #555;
+  font-size: 1.1rem;
+  font-weight: 600;
+  position: relative;
+  padding-bottom: 15px; /* 구분선과 텍스트 사이 여백 */
+}
+
+/* 제목 아래에 시각적 구분선 추가 */
+.sub-account-list h4::after,
+.sub-account-form h4::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 2px;
+  background-color: #e0e0e0;
+}
+
+
 /* Sub-account List */
 .sub-account-list {
   margin-top: 25px;
   border-top: 1px solid #eee;
-  padding-top: 20px;
+  padding-top: 25px;
 }
 
-.sub-account-list h4 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #444;
-}
-
+/* ★★★ 계정 선택 버튼 스타일 (핵심 변경) ★★★ */
 .sub-account-item {
   display: block;
   width: 100%;
-  padding: 12px;
-  margin-bottom: 10px;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 5px;
-  text-align: left;
+  padding: 15px; /* 패딩을 늘려 버튼을 크게 만듦 */
+  margin-bottom: 12px;
+  background-color: #fff; /* 배경은 흰색으로 */
+  border: 2px solid #007bff; /* 파란색 테두리로 강조 */
+  border-radius: 8px; /* 둥근 모서리 */
+  text-align: center; /* 텍스트 가운데 정렬 */
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
+  transition: background-color 0.2s, color 0.2s, transform 0.1s;
+  font-size: 1.05rem; /* 폰트 크기 살짝 키움 */
+  font-weight: 600; /* 폰트 굵게 */
+  color: #007bff; /* 파란색 텍스트 */
 }
 
+/* 계정 선택 버튼 호버(마우스 올렸을 때) 효과 */
 .sub-account-item:hover {
-  background-color: #e9ecef;
-  border-color: #ced4da;
+  background-color: #007bff; /* 배경을 파란색으로 채움 */
+  color: #fff; /* 텍스트는 흰색으로 변경 */
+  transform: translateY(-2px); /* 살짝 위로 뜨는 효과 */
 }
+
 
 /* Sub-account Creation Form */
 .sub-account-form {
-  margin-top: 25px;
+  margin-top: 30px; /* 계정 선택 목록과 새 계정 추가 폼 사이 간격 */
   border-top: 1px solid #eee;
-  padding-top: 20px;
-}
-
-.sub-account-form h4 {
-  margin-top: 0;
-  margin-bottom: 15px;
+  padding-top: 25px;
 }
 
 /* Error Message */
