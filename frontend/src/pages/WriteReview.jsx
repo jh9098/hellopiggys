@@ -23,7 +23,6 @@ export default function WriteReview() {
     participantId: '',
     orderNumber: '',
     address: '',
-    detailAddress: '',
     bank: '',
     bankNumber: '',
     accountHolderName: '',
@@ -114,7 +113,6 @@ export default function WriteReview() {
               onChange={onChange}
               placeholder={ph}
               type={type || 'text'}
-              required={key !== 'detailAddress'}
             />
           </div>
         ))}

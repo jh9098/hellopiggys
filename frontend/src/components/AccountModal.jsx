@@ -178,7 +178,6 @@ export default function AccountModal({ onClose, onSelectAccount }) {
               <input type="text" placeholder="이름" name="name" value={formAccount.name} onChange={handleFormChange} required />
               <input type="tel" placeholder="전화번호" name="phoneNumber" value={formAccount.phoneNumber} onChange={handleFormChange} required />
               <input type="text" placeholder="주소" name="address" value={formAccount.address} onChange={handleFormChange} />
-              <input type="text" placeholder="상세주소" name="detailAddress" value={formAccount.detailAddress} onChange={handleFormChange} />
               <select name="bank" value={formAccount.bank} onChange={handleFormChange} required>
                 <option value="" disabled>은행 선택</option>
                 {bankOptions.map(bank => <option key={bank} value={bank}>{bank}</option>)}
