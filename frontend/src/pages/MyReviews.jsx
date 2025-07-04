@@ -14,6 +14,7 @@ import {
   ref,
   uploadBytes,
   getDownloadURL,
+  deleteField // ▼▼▼ 1. firebaseConfig에서 export한 deleteField를 import 합니다. ▼▼▼
 } from '../firebaseConfig';
 import { createMainAccountId } from '../utils';
 import './MyReviews.css';
@@ -145,19 +146,32 @@ export default function MyReviews() {
         await uploadBytes(storageRef, f);
         urls.push(await getDownloadURL(storageRef));
       }
-      
+      // ▼▼▼ 2. 재제출 로직 수정 ▼▼▼
       const updatedData = { 
         confirmImageUrls: urls, 
         confirmedAt: new Date(),
-        status: 'review_completed' 
+        status: 'review_completed',
+        // 반려 사유 필드를 삭제합니다.
+        rejectionReason: deleteField() 
       };
       await updateDoc(doc(db, 'reviews', cur.id), updatedData);
 
-      setRows(rows.map(row => 
-        row.id === cur.id ? { ...row, ...updatedData } : row
-      ));
+      // 로컬 상태도 즉시 업데이트 (rejectionReason을 제거)
+      setRows(rows.map(row => {
+        if (row.id === cur.id) {
+          const newRow = { 
+            ...row,
+            confirmImageUrls: urls,
+            confirmedAt: new Date(),
+            status: 'review_completed'
+          };
+          delete newRow.rejectionReason; // 로컬 객체에서도 반려 사유 제거
+          return newRow;
+        }
+        return row;
+      }));
 
-      alert('리뷰 인증이 완료되었습니다.');
+      alert('리뷰를 다시 제출했습니다.');
       close();
     } catch (e) {
       alert('업로드 실패: ' + e.message);
@@ -189,7 +203,8 @@ export default function MyReviews() {
             <div className="btn-wrap">
               <button onClick={() => open('guide', r)}>진행 가이드</button>
               <button onClick={() => open('detail', r)}>구매 내역</button>
-              <button className="outline" onClick={() => open('upload', r)} disabled={r.status === 'settled' || r.status === 'rejected'}>
+              {/* ▼▼▼ 3. disabled 조건에서 'rejected' 상태를 제거합니다. ▼▼▼ */}
+              <button className="outline" onClick={() => open('upload', r)} disabled={r.status === 'settled'}>
                 리뷰 인증하기
               </button>
             </div>
@@ -208,6 +223,7 @@ export default function MyReviews() {
           </div>
         );
       })}
+
       
       {modal && (
         <div className="modal-back" onClick={close}>

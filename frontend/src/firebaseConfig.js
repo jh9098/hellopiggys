@@ -18,8 +18,9 @@ import {
   doc,
   updateDoc,
   getDoc,
-  deleteDoc, // <--- deleteDoc을 firebase/firestore에서 import
-  setDoc, // <--- 여기에 setDoc 추가
+  deleteDoc,
+  setDoc,
+  deleteField // 1. firestore에서 deleteField를 import 합니다.
 } from 'firebase/firestore';
 import {
   getStorage,
@@ -33,7 +34,7 @@ const firebaseConfig = {
   apiKey:             import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain:         import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId:          import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket:      import.meta.env.VITE_FIREBASE_STORAGE_BUCKET, // ← 반드시 *.appspot.com
+  storageBucket:      import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId:  import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId:              import.meta.env.VITE_FIREBASE_APP_ID,
 };
@@ -70,8 +71,9 @@ export {
   doc,
   updateDoc,
   getDoc,
-  deleteDoc, // <--- deleteDoc을 firebase/firestore에서 export
-  setDoc, // <--- 여기 export 블록에도 setDoc 추가
+  deleteDoc,
+  setDoc,
+  deleteField, // 2. 여기서 export 해줍니다.
 
   /* Storage helpers */
   ref,
