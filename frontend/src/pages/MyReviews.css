@@ -174,5 +174,55 @@
     gap: 10px; /* 버튼 사이 간격 */
     margin-bottom: 16px;
   }
-  
-  
+  .card {
+  transition: opacity 0.3s, background-color 0.3s;
+  border-left: 5px solid transparent;
+}
+
+.card.submitted {
+  border-left-color: #2196F3; /* 파란색: 구매 완료 */
+}
+.card.review-completed {
+  border-left-color: #FFC107; /* 노란색: 리뷰 완료 */
+}
+.card.verified {
+  border-left-color: #4CAF50; /* 초록색: 인증 완료 */
+}
+.card.rejected {
+  border-left-color: #F44336; /* 빨간색: 반려 */
+  background-color: #fff5f5;
+}
+.card.settled {
+  opacity: 0.6; /* 흐리게 처리 */
+  border-left-color: #9E9E9E; /* 회색: 정산 완료 */
+  background-color: #f9f9f9;
+}
+
+/* 뱃지 스타일 */
+.card .badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.card.submitted .badge { background-color: #2196F3; }
+.card.review-completed .badge { background-color: #FFC107; color: #333; }
+.card.verified .badge { background-color: #4CAF50; }
+.card.rejected .badge { background-color: #F44336; }
+.card.settled .badge { background-color: #9E9E9E; }
+
+
+/* 반려 사유 스타일 */
+.rejection-reason {
+  background-color: #ffebee;
+  border: 1px solid #ef9a9a;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.rejection-reason strong {
+  color: #c62828;
+}

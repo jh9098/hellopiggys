@@ -1,6 +1,17 @@
+//D:\hellopiggy\frontend\src\pages\AdminReviewManagement.jsx
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, getDoc } from '../firebaseConfig';
 import Papa from 'papaparse';
+
+// 상태(status)에 따른 텍스트를 반환하는 헬퍼 함수
+const getStatusText = (status) => {
+  switch (status) {
+    case 'review_completed': return '리뷰 완료';
+    case 'rejected': return '반려됨';
+    case 'submitted':
+    default: return '구매 완료';
+  }
+};
 
 export default function AdminReviewManagement() {
   const [rows, setRows] = useState([]);
@@ -10,8 +21,8 @@ export default function AdminReviewManagement() {
 
   const fetchReviews = async () => {
     setLoading(true);
-    // status가 'submitted'이거나, status 필드가 없는 예전 데이터를 함께 조회
-    const q = query(collection(db, 'reviews'), where('status', 'in', ['submitted', null]), orderBy('createdAt', 'desc'));
+    // 'verified'와 'settled'를 제외한 모든 상태의 리뷰를 가져옵니다.
+    const q = query(collection(db, 'reviews'), where('status', 'in', ['submitted', null, 'review_completed', 'rejected']), orderBy('createdAt', 'desc'));
     const snap = await getDocs(q);
     const reviewsData = await Promise.all(snap.docs.map(async (d) => {
       const review = { id: d.id, ...d.data() };
@@ -93,6 +104,29 @@ export default function AdminReviewManagement() {
     setRows(rows.filter(r => !selected.has(r.id)));
     setSelected(new Set());
   };
+  // 반려 처리 핸들러 추가
+  const handleReject = async (id) => {
+    const reason = prompt("반려 사유를 입력하세요:");
+    if (reason === null) return; // 사용자가 취소 버튼을 누른 경우
+    if (!reason.trim()) {
+      alert("반려 사유를 반드시 입력해야 합니다.");
+      return;
+    }
+
+    if (window.confirm(`이 리뷰를 반려 처리하시겠습니까?\n사유: ${reason}`)) {
+      try {
+        await updateDoc(doc(db, 'reviews', id), {
+          status: 'rejected',
+          rejectionReason: reason.trim(),
+          rejectedAt: serverTimestamp(),
+        });
+        alert('리뷰가 반려 처리되었습니다.');
+        fetchReviews(); // 목록 새로고침
+      } catch (e) {
+        alert('처리 중 오류가 발생했습니다: ' + e.message);
+      }
+    }
+  };
 
   const downloadCsv = () => {
     const csvData = filteredRows.map((r, i) => ({
@@ -120,10 +154,7 @@ export default function AdminReviewManagement() {
     <>
       <h2>리뷰 관리 ({filteredRows.length})</h2>
       <div className="toolbar">
-        {/* onClick 핸들러를 handleVerify로 수정하고 버튼 텍스트도 맞춥니다. */}
-        <button onClick={handleVerify} disabled={selected.size === 0}>
-          선택 항목 리뷰 인증
-        </button>
+        <button onClick={handleVerify} disabled={selected.size === 0}>선택 항목 리뷰 인증</button>
         <input placeholder="검색" value={search} onChange={(e) => setSearch(e.target.value)} />
         <button onClick={downloadCsv}>엑셀 다운로드</button>
       </div>
@@ -133,12 +164,13 @@ export default function AdminReviewManagement() {
             <th><input type="checkbox" checked={selected.size === filteredRows.length && filteredRows.length > 0} onChange={toggleSelectAll} /></th>
             <th>순번</th>
             <th>등록일시</th>
+            <th>상태</th> {/* 상태 컬럼 추가 */}
             <th>리뷰 제목</th>
             <th>상품명</th>
             <th>본계정 이름</th>
             <th>타계정 이름</th>
             <th>전화번호</th>
-            <th>리뷰 제출</th>
+            <th>작업</th> {/* 반려 버튼을 위한 컬럼 */}
           </tr>
         </thead>
         <tbody>
@@ -147,12 +179,15 @@ export default function AdminReviewManagement() {
               <td><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></td>
               <td>{idx + 1}</td>
               <td>{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}</td>
+              <td>{getStatusText(r.status)}</td> {/* 상태 텍스트 표시 */}
               <td>{r.title}</td>
               <td>{r.participantId || '-'}</td>
               <td>{r.mainAccountName || '-'}</td>
               <td>{r.subAccountName || '-'}</td>
               <td>{r.phoneNumber}</td>
-              <td>{r.confirmImageUrls && r.confirmImageUrls.length > 0 ? 'O' : 'X'}</td>
+              <td>
+                <button onClick={() => handleReject(r.id)} className="reject-button">반려</button>
+              </td>
             </tr>
           ))}
         </tbody>
