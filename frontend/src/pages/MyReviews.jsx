@@ -260,10 +260,10 @@ export default function MyReviews() {
 
                 {/* 이미지 섹션 및 하단 버튼 (이 부분도 변경 없음) */}
                 {[
-                  { key: 'likeImageUrl', label: '상품 찜 캡처' },
-                  { key: 'orderImageUrl', label: '구매 인증 캡처' },
-                  { key: 'secondOrderImageUrl', label: '추가 구매 인증' },
-                  { key: 'reviewImageUrl', label: '리뷰 인증 캡처' },
+                  { key: 'likeImageUrl', label: '상품 찜' },
+                  { key: 'orderImageUrl', label: '구매 인증' },
+                  { key: 'cashcardImageUrl', label: '현영/매출전표' },
+                  { key: 'keywordImageUrl', label: '키워드 인증' },
                 ].map(({ key, label }) =>
                   cur?.[key] ? (
                     <div className="field" key={key}>

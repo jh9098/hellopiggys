@@ -129,14 +129,13 @@ export default function AccountModal({ mode, mainAccount, onClose, onSelectAccou
               <input type="text" placeholder="이름" value={newSubAccount.name} onChange={e => setNewSubAccount({...newSubAccount, name: e.target.value})} required/>
               <input type="tel" placeholder="전화번호" value={newSubAccount.phoneNumber} onChange={e => handleNumericInputChange(e, 'phoneNumber')} required/>
               <input type="text" placeholder="주소" value={newSubAccount.address} onChange={e => setNewSubAccount({...newSubAccount, address: e.target.value})} />
-              <input type="text" placeholder="상세주소" value={newSubAccount.detailAddress} onChange={e => setNewSubAccount({...newSubAccount, detailAddress: e.target.value})} />
               <select value={newSubAccount.bank} onChange={e => setNewSubAccount({ ...newSubAccount, bank: e.target.value })} required>
                 <option value="" disabled>은행 선택</option>
                 {bankOptions.map(bank => <option key={bank} value={bank}>{bank}</option>)}
               </select>
               <input type="text" placeholder="계좌번호" value={newSubAccount.bankNumber} onChange={e => handleNumericInputChange(e, 'bankNumber')} />
               <input type="text" placeholder="예금주" value={newSubAccount.accountHolderName} onChange={e => setNewSubAccount({...newSubAccount, accountHolderName: e.target.value})} />
-              <button type="submit" disabled={submitting}>{submitting ? '추가 중...' : '이 계정으로 시작하기'}</button>
+              <button type="submit" disabled={submitting}>{submitting ? '추가 중...' : '위 계정으로 시작하기'}</button>
             </form>
           </div>
         )}
