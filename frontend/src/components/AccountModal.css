@@ -170,3 +170,85 @@
   margin-top: 15px;
   font-weight: bold;
 }
+.sub-account-list {
+  margin-bottom: 24px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 16px;
+}
+
+.sub-account-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.sub-account-item:hover {
+  background-color: #f5f5f5;
+}
+
+.sub-account-item .account-info {
+  flex-grow: 1; /* 이름 영역이 너비를 최대한 차지하도록 */
+}
+
+.sub-account-item .edit-btn {
+  background-color: #e0e0e0;
+  color: #333;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+.sub-account-item .edit-btn:hover {
+    background-color: #d1d1d1;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.form-actions button {
+  flex: 1;
+}
+
+.form-actions .cancel-btn {
+  background-color: #6c757d;
+  color: white;
+}
+
+.form-actions .cancel-btn:hover {
+  background-color: #5a6268;
+}
+
+.error-msg {
+  color: #e53935;
+  font-size: 14px;
+  margin-top: 10px;
+}
+.sub-account-form input {
+  width: calc(100% - 24px); /* 패딩을 고려하여 너비 조정 */
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.sub-account-form button[type="submit"] {
+  background-color: #007bff;
+  color: white;
+  padding: 12px;
+  border: none;                          
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+.sub-account-form button[type="submit"]:hover {
+  background-color: #0056b3;
+}
