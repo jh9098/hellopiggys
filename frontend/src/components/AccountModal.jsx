@@ -1,9 +1,7 @@
-// src/components/AccountModal.jsx (수정된 최종 버전)
-
-import { useState, useEffect } from 'react'; // useEffect를 추가
-// ▼▼▼ 1. firebaseConfig에서 가져오는 것 외에, signInAnonymously를 firebase/auth에서 직접 가져옵니다. ▼▼▼
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth'; 
-import { auth, db, collection, doc, setDoc, getDocs, addDoc, query, where, serverTimestamp } from '../firebaseConfig';
+import { useState } from 'react';
+import { httpsCallable } from 'firebase/functions';
+import { signInWithCustomToken } from 'firebase/auth';
+import { auth, db, functions, collection, doc, setDoc, getDocs, addDoc, query, where, serverTimestamp } from '../firebaseConfig';
 import './AccountModal.css';
 
 const bankOptions = [
@@ -24,34 +22,15 @@ export default function AccountModal({ onClose, onSelectAccount }) {
   
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
+  
   const [currentMainAccountId, setCurrentMainAccountId] = useState(null);
   const [subAccounts, setSubAccounts] = useState([]);
-
+  
   const [isEditing, setIsEditing] = useState(false);
   const [formAccount, setFormAccount] = useState(initialSubAccountState);
 
-  // ▼▼▼ 1. useEffect를 사용하여 인증 상태를 확실히 감지합니다. ▼▼▼
-  useEffect(() => {
-    // onAuthStateChanged는 현재 사용자의 로그인 상태를 알려주는 리스너입니다.
-    // user 객체가 있으면 로그인된 상태, null이면 로그아웃 상태입니다.
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // 이미 로그인된 상태라면, 바로 2단계로 넘어갈 준비를 합니다.
-        setCurrentMainAccountId(user.uid);
-        fetchSubAccounts(user.uid);
-        setStep(2);
-      } else {
-        // 로그인되지 않은 상태라면, 1단계를 유지합니다.
-        setStep(1);
-      }
-    });
+  // useEffect 로직은 이 컴포넌트의 역할과 맞지 않으므로 제거합니다.
 
-    // 컴포넌트가 사라질 때 리스너를 정리합니다.
-    return () => unsubscribe();
-  }, []); // 이 useEffect는 처음 한 번만 실행됩니다.
-
-  // ▼▼▼ 2. 1단계 제출 로직을 '로그인 시도'만 하도록 변경합니다. ▼▼▼
   const handleMainAccountSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -59,52 +38,54 @@ export default function AccountModal({ onClose, onSelectAccount }) {
       return setError('이름과 전화번호를 모두 입력하세요.');
     }
     setSubmitting(true);
+    
     try {
-      // 2-1. 먼저 익명 로그인을 '시도'합니다.
-      await signInAnonymously(auth);
+      const createTokenFunction = httpsCallable(functions, 'createCustomToken');
+      const result = await createTokenFunction({ name: mainName, phone: mainPhone });
+      const { token, uid } = result.data;
       
-      // 2-2. setDoc 등 DB 작업은 여기서 하지 않습니다!
-      //      로그인이 성공하면 위 useEffect의 onAuthStateChanged가 자동으로 감지하여
-      //      DB 작업을 처리하고 2단계로 넘겨줄 것입니다.
+      await signInWithCustomToken(auth, token);
+      
+      await setDoc(doc(db, 'users', uid), {
+        name: mainName.trim(),
+        phone: mainPhone.trim(),
+        uid: uid,
+      }, { merge: true });
 
-      // 2-3. 사용자 편의를 위한 localStorage 저장
       localStorage.setItem('REVIEWER_NAME', mainName.trim());
       localStorage.setItem('REVIEWER_PHONE', mainPhone.trim());
       
+      setCurrentMainAccountId(uid);
+      await fetchSubAccounts(uid);
+      setStep(2);
+
     } catch (err) {
-      console.error("익명 로그인 실패:", err);
-      setError("로그인 처리 중 오류가 발생했습니다.");
-      setSubmitting(false); // 실패 시 로딩 상태 해제
+      console.error("커스텀 로그인 실패:", err);
+      // 사용자에게 보여줄 오류 메시지를 좀 더 친절하게 변경
+      if (err.code === 'functions/unavailable') {
+        setError("서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.");
+      } else {
+        setError("로그인 처리 중 오류가 발생했습니다.");
+      }
+    } finally {
+      setSubmitting(false);
     }
-    // 성공 시에는 onAuthStateChanged가 알아서 로딩 상태를 관리하므로 여기서 해제하지 않습니다.
   };
 
-  // ▼▼▼ 3. fetchSubAccounts 함수를 약간 수정합니다. ▼▼▼
   const fetchSubAccounts = async (uid) => {
-    // 3-1. DB 작업 전에, 먼저 users 컬렉션에 정보를 기록합니다.
-    //      onAuthStateChanged 이후에 호출되므로, 이때는 auth 객체가 보장됩니다.
-    await setDoc(doc(db, 'users', uid), {
-      name: mainName.trim() || localStorage.getItem('REVIEWER_NAME') || '', // 상태가 비어있을 경우 localStorage 값 사용
-      phone: mainPhone.trim() || localStorage.getItem('REVIEWER_PHONE') || '',
-      uid: uid,
-    }, { merge: true });
-
-    // 3-2. 그 다음에 서브 계정 목록을 불러옵니다.
     const q = query(collection(db, 'subAccounts'), where('mainAccountId', '==', uid));
     const querySnapshot = await getDocs(q);
     const accounts = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     setSubAccounts(accounts);
-    setSubmitting(false); // 모든 작업이 끝나면 로딩 상태 해제
   };
-
+  
   const handleSelectSubAccount = (subAccount) => {
     onSelectAccount(subAccount, currentMainAccountId);
     onClose();
   };
-  
   const handleEditClick = (subAccount) => { setIsEditing(true); setFormAccount(subAccount); };
   const handleCancelEdit = () => { setIsEditing(false); setFormAccount(initialSubAccountState); };
-
+  
   const handleSubAccountFormSubmit = async (e) => {
     e.preventDefault();
     if (!currentMainAccountId) return setError("오류: 사용자 정보가 없습니다.");
@@ -144,6 +125,7 @@ export default function AccountModal({ onClose, onSelectAccount }) {
   };
   
   return (
+
     <div className="modal-back">
       <div className="account-modal" onClick={(e) => e.stopPropagation()}>
         <button className="close-btn" onClick={onClose}>✖</button>

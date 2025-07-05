@@ -28,6 +28,7 @@ import {
   uploadBytes,
   getDownloadURL,
 } from 'firebase/storage';
+import { getFunctions } from 'firebase/functions'; // 1. 이 줄을 추가합니다.
 
 /* ───────── Firebase 초기화 ───────── */
 const firebaseConfig = {
@@ -45,6 +46,7 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 /* ───────── 서비스 핸들러 ───────── */
 export const auth = getAuth(app);
 export const db   = getFirestore(app);
+export const functions = getFunctions(app, 'asia-northeast3'); // 2. 이 줄을 추가합니다. (서울 리전)
 
 // Storage는 지연 로딩 + 필요하면 직접 꺼내 씀
 export const getStorageInstance = () => getStorage(app);
