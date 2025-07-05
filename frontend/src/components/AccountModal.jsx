@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { httpsCallable } from 'firebase/functions';
-import { signInWithCustomToken } from 'firebase/auth';
+import { signInWithCustomToken, onAuthStateChanged } from 'firebase/auth'; // onAuthStateChanged 추가
 import { auth, db, functions, collection, doc, setDoc, getDocs, addDoc, query, where, serverTimestamp } from '../firebaseConfig';
 import './AccountModal.css';
+
 
 const bankOptions = [
   '신한', '국민', '산업', 'KEB하나', '케이뱅크', '경남', '저축', '우리', 
