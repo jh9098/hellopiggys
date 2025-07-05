@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'; // useEffect를 추가
 // ▼▼▼ 1. firebaseConfig에서 가져오는 것 외에, signInAnonymously를 firebase/auth에서 직접 가져옵니다. ▼▼▼
-import { signInAnonymously } from 'firebase/auth'; 
+import { signInAnonymously, onAuthStateChanged } from 'firebase/auth'; 
 import { auth, db, collection, doc, setDoc, getDocs, addDoc, query, where, serverTimestamp } from '../firebaseConfig';
 import './AccountModal.css';
 
