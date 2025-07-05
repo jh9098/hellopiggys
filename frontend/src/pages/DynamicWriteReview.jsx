@@ -201,10 +201,10 @@ export default function DynamicWriteReview() {
 
           {/* 이미지 업로드 */}
           {[
-            { key: 'likeImage', label: '상품 찜 캡처 (필수)', req: true },
-            { key: 'orderImage', label: '구매 인증 캡처 (필수)', req: true },
-            { key: 'cashcardImage', label: '현영/매출전표(필수)', req: true },
-            { key: 'keywordImage', label: '키워드 인증(필수)', req: true },
+            { key: 'likeImage', label: '상품 찜 캡처 (필수)', req: false },
+            { key: 'orderImage', label: '구매 인증 캡처 (필수)', req: false },
+            { key: 'cashcardImage', label: '현영/매출전표(필수)', req: false },
+            { key: 'keywordImage', label: '키워드 인증(필수)', req: false },
           ].map(({ key, label, req }) => (
             <div className="field" key={key}>
               <label>{label}</label>
