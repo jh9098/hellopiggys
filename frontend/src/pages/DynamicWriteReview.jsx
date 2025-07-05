@@ -146,10 +146,11 @@ export default function DynamicWriteReview() {
       <h2 className="title">{linkData?.title || '리뷰 작성'}</h2>
       {linkData?.content && (<div className="notice-box">{linkData.content}</div>)}
       <div className="account-actions" style={{marginBottom: '20px', display: 'flex', gap: '10px'}}>
-        <button type="button" onClick={handleOpenModal} className="submit-btn" style={{flex: 1}}>
+        <button type="button" onClick={() => setIsModalOpen(true)} className="submit-btn" style={{flex: 1}}>
           회원 정보 입력/선택
         </button>
       </div>
+
       {isModalOpen && (<AccountModal onClose={() => setIsModalOpen(false)} onSelectAccount={handleSelectAccount}/>)}
       {isAccountSelected && (
         <form onSubmit={handleSubmit}>
