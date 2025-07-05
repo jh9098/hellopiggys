@@ -30,7 +30,38 @@ export default function AccountModal({ onClose, onSelectAccount }) {
   const [formAccount, setFormAccount] = useState(initialSubAccountState);
 
   // useEffect 로직은 이 컴포넌트의 역할과 맞지 않으므로 제거합니다.
+  // ▼▼▼ 1. 로그인 상태를 감지하고, 로그인 후에만 DB 작업을 수행하는 useEffect ▼▼▼
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user && step === 1 && submitting) {
+        // [핵심] 1단계에서 '처리 중' 상태일 때 로그인 사용자가 감지되면,
+        // 이 시점에서 DB 작업을 수행하고 2단계로 넘어갑니다.
+        try {
+          await setDoc(doc(db, 'users', user.uid), {
+            name: localStorage.getItem('REVIEWER_NAME') || '', // 상태 대신 localStorage에서 가져옴
+            phone: localStorage.getItem('REVIEWER_PHONE') || '',
+            uid: user.uid,
+          }, { merge: true });
 
+          setCurrentMainAccountId(user.uid);
+          await fetchSubAccounts(user.uid);
+          setStep(2);
+
+        } catch (dbError) {
+          console.error("DB 작업 실패:", dbError);
+          setError("데이터 처리 중 오류가 발생했습니다.");
+        } finally {
+          setSubmitting(false); // 모든 작업 후 로딩 해제
+        }
+      } else if (!user) {
+        // 로그아웃 상태일 때
+        setStep(1);
+      }
+    });
+    return () => unsubscribe();
+  }, [step, submitting]); // step과 submitting 상태가 바뀔 때마다 이 로직을 재평가
+
+  // ▼▼▼ 2. 1단계 제출 로직은 '로그인'까지만 책임집니다. ▼▼▼
   const handleMainAccountSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -39,36 +70,26 @@ export default function AccountModal({ onClose, onSelectAccount }) {
     }
     setSubmitting(true);
     
+    // 사용자 편의를 위해 localStorage에 먼저 저장
+    localStorage.setItem('REVIEWER_NAME', mainName.trim());
+    localStorage.setItem('REVIEWER_PHONE', mainPhone.trim());
+
     try {
       const createTokenFunction = httpsCallable(functions, 'createCustomToken');
       const result = await createTokenFunction({ name: mainName, phone: mainPhone });
-      const { token, uid } = result.data;
+      const { token } = result.data;
       
+      // 커스텀 토큰으로 로그인 시도. 성공하면 위의 useEffect가 감지합니다.
       await signInWithCustomToken(auth, token);
       
-      await setDoc(doc(db, 'users', uid), {
-        name: mainName.trim(),
-        phone: mainPhone.trim(),
-        uid: uid,
-      }, { merge: true });
-
-      localStorage.setItem('REVIEWER_NAME', mainName.trim());
-      localStorage.setItem('REVIEWER_PHONE', mainPhone.trim());
-      
-      setCurrentMainAccountId(uid);
-      await fetchSubAccounts(uid);
-      setStep(2);
-
     } catch (err) {
       console.error("커스텀 로그인 실패:", err);
-      // 사용자에게 보여줄 오류 메시지를 좀 더 친절하게 변경
-      if (err.code === 'functions/unavailable') {
+      if (err.code === 'functions/unavailable' || err.code === 'internal') {
         setError("서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.");
       } else {
         setError("로그인 처리 중 오류가 발생했습니다.");
       }
-    } finally {
-      setSubmitting(false);
+      setSubmitting(false); // 실패 시에만 여기서 로딩 해제
     }
   };
 
