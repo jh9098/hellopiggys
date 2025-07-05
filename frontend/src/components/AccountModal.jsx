@@ -1,7 +1,9 @@
 // src/components/AccountModal.jsx (수정된 최종 버전)
 
 import { useState } from 'react';
-import { auth, signInAnonymously, db, collection, doc, setDoc, getDocs, addDoc, query, where, serverTimestamp } from '../firebaseConfig';
+// ▼▼▼ 1. firebaseConfig에서 가져오는 것 외에, signInAnonymously를 firebase/auth에서 직접 가져옵니다. ▼▼▼
+import { signInAnonymously } from 'firebase/auth'; 
+import { auth, db, collection, doc, setDoc, getDocs, addDoc, query, where, serverTimestamp } from '../firebaseConfig';
 import './AccountModal.css';
 
 const bankOptions = [
@@ -16,7 +18,6 @@ const initialSubAccountState = {
 };
 
 export default function AccountModal({ onClose, onSelectAccount }) {
-  // ▼▼▼ 1. step과 본계정 정보(이름/전화번호) 상태를 다시 추가합니다. ▼▼▼
   const [step, setStep] = useState(1);
   const [mainName, setMainName] = useState(localStorage.getItem('REVIEWER_NAME') || '');
   const [mainPhone, setMainPhone] = useState(localStorage.getItem('REVIEWER_PHONE') || '');
@@ -24,14 +25,12 @@ export default function AccountModal({ onClose, onSelectAccount }) {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // ▼▼▼ 2. 로그인 후 얻게 될 uid를 저장할 상태입니다. ▼▼▼
   const [currentMainAccountId, setCurrentMainAccountId] = useState(null);
   const [subAccounts, setSubAccounts] = useState([]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [formAccount, setFormAccount] = useState(initialSubAccountState);
 
-  // ▼▼▼ 3. 1단계: 이름/전화번호 제출 시 로그인/회원가입을 동시에 처리합니다. ▼▼▼
   const handleMainAccountSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -40,22 +39,19 @@ export default function AccountModal({ onClose, onSelectAccount }) {
     }
     setSubmitting(true);
     try {
-      // 3-1. Firebase 익명 로그인 실행 -> 고유 uid 획득
+      // ▼▼▼ 2. signInAnonymously 함수는 auth 인스턴스를 인자로 받습니다. ▼▼▼
       const userCredential = await signInAnonymously(auth);
       const uid = userCredential.user.uid;
 
-      // 3-2. 'users' 컬렉션에 uid를 ID로 하여 이름/전화번호 저장
       await setDoc(doc(db, 'users', uid), {
         name: mainName.trim(),
         phone: mainPhone.trim(),
         uid: uid,
       }, { merge: true });
 
-      // 3-3. 사용자 편의를 위해 localStorage에도 저장
       localStorage.setItem('REVIEWER_NAME', mainName.trim());
       localStorage.setItem('REVIEWER_PHONE', mainPhone.trim());
       
-      // 3-4. 획득한 uid를 상태에 저장하고 2단계로 진행
       setCurrentMainAccountId(uid);
       await fetchSubAccounts(uid);
       setStep(2);
@@ -76,11 +72,10 @@ export default function AccountModal({ onClose, onSelectAccount }) {
   };
 
   const handleSelectSubAccount = (subAccount) => {
-    onSelectAccount(subAccount, currentMainAccountId); // currentMainAccountId는 이제 uid
+    onSelectAccount(subAccount, currentMainAccountId);
     onClose();
   };
   
-  // 2단계 로직들은 기존과 거의 동일합니다.
   const handleEditClick = (subAccount) => { setIsEditing(true); setFormAccount(subAccount); };
   const handleCancelEdit = () => { setIsEditing(false); setFormAccount(initialSubAccountState); };
 
