@@ -31,6 +31,27 @@ export default function AccountModal({ onClose, onSelectAccount }) {
   const [isEditing, setIsEditing] = useState(false);
   const [formAccount, setFormAccount] = useState(initialSubAccountState);
 
+  // ▼▼▼ 1. useEffect를 사용하여 인증 상태를 확실히 감지합니다. ▼▼▼
+  useEffect(() => {
+    // onAuthStateChanged는 현재 사용자의 로그인 상태를 알려주는 리스너입니다.
+    // user 객체가 있으면 로그인된 상태, null이면 로그아웃 상태입니다.
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // 이미 로그인된 상태라면, 바로 2단계로 넘어갈 준비를 합니다.
+        setCurrentMainAccountId(user.uid);
+        fetchSubAccounts(user.uid);
+        setStep(2);
+      } else {
+        // 로그인되지 않은 상태라면, 1단계를 유지합니다.
+        setStep(1);
+      }
+    });
+
+    // 컴포넌트가 사라질 때 리스너를 정리합니다.
+    return () => unsubscribe();
+  }, []); // 이 useEffect는 처음 한 번만 실행됩니다.
+
+  // ▼▼▼ 2. 1단계 제출 로직을 '로그인 시도'만 하도록 변경합니다. ▼▼▼
   const handleMainAccountSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -39,36 +60,41 @@ export default function AccountModal({ onClose, onSelectAccount }) {
     }
     setSubmitting(true);
     try {
-      // ▼▼▼ 2. signInAnonymously 함수는 auth 인스턴스를 인자로 받습니다. ▼▼▼
-      const userCredential = await signInAnonymously(auth);
-      const uid = userCredential.user.uid;
+      // 2-1. 먼저 익명 로그인을 '시도'합니다.
+      await signInAnonymously(auth);
+      
+      // 2-2. setDoc 등 DB 작업은 여기서 하지 않습니다!
+      //      로그인이 성공하면 위 useEffect의 onAuthStateChanged가 자동으로 감지하여
+      //      DB 작업을 처리하고 2단계로 넘겨줄 것입니다.
 
-      await setDoc(doc(db, 'users', uid), {
-        name: mainName.trim(),
-        phone: mainPhone.trim(),
-        uid: uid,
-      }, { merge: true });
-
+      // 2-3. 사용자 편의를 위한 localStorage 저장
       localStorage.setItem('REVIEWER_NAME', mainName.trim());
       localStorage.setItem('REVIEWER_PHONE', mainPhone.trim());
       
-      setCurrentMainAccountId(uid);
-      await fetchSubAccounts(uid);
-      setStep(2);
-
     } catch (err) {
-      console.error("익명 로그인 및 사용자 정보 저장 실패:", err);
-      setError("처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-    } finally {
-      setSubmitting(false);
+      console.error("익명 로그인 실패:", err);
+      setError("로그인 처리 중 오류가 발생했습니다.");
+      setSubmitting(false); // 실패 시 로딩 상태 해제
     }
+    // 성공 시에는 onAuthStateChanged가 알아서 로딩 상태를 관리하므로 여기서 해제하지 않습니다.
   };
 
+  // ▼▼▼ 3. fetchSubAccounts 함수를 약간 수정합니다. ▼▼▼
   const fetchSubAccounts = async (uid) => {
+    // 3-1. DB 작업 전에, 먼저 users 컬렉션에 정보를 기록합니다.
+    //      onAuthStateChanged 이후에 호출되므로, 이때는 auth 객체가 보장됩니다.
+    await setDoc(doc(db, 'users', uid), {
+      name: mainName.trim() || localStorage.getItem('REVIEWER_NAME') || '', // 상태가 비어있을 경우 localStorage 값 사용
+      phone: mainPhone.trim() || localStorage.getItem('REVIEWER_PHONE') || '',
+      uid: uid,
+    }, { merge: true });
+
+    // 3-2. 그 다음에 서브 계정 목록을 불러옵니다.
     const q = query(collection(db, 'subAccounts'), where('mainAccountId', '==', uid));
     const querySnapshot = await getDocs(q);
     const accounts = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     setSubAccounts(accounts);
+    setSubmitting(false); // 모든 작업이 끝나면 로딩 상태 해제
   };
 
   const handleSelectSubAccount = (subAccount) => {
