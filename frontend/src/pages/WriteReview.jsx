@@ -150,10 +150,10 @@ export default function WriteReview() {
 
         {/* 이미지 업로드 */}
         {[
-          { key: 'likeImage', label: '상품 찜 캡처 (필수)', req: true },
-          { key: 'orderImage', label: '구매 인증 캡처 (최대 2개)', req: true },
+          { key: 'likeImage', label: '상품 찜 캡처 (필수)', req: false },
+          { key: 'orderImage', label: '구매 인증 캡처 (최대 2개)', req: false },
           { key: 'secondOrderImage', label: '추가 구매 인증 (선택)', req: false },
-          { key: 'reviewImage', label: '리뷰 인증 캡처 (필수)', req: true },
+          { key: 'reviewImage', label: '리뷰 인증 캡처 (필수)', req: false },
         ].map(({ key, label, req }) => (
           <div className="field" key={key}>
             <label>{label}</label>
