@@ -1,44 +1,45 @@
+// src/pages/DynamicWriteReview.jsx (수정된 최종 버전)
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { db, getStorageInstance, ref, uploadBytes, getDownloadURL, addDoc, collection, serverTimestamp, getDoc, doc } from '../firebaseConfig';
-import AccountModal from '../components/AccountModal'; // 모달 컴포넌트 import
-import './WriteReview.css'; // 기존 CSS 재사용
+import { auth, onAuthStateChanged, db, getStorageInstance, ref, uploadBytes, getDownloadURL, addDoc, collection, serverTimestamp, getDoc, doc } from '../firebaseConfig';
+import AccountModal from '../components/AccountModal';
+import './WriteReview.css';
 
 export default function DynamicWriteReview() {
   const { linkId } = useParams();
   const navigate = useNavigate();
   const storage = getStorageInstance();
 
-  // --- 상태 관리 ---
   const [linkData, setLinkData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   const [form, setForm] = useState({
-    name: '',
-    phoneNumber: '',
-    participantId: '',
-    orderNumber: '',
-    address: '',
-    bank: '',
-    bankNumber: '',
-    accountHolderName: '',
-    rewardAmount: '',
-    productName: '', // 이 값은 linkData에서 채워짐
+    name: '', phoneNumber: '', participantId: '', orderNumber: '', address: '',
+    bank: '', bankNumber: '', accountHolderName: '', rewardAmount: '',
+    productName: '',
   });
   const [images, setImages] = useState({});
   const [preview, setPreview] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  // 계정 선택 관련 상태
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMainAccountId, setSelectedMainAccountId] = useState(null);
   const [selectedSubAccountId, setSelectedSubAccountId] = useState(null);
-  
-  // 🔽 1. 폼 표시 여부를 제어할 상태 추가
   const [isAccountSelected, setIsAccountSelected] = useState(false);
 
-  // --- 데이터 로딩 ---
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setAuthChecked(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
   useEffect(() => {
     if (!linkId) {
       setError('유효하지 않은 링크 ID입니다.');
@@ -46,6 +47,7 @@ export default function DynamicWriteReview() {
       return;
     }
     const fetchLinkData = async () => {
+      setLoading(true);
       const docRef = doc(db, 'links', linkId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
@@ -60,8 +62,7 @@ export default function DynamicWriteReview() {
     fetchLinkData();
   }, [linkId]);
 
-  // --- 핸들러 ---
-  const handleSelectAccount = (subAccount, mainAccountId) => {
+  const handleSelectAccount = (subAccount, uid) => {
     setForm(prev => ({
       ...prev,
       name: subAccount.name || '',
@@ -71,11 +72,10 @@ export default function DynamicWriteReview() {
       bankNumber: subAccount.bankNumber || '',
       accountHolderName: subAccount.accountHolderName || '',
     }));
-    setSelectedMainAccountId(mainAccountId);
+    setSelectedMainAccountId(uid);
     setSelectedSubAccountId(subAccount.id);
-
-    // 🔽 2. 계정 선택 시, 폼을 표시하도록 상태 변경
     setIsAccountSelected(true);
+    setIsModalOpen(false);
   };
 
   const onFile = (e) => {
@@ -99,7 +99,7 @@ export default function DynamicWriteReview() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedMainAccountId) {
-      alert('먼저 회원 정보를 입력 또는 선택해주세요.');
+      alert('먼저 회원 정보를 선택해주세요.');
       return;
     }
     setSubmitting(true);
@@ -112,7 +112,6 @@ export default function DynamicWriteReview() {
       
       await addDoc(collection(db, 'reviews'), {
         ...form,
-        productName: form.participantId, // Use participantId as the product name
         ...urlMap,
         linkId: linkId,
         mainAccountId: selectedMainAccountId,
@@ -121,12 +120,8 @@ export default function DynamicWriteReview() {
         status: 'submitted',
       });
 
-      // localStorage에는 본계정 정보만 저장
-      const mainAccountInfo = selectedMainAccountId.split('_');
-      localStorage.setItem('REVIEWER_NAME', mainAccountInfo[0]);
-      localStorage.setItem('REVIEWER_PHONE', mainAccountInfo[1]);
-
-      navigate('/reviewer-login', { replace: true });
+      alert('리뷰가 성공적으로 제출되었습니다.');
+      navigate('/my-reviews', { replace: true });
     } catch (err) {
       alert('제출 실패: ' + err.message);
     } finally {
@@ -134,31 +129,28 @@ export default function DynamicWriteReview() {
     }
   };
 
-  if (loading) return <p style={{textAlign: 'center', padding: '50px'}}>페이지 정보를 불러오는 중...</p>;
+  const handleOpenModal = () => {
+    if (currentUser) {
+      setIsModalOpen(true);
+    } else {
+      alert('리뷰를 작성하려면 먼저 로그인이 필요합니다.');
+      navigate('/reviewer-login');
+    }
+  }
+
+  if (!authChecked || loading) return <p style={{textAlign: 'center', padding: '50px'}}>페이지 정보를 불러오는 중...</p>;
   if (error) return <p style={{textAlign: 'center', padding: '50px', color: 'red'}}>{error}</p>;
 
   return (
     <div className="page-wrap">
       <h2 className="title">{linkData?.title || '리뷰 작성'}</h2>
-
-      {linkData?.content && (
-          <div className="notice-box">{linkData.content}</div>
-      )}
-
+      {linkData?.content && (<div className="notice-box">{linkData.content}</div>)}
       <div className="account-actions" style={{marginBottom: '20px', display: 'flex', gap: '10px'}}>
-        <button type="button" onClick={() => setIsModalOpen(true)} className="submit-btn" style={{flex: 1}}>
+        <button type="button" onClick={handleOpenModal} className="submit-btn" style={{flex: 1}}>
           회원 정보 입력/선택
         </button>
       </div>
-
-      {isModalOpen && (
-        <AccountModal 
-          onClose={() => setIsModalOpen(false)}
-          onSelectAccount={handleSelectAccount}
-        />
-      )}
-
-      {/* 🔽 3. isAccountSelected가 true일 때만 form 전체를 렌더링 */}
+      {isModalOpen && (<AccountModal onClose={() => setIsModalOpen(false)} onSelectAccount={handleSelectAccount}/>)}
       {isAccountSelected && (
         <form onSubmit={handleSubmit}>
           {/* 기본 정보 (읽기 전용) */}
@@ -223,7 +215,7 @@ export default function DynamicWriteReview() {
           {/* 약관 */}
           <div className="field">
             <label>
-              <input type="checkbox" required /> 약관을 확인하였어요
+              <input type="checkbox" required /> 개인정보 이용에 동의합니다.
             </label>
           </div>
 

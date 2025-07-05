@@ -1,7 +1,10 @@
-// D:\hellopiggy\frontend\src\pages\MyReviews.jsx
+// D:\hellopiggy\frontend\src\pages\MyReviews.jsx (수정된 최종 버전)
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  auth,
+  onAuthStateChanged,
   db,
   getStorageInstance,
   collection,
@@ -14,24 +17,18 @@ import {
   ref,
   uploadBytes,
   getDownloadURL,
-  deleteField // ▼▼▼ 1. firebaseConfig에서 export한 deleteField를 import 합니다. ▼▼▼
+  deleteField
 } from '../firebaseConfig';
-import { createMainAccountId } from '../utils';
 import './MyReviews.css';
 
 // 상태(status)에 따른 텍스트와 클래스를 반환하는 헬퍼 함수
 const getStatusInfo = (review) => {
   const { status, confirmImageUrls, rejectionReason } = review;
-
   switch (status) {
-    case 'review_completed':
-      return { text: '리뷰 완료', className: 'review-completed' };
-    case 'verified':
-      return { text: '리뷰 인증 완료', className: 'verified' };
-    case 'rejected':
-      return { text: `리뷰 반려됨`, className: 'rejected', reason: rejectionReason };
-    case 'settled':
-      return { text: '정산 완료', className: 'settled' };
+    case 'review_completed': return { text: '리뷰 완료', className: 'review-completed' };
+    case 'verified': return { text: '리뷰 인증 완료', className: 'verified' };
+    case 'rejected': return { text: `리뷰 반려됨`, className: 'rejected', reason: rejectionReason };
+    case 'settled': return { text: '정산 완료', className: 'settled' };
     case 'submitted':
     default:
       if (confirmImageUrls && confirmImageUrls.length > 0) {
@@ -52,56 +49,63 @@ export default function MyReviews() {
   const storage = getStorageInstance();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
-  const [modal, setModal] = useState(null); 
-  const [cur, setCur] = useState(null); 
+
+  // ▼▼▼ 모달 관련 상태들을 복원하고 이름을 명확하게 변경합니다 ▼▼▼
+  const [modalType, setModalType] = useState(null);       // 'guide', 'detail', 'upload' 등 모달의 종류
+  const [currentReview, setCurrentReview] = useState(null); // 현재 선택된 리뷰 데이터
   
-  // ▼▼▼ 누락되었던 상태들 복원 ▼▼▼
-  const [isEditing, setIsEditing] = useState(false);
-  const [editableData, setEditableData] = useState({});
-  const [files, setFiles] = useState([]);
-  const [uploading, setUploading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);      // 'detail' 모달의 수정 모드 여부
+  const [editableData, setEditableData] = useState({});   // 수정 중인 데이터
+  const [files, setFiles] = useState([]);                 // 'upload' 모달의 파일
+  const [uploading, setUploading] = useState(false);      // 업로드/저장 진행 중 상태
 
   useEffect(() => {
-    const name = localStorage.getItem('REVIEWER_NAME');
-    const phone = localStorage.getItem('REVIEWER_PHONE');
-    if (!name || !phone) return nav('/reviewer-login', { replace: true });
-
-    const fetchAllReviews = async () => {
-      try {
-        const mainAccountId = createMainAccountId(name, phone);
-        const q = query(
-          collection(db, 'reviews'),
-          where('mainAccountId', '==', mainAccountId),
-          orderBy('createdAt', 'desc')
-        );
-        const snap = await getDocs(q);
-        setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      } catch (error) {
-        console.error("리뷰를 불러오는 중 오류 발생:", error);
-        alert('리뷰 정보를 가져오는 데 실패했습니다.');
-      } finally {
-        setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const q = query(
+            collection(db, 'reviews'),
+            where('mainAccountId', '==', user.uid),
+            orderBy('createdAt', 'desc')
+          );
+          const snap = await getDocs(q);
+          setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        } catch (error) {
+          console.error("리뷰를 불러오는 중 오류 발생:", error);
+          alert('리뷰 정보를 가져오는 데 실패했습니다.');
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        nav('/reviewer-login', { replace: true });
       }
-    };
-    fetchAllReviews();
+    });
+    return () => unsubscribe();
   }, [nav]);
 
-  const open = (type, r) => {
-    setCur(r);
-    setModal(type);
-    setIsEditing(false); // 모달 열 때 항상 보기 모드로 초기화
+  const handleLogout = () => {
+    auth.signOut();
+    localStorage.clear();
   };
 
-  const close = () => {
-    setModal(null);
+  // ▼▼▼ 모달 열기/닫기 함수 (원래 코드의 open/close) ▼▼▼
+  const openModal = (type, review) => {
+    setCurrentReview(review);
+    setModalType(type);
+    setIsEditing(false);
+  };
+
+  const closeModal = () => {
+    setModalType(null);
+    setCurrentReview(null);
     setFiles([]);
     setUploading(false);
     setIsEditing(false);
   };
 
-  // ▼▼▼ 누락되었던 핸들러 함수들 복원 ▼▼▼
+  // ▼▼▼ 수정 관련 핸들러들 (원래 코드와 동일한 로직) ▼▼▼
   const handleEdit = () => {
-    setEditableData({ ...cur });
+    setEditableData({ ...currentReview });
     setIsEditing(true);
   };
 
@@ -114,13 +118,14 @@ export default function MyReviews() {
   };
 
   const handleSave = async () => {
-    if (!cur) return;
+    if (!currentReview) return;
     setUploading(true);
     try {
-      await updateDoc(doc(db, 'reviews', cur.id), editableData);
+      await updateDoc(doc(db, 'reviews', currentReview.id), editableData);
       
-      setRows(rows.map(row => row.id === cur.id ? { ...row, ...editableData } : row));
-      setCur({ ...cur, ...editableData });
+      const updatedRows = rows.map(row => row.id === currentReview.id ? { ...row, ...editableData } : row);
+      setRows(updatedRows);
+      setCurrentReview({ ...currentReview, ...editableData });
 
       alert('수정이 완료되었습니다.');
       setIsEditing(false);
@@ -131,13 +136,13 @@ export default function MyReviews() {
     }
   };
   
-  // ▼▼▼ 여기가 문제의 원인! onFile 함수를 다시 정의합니다. ▼▼▼
+  // ▼▼▼ 파일 업로드 핸들러들 (원래 코드와 동일한 로직) ▼▼▼
   const onFile = (e) => {
     setFiles(Array.from(e.target.files || []));
   };
   
   const uploadConfirm = async () => {
-    if (!cur || files.length === 0) return alert('파일을 선택하세요');
+    if (!currentReview || files.length === 0) return alert('파일을 선택하세요');
     setUploading(true);
     try {
       const urls = [];
@@ -146,33 +151,26 @@ export default function MyReviews() {
         await uploadBytes(storageRef, f);
         urls.push(await getDownloadURL(storageRef));
       }
-      // ▼▼▼ 2. 재제출 로직 수정 ▼▼▼
       const updatedData = { 
         confirmImageUrls: urls, 
         confirmedAt: new Date(),
         status: 'review_completed',
-        // 반려 사유 필드를 삭제합니다.
         rejectionReason: deleteField() 
       };
-      await updateDoc(doc(db, 'reviews', cur.id), updatedData);
+      await updateDoc(doc(db, 'reviews', currentReview.id), updatedData);
 
-      // 로컬 상태도 즉시 업데이트 (rejectionReason을 제거)
-      setRows(rows.map(row => {
-        if (row.id === cur.id) {
-          const newRow = { 
-            ...row,
-            confirmImageUrls: urls,
-            confirmedAt: new Date(),
-            status: 'review_completed'
-          };
-          delete newRow.rejectionReason; // 로컬 객체에서도 반려 사유 제거
+      const updatedRows = rows.map(row => {
+        if (row.id === currentReview.id) {
+          const newRow = { ...row, ...updatedData };
+          delete newRow.rejectionReason;
           return newRow;
         }
         return row;
-      }));
+      });
+      setRows(updatedRows);
 
-      alert('리뷰를 다시 제출했습니다.');
-      close();
+      alert('리뷰를 제출했습니다.');
+      closeModal();
     } catch (e) {
       alert('업로드 실패: ' + e.message);
     } finally {
@@ -185,7 +183,7 @@ export default function MyReviews() {
 
   return (
     <div className="my-wrap">
-      <button className="logout" onClick={() => { localStorage.clear(); nav('/reviewer-login', { replace: true }); }}>
+      <button className="logout" onClick={handleLogout}>
         로그아웃 ➡
       </button>
 
@@ -201,10 +199,9 @@ export default function MyReviews() {
             </div>
 
             <div className="btn-wrap">
-              <button onClick={() => open('guide', r)}>진행 가이드</button>
-              <button onClick={() => open('detail', r)}>구매 내역</button>
-              {/* ▼▼▼ 3. disabled 조건에서 'rejected' 상태를 제거합니다. ▼▼▼ */}
-              <button className="outline" onClick={() => open('upload', r)} disabled={r.status === 'settled'}>
+              <button onClick={() => openModal('guide', r)}>진행 가이드</button>
+              <button onClick={() => openModal('detail', r)}>구매 내역</button>
+              <button className="outline" onClick={() => openModal('upload', r)} disabled={r.status === 'settled' || r.status === 'verified'}>
                 리뷰 인증하기
               </button>
             </div>
@@ -224,28 +221,27 @@ export default function MyReviews() {
         );
       })}
 
-      
-      {modal && (
-        <div className="modal-back" onClick={close}>
+      {/* ▼▼▼ 여기가 요청하신 모달 렌더링 부분입니다. (정상 작동하도록 수정) ▼▼▼ */}
+      {modalType && (
+        <div className="modal-back" onClick={closeModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <button className="close" onClick={close}>✖</button>
+            <button className="close" onClick={closeModal}>✖</button>
             
-            {modal === 'guide' && (
-              <><h3>진행 가이드</h3><p style={{ whiteSpace: 'pre-line' }}>{cur?.content || '준비 중입니다.'}</p></>
+            {modalType === 'guide' && (
+              <>
+                <h3>진행 가이드</h3>
+                <p style={{ whiteSpace: 'pre-line' }}>
+                  {currentReview?.content || '준비 중입니다.'}
+                </p>
+              </>
             )}
 
-            {modal === 'detail' && (
+            {modalType === 'detail' && (
               <div className="detail-view">
                 <h3>구매 내역</h3>
                 <div className="form-grid">
-                  <div className="field">
-                    <label>구매자(수취인)</label>
-                    <p>{cur?.name}</p>
-                  </div>
-                  <div className="field">
-                    <label>전화번호</label>
-                    <p>{cur?.phoneNumber}</p>
-                  </div>
+                  <div className="field"><label>구매자(수취인)</label><p>{currentReview?.name}</p></div>
+                  <div className="field"><label>전화번호</label><p>{currentReview?.phoneNumber}</p></div>
                 </div>
                 {[
                   { key: 'orderNumber', label: '주문번호' },
@@ -259,7 +255,7 @@ export default function MyReviews() {
                     {isEditing ? (
                       <input name={key} value={editableData[key] || ''} onChange={handleDataChange} />
                     ) : (
-                      <p>{cur?.[key]}</p>
+                      <p>{currentReview?.[key]}</p>
                     )}
                   </div>
                 ))}
@@ -271,24 +267,22 @@ export default function MyReviews() {
                       {bankOptions.map(b => <option key={b} value={b}>{b}</option>)}
                     </select>
                   ) : (
-                    <p>{cur?.bank}</p>
+                    <p>{currentReview?.bank}</p>
                   )}
                 </div>
-
                 {[
                   { key: 'likeImageUrl', label: '상품 찜' },
                   { key: 'orderImageUrl', label: '구매 인증' },
                   { key: 'cashcardImageUrl', label: '현영/매출전표' },
                   { key: 'keywordImageUrl', label: '키워드 인증' },
                 ].map(({ key, label }) =>
-                  cur?.[key] ? (
+                  currentReview?.[key] ? (
                     <div className="field" key={key}>
                       <label>{label}</label>
-                      <img src={cur[key]} alt={label} className="thumb" />
+                      <img src={currentReview[key]} alt={label} className="thumb" />
                     </div>
                   ) : null
                 )}
-
                 <div className="modal-actions">
                   {isEditing ? (
                     <>
@@ -300,17 +294,16 @@ export default function MyReviews() {
                   ) : (
                     <>
                       <button onClick={handleEdit}>수정</button>
-                      <button onClick={close} className="secondary">닫기</button>
+                      <button onClick={closeModal} className="secondary">닫기</button>
                     </>
                   )}
                 </div>
               </div>
             )}
             
-            {modal === 'upload' && (
+            {modalType === 'upload' && (
               <>
                 <h3>리뷰 인증 이미지 업로드</h3>
-                {/* ▼▼▼ 여기 onChange에 onFile 함수를 연결합니다. ▼▼▼ */}
                 <input type="file" accept="image/*" multiple onChange={onFile} />
                 <button onClick={uploadConfirm} disabled={uploading || files.length === 0} style={{ marginTop: 16 }}>
                   {uploading ? '업로드 중…' : '완료'}

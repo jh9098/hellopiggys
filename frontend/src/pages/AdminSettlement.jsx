@@ -25,7 +25,7 @@ export default function AdminSettlement() {
           const subAccountData = subAccountSnap.data();
           review.subAccountName = subAccountData.name; // 타계정 이름
           if (subAccountData.mainAccountId) {
-            const mainAccountRef = doc(db, 'mainAccounts', subAccountData.mainAccountId);
+            const mainAccountRef = doc(db, 'users', subAccountData.mainAccountId);
             const mainAccountSnap = await getDoc(mainAccountRef);
             if (mainAccountSnap.exists()) {
               review.mainAccountName = mainAccountSnap.data().name; // 본계정 이름

@@ -1,10 +1,10 @@
-//D:\hellopiggy\frontend\src\pages\AdminReviewManagement.jsx
+//D:\hellopiggy\frontend\src\pages\AdminReviewManagement.jsx (수정된 최종 버전)
+
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, getDoc } from '../firebaseConfig';
 import Papa from 'papaparse';
-import ReviewDetailModal from '../components/ReviewDetailModal'; // 1. 모달 컴포넌트 임포트
+import ReviewDetailModal from '../components/ReviewDetailModal';
 
-// 상태(status)에 따른 텍스트를 반환하는 헬퍼 함수
 const getStatusText = (status) => {
   switch (status) {
     case 'review_completed': return '리뷰 완료';
@@ -19,13 +19,11 @@ export default function AdminReviewManagement() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(new Set());
   const [search, setSearch] = useState('');
-  // 2. 모달 상태와 선택된 리뷰를 관리하는 상태 추가
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
 
   const fetchReviews = async () => {
     setLoading(true);
-    // 'verified'와 'settled'를 제외한 모든 상태의 리뷰를 가져옵니다.
     const q = query(collection(db, 'reviews'), where('status', 'in', ['submitted', null, 'review_completed', 'rejected']), orderBy('createdAt', 'desc'));
     const snap = await getDocs(q);
     const reviewsData = await Promise.all(snap.docs.map(async (d) => {
@@ -34,15 +32,15 @@ export default function AdminReviewManagement() {
         const subAccountRef = doc(db, 'subAccounts', review.subAccountId);
         const subAccountSnap = await getDoc(subAccountRef);
         if (subAccountSnap.exists()) {
-          const subAccountData = subAccountSnap.data();
-          review.subAccountName = subAccountData.name; // 타계정 이름
-          if (subAccountData.mainAccountId) {
-            const mainAccountRef = doc(db, 'mainAccounts', subAccountData.mainAccountId);
-            const mainAccountSnap = await getDoc(mainAccountRef);
-            if (mainAccountSnap.exists()) {
-              review.mainAccountName = mainAccountSnap.data().name; // 본계정 이름
-            }
-          }
+          review.subAccountName = subAccountSnap.data().name;
+        }
+      }
+      // mainAccountId는 이제 uid입니다. 이 uid를 사용해 'users' 컬렉션을 조회합니다.
+      if (review.mainAccountId) {
+        const userDocRef = doc(db, 'users', review.mainAccountId);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          review.mainAccountName = userDocSnap.data().name; // users 컬렉션에서 이름 가져오기
         }
       }
       return review;
@@ -59,78 +57,50 @@ export default function AdminReviewManagement() {
     if (!search) return rows;
     const s = search.toLowerCase();
     return rows.filter((r) =>
-      [
-        r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '',
-        r.participantId,
-        r.name,
-        r.mainAccountName, // Added for main account name
-        r.subAccountName, // Added for sub-account name
-        r.phoneNumber,
-        r.title,
-      ]
-        .join(' ')
-        .toLowerCase()
-        .includes(s)
+      [ r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '', r.participantId, r.name, r.mainAccountName, r.subAccountName, r.phoneNumber, r.title, ].join(' ').toLowerCase().includes(s)
     );
   }, [rows, search]);
 
   const toggleSelect = (id) => {
     const newSelected = new Set(selected);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
+    if (newSelected.has(id)) newSelected.delete(id);
+    else newSelected.add(id);
     setSelected(newSelected);
   };
 
   const toggleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelected(new Set(filteredRows.map((r) => r.id)));
-    } else {
-      setSelected(new Set());
-    }
+    if (e.target.checked) setSelected(new Set(filteredRows.map((r) => r.id)));
+    else setSelected(new Set());
   };
 
-  // '리뷰 인증' 버튼 핸들러 (이름: handleVerify)
   const handleVerify = async () => {
     if (selected.size === 0) return;
     if (!window.confirm(`${selected.size}개의 항목을 리뷰 인증 처리하고 정산내역으로 넘기시겠습니까?`)) return;
-
     for (const id of selected) {
-      await updateDoc(doc(db, 'reviews', id), {
-        status: 'verified',
-        verifiedAt: serverTimestamp(),
-      });
+      await updateDoc(doc(db, 'reviews', id), { status: 'verified', verifiedAt: serverTimestamp() });
     }
-
     alert('리뷰 인증이 완료되었습니다.');
     setRows(rows.filter(r => !selected.has(r.id)));
     setSelected(new Set());
   };
-  // 반려 처리 핸들러 추가
+
   const handleReject = async (id) => {
     const reason = prompt("반려 사유를 입력하세요:");
-    if (reason === null) return; // 사용자가 취소 버튼을 누른 경우
-    if (!reason.trim()) {
-      alert("반려 사유를 반드시 입력해야 합니다.");
+    if (reason === null || !reason.trim()) {
+      if(reason !== null) alert("반려 사유를 반드시 입력해야 합니다.");
       return;
     }
-
     if (window.confirm(`이 리뷰를 반려 처리하시겠습니까?\n사유: ${reason}`)) {
       try {
-        await updateDoc(doc(db, 'reviews', id), {
-          status: 'rejected',
-          rejectionReason: reason.trim(),
-          rejectedAt: serverTimestamp(),
-        });
+        await updateDoc(doc(db, 'reviews', id), { status: 'rejected', rejectionReason: reason.trim(), rejectedAt: serverTimestamp() });
         alert('리뷰가 반려 처리되었습니다.');
-        fetchReviews(); // 목록 새로고침
+        fetchReviews();
       } catch (e) {
         alert('처리 중 오류가 발생했습니다: ' + e.message);
       }
     }
   };
+
 
   const downloadCsv = () => {
     const csvData = filteredRows.map((r, i) => ({
