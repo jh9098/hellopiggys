@@ -21,6 +21,8 @@ export default function AdminReviewManagement() {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
+  // 1. '리뷰 제출 완료' 필터 상태를 관리하는 state 추가
+  const [filterCompleted, setFilterCompleted] = useState(false);
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -53,14 +55,25 @@ export default function AdminReviewManagement() {
     fetchReviews();
   }, []);
 
+  // 2. useMemo를 사용하여 검색과 필터링을 모두 적용
   const filteredRows = useMemo(() => {
-    if (!search) return rows;
-    const s = search.toLowerCase();
-    return rows.filter((r) =>
-      [ r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '', r.participantId, r.name, r.mainAccountName, r.subAccountName, r.phoneNumber, r.title, ].join(' ').toLowerCase().includes(s)
-    );
-  }, [rows, search]);
+    let tempRows = [...rows];
 
+    // '리뷰 제출 완료' 필터링
+    if (filterCompleted) {
+      tempRows = tempRows.filter(r => r.confirmImageUrls && r.confirmImageUrls.length > 0);
+    }
+
+    // 검색어 필터링
+    if (search) {
+      const s = search.toLowerCase();
+      tempRows = tempRows.filter((r) =>
+        [ r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '', r.participantId, r.name, r.mainAccountName, r.subAccountName, r.phoneNumber, r.title, ].join(' ').toLowerCase().includes(s)
+      );
+    }
+    
+    return tempRows;
+  }, [rows, search, filterCompleted]); // rows, search, filterCompleted가 변경될 때마다 재계산
   const toggleSelect = (id) => {
     const newSelected = new Set(selected);
     if (newSelected.has(id)) newSelected.delete(id);
@@ -137,9 +150,20 @@ export default function AdminReviewManagement() {
 
   return (
     <>
+      {/* 3. 제목에 현재 표시되는 항목의 개수를 보여줌 */}
       <h2>리뷰 관리 ({filteredRows.length})</h2>
       <div className="toolbar">
         <button onClick={handleVerify} disabled={selected.size === 0}>선택 항목 리뷰 인증</button>
+        {/* 4. 필터 버튼 추가 */}
+        <button 
+          onClick={() => setFilterCompleted(!filterCompleted)}
+          style={{ 
+            backgroundColor: filterCompleted ? '#28a745' : '#fff', // 활성화 시 녹색
+            color: filterCompleted ? '#fff' : '#333'
+          }}
+        >
+          리뷰 확인 'O'만 보기
+        </button>
         <input placeholder="검색" value={search} onChange={(e) => setSearch(e.target.value)} />
         <button onClick={downloadCsv}>엑셀 다운로드</button>
       </div>
@@ -160,6 +184,7 @@ export default function AdminReviewManagement() {
           </tr>
         </thead>
         <tbody>
+          {/* 5. 화면에 렌더링할 때, 필터링된 filteredRows를 사용 */}
           {filteredRows.map((r, idx) => (
             <tr key={r.id}>
               <td><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></td>
