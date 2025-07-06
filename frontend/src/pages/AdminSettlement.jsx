@@ -89,36 +89,32 @@ export default function AdminSettlement() {
     setRows(rows.filter(r => !selected.has(r.id)));
     setSelected(new Set());
   };
-  // ▼▼▼ 대량이체 CSV 다운로드 함수 (단순화된 버전) ▼▼▼
+    // ▼▼▼ 대량이체 CSV 다운로드 함수 (전체 다운로드로 수정) ▼▼▼
   const downloadBulkTransferCsv = () => {
-    if (selected.size === 0) {
-      alert('다운로드할 항목을 먼저 선택해주세요.');
+    // 1. 다운로드할 데이터가 없으면 함수를 종료합니다.
+    if (rows.length === 0) {
+      alert('다운로드할 정산 내역이 없습니다.');
       return;
     }
 
-    const selectedRows = rows.filter(r => selected.has(r.id));
-    
-    // 이미지의 형식에 맞춰 Firestore에서 가져온 데이터를 그대로 사용합니다.
-    const csvData = selectedRows.map(r => ({
-      'A열 (은행명)': r.bank || '', // 1. 은행명 (한글)
-      'B열 (입금계좌번호)': r.bankNumber ? `${r.bankNumber.replace(/-/g, '')}` : '', // 2. 계좌번호 (하이픈 제거)
-      'C열 (이체금액)': r.rewardAmount || '0', // 3. 금액
-      'D열 (예금주성명)': r.accountHolderName || '', // 4. 예금주명
-      'E열 (입금계좌메모)': `헬로피기`, // 5. 받는분 통장 표시 (요청대로 직접 입력)
-      'F열 (출금계좌메모)': `리뷰정산`, // 6. 내 통장 표시 (요청대로 직접 입력)
+    // 2. 선택된 항목(selectedRows)이 아닌 전체 항목(rows)을 사용합니다.
+    const csvData = rows.map(r => ({
+      '은행명': r.bank || '',
+      '입금계좌번호': r.bankNumber ? `${r.bankNumber.replace(/-/g, '')}` : '',
+      '이체금액': r.rewardAmount || '0',
+      '예금주성명': r.accountHolderName || '',
+      '입금계좌메모': `헬로피기`,
+      '출금계좌메모': `리뷰정산`,
     }));
 
-    // CSV 파일에는 데이터만 포함 (헤더 없음)
     const dataOnly = csvData.map(row => Object.values(row));
-
     const csv = Papa.unparse(dataOnly, { header: false });
 
-    // UTF-8 BOM을 추가하여 Excel에서 한글이 깨지지 않도록 함
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `대량이체파일_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `대량이체파일(전체)_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -131,10 +127,12 @@ export default function AdminSettlement() {
       <div className="toolbar">
         <button onClick={handleDelete} disabled={selected.size === 0} style={{backgroundColor: '#e53935', color: 'white'}}>선택삭제</button>
         <button onClick={handleSettle} disabled={selected.size === 0}>정산완료</button>
-        <button onClick={downloadBulkTransferCsv} disabled={selected.size === 0} style={{backgroundColor: '#007bff', color: 'white'}}>
+        {/* 3. 다운로드 버튼의 disabled 조건을 현재 목록의 개수로 변경합니다. */}
+        <button onClick={downloadBulkTransferCsv} disabled={rows.length === 0} style={{backgroundColor: '#007bff', color: 'white'}}>
           대량이체 파일 다운로드
         </button>
       </div>
+
 
       <table>
         <thead>
