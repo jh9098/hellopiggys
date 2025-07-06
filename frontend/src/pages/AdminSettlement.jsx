@@ -1,34 +1,37 @@
-// D:\hellopiggy\frontend\src\pages\AdminSettlement.jsx
+// D:\hellopiggy\frontend\src\pages\AdminSettlement.jsx (단순화된 최종 버전)
 
 import { useEffect, useState } from 'react';
-// 1. getDoc을 import 목록에 추가합니다.
 import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, deleteDoc, getDoc } from '../firebaseConfig';
+import Papa from 'papaparse'; // CSV 생성을 위해 import
 
 export default function AdminSettlement() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(new Set());
 
-  // 2. '리뷰 관리' 페이지의 데이터 조회 로직을 여기에 적용합니다.
   const fetchSettlementList = async () => {
     setLoading(true);
     const q = query(collection(db, 'reviews'), where('status', '==', 'verified'), orderBy('verifiedAt', 'desc'));
     const snap = await getDocs(q);
 
-    // mainAccountName과 subAccountName을 가져오는 로직 추가
     const settlementData = await Promise.all(snap.docs.map(async (d) => {
       const review = { id: d.id, ...d.data() };
+      
+      // subAccountId를 통해 이체에 필요한 모든 정보(은행명, 계좌번호 등)를 가져옵니다.
       if (review.subAccountId) {
         const subAccountRef = doc(db, 'subAccounts', review.subAccountId);
         const subAccountSnap = await getDoc(subAccountRef);
         if (subAccountSnap.exists()) {
+          // subAccounts 문서의 데이터를 review 객체에 병합합니다.
           const subAccountData = subAccountSnap.data();
-          review.subAccountName = subAccountData.name; // 타계정 이름
+          Object.assign(review, subAccountData);
+          review.subAccountName = subAccountData.name;
+
           if (subAccountData.mainAccountId) {
             const mainAccountRef = doc(db, 'users', subAccountData.mainAccountId);
             const mainAccountSnap = await getDoc(mainAccountRef);
             if (mainAccountSnap.exists()) {
-              review.mainAccountName = mainAccountSnap.data().name; // 본계정 이름
+              review.mainAccountName = mainAccountSnap.data().name;
             }
           }
         }
@@ -86,6 +89,39 @@ export default function AdminSettlement() {
     setRows(rows.filter(r => !selected.has(r.id)));
     setSelected(new Set());
   };
+  // ▼▼▼ 대량이체 CSV 다운로드 함수 (단순화된 버전) ▼▼▼
+  const downloadBulkTransferCsv = () => {
+    if (selected.size === 0) {
+      alert('다운로드할 항목을 먼저 선택해주세요.');
+      return;
+    }
+
+    const selectedRows = rows.filter(r => selected.has(r.id));
+    
+    // 이미지의 형식에 맞춰 Firestore에서 가져온 데이터를 그대로 사용합니다.
+    const csvData = selectedRows.map(r => ({
+      'A열 (은행명)': r.bank || '', // 1. 은행명 (한글)
+      'B열 (입금계좌번호)': r.bankNumber ? `${r.bankNumber.replace(/-/g, '')}` : '', // 2. 계좌번호 (하이픈 제거)
+      'C열 (이체금액)': r.rewardAmount || '0', // 3. 금액
+      'D열 (예금주성명)': r.accountHolderName || '', // 4. 예금주명
+      'E열 (입금계좌메모)': `헬로피기`, // 5. 받는분 통장 표시 (요청대로 직접 입력)
+      'F열 (출금계좌메모)': `리뷰정산`, // 6. 내 통장 표시 (요청대로 직접 입력)
+    }));
+
+    // CSV 파일에는 데이터만 포함 (헤더 없음)
+    const dataOnly = csvData.map(row => Object.values(row));
+
+    const csv = Papa.unparse(dataOnly, { header: false });
+
+    // UTF-8 BOM을 추가하여 Excel에서 한글이 깨지지 않도록 함
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `대량이체파일_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   if (loading) return <p>정산 내역을 불러오는 중...</p>;
 
@@ -95,8 +131,11 @@ export default function AdminSettlement() {
       <div className="toolbar">
         <button onClick={handleDelete} disabled={selected.size === 0} style={{backgroundColor: '#e53935', color: 'white'}}>선택삭제</button>
         <button onClick={handleSettle} disabled={selected.size === 0}>정산완료</button>
+        <button onClick={downloadBulkTransferCsv} disabled={selected.size === 0} style={{backgroundColor: '#007bff', color: 'white'}}>
+          대량이체 파일 다운로드
+        </button>
       </div>
-      {/* 3. 테이블 구조를 '리뷰 관리'와 유사하게 수정합니다. */}
+
       <table>
         <thead>
           <tr>
