@@ -12,14 +12,14 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  overflow-y: auto; /* 내용이 길어지면 스크롤 가능하도록 추가 */
+  overflow-y: auto;
   padding: 20px 0;
 }
 
 .account-modal {
   background: white;
-  padding: 25px 30px; /* 좌우 여백 추가 */
-  border-radius: 12px; /* 좀 더 둥글게 */
+  padding: 25px 30px;
+  border-radius: 12px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   width: 90%;
   max-width: 480px;
@@ -48,9 +48,9 @@
 /* Headers and Paragraphs */
 .account-modal h3 {
   margin-top: 0;
-  margin-bottom: 25px; /* 제목과 내용 사이 여백 추가 */
+  margin-bottom: 25px;
   color: #333;
-  font-size: 1.5rem; /* 제목 폰트 크기 키움 */
+  font-size: 1.5rem;
 }
 
 .account-modal p {
@@ -58,7 +58,7 @@
   margin-bottom: 20px;
 }
 
-/* Forms and Inputs */
+/* General Forms and Inputs */
 .account-modal form {
   display: flex;
   flex-direction: column;
@@ -71,47 +71,22 @@
   padding: 12px;
   border: 1px solid #ddd;
   border-radius: 5px;
-  box-sizing: border-box;
+  box-sizing: border-box; /* 너비 계산이 padding을 포함하도록 보장 */
   font-size: 1rem;
 }
 
-.account-modal button[type="submit"] {
-  background-color: #007bff;
-  color: white;
-  padding: 14px; /* 버튼 높이 키움 */
-  border: none;
-  border-radius: 8px; /* 버튼 둥글게 */
-  cursor: pointer;
-  font-size: 1.1rem;
-  font-weight: bold; /* 폰트 굵게 */
-  transition: background-color 0.2s;
-  margin-top: 10px;
-}
-
-.account-modal button[type="submit"]:disabled {
-  background-color: #a0c8f0;
-  cursor: not-allowed;
-}
-
-.account-modal button[type="submit"]:hover:not(:disabled) {
-  background-color: #0056b3;
-}
-
-/* === ▼▼▼ 여기부터가 주요 변경 부분입니다 ▼▼▼ === */
-
-/* Sub-account List & Form Section Titles */
+/* Section Titles (e.g., 등록된 계정 목록, 새 계정 추가) */
 .sub-account-list h4,
 .sub-account-form h4 {
   margin-top: 0;
-  margin-bottom: 25px; /* 제목과 내용 사이 여백 */
+  margin-bottom: 25px;
   color: #555;
   font-size: 1.1rem;
   font-weight: 600;
   position: relative;
-  padding-bottom: 15px; /* 구분선과 텍스트 사이 여백 */
+  padding-bottom: 15px;
 }
 
-/* 제목 아래에 시각적 구분선 추가 */
 .sub-account-list h4::after,
 .sub-account-form h4::after {
   content: '';
@@ -124,58 +99,15 @@
   background-color: #e0e0e0;
 }
 
-
-/* Sub-account List */
+/* Sub-account List Container */
 .sub-account-list {
   margin-top: 25px;
-  border-top: 1px solid #eee;
-  padding-top: 25px;
-}
-
-/* ★★★ 계정 선택 버튼 스타일 (핵심 변경) ★★★ */
-.sub-account-item {
-  display: block;
-  width: 100%;
-  padding: 15px; /* 패딩을 늘려 버튼을 크게 만듦 */
-  margin-bottom: 12px;
-  background-color: #fff; /* 배경은 흰색으로 */
-  border: 2px solid #007bff; /* 파란색 테두리로 강조 */
-  border-radius: 8px; /* 둥근 모서리 */
-  text-align: center; /* 텍스트 가운데 정렬 */
-  cursor: pointer;
-  transition: background-color 0.2s, color 0.2s, transform 0.1s;
-  font-size: 1.05rem; /* 폰트 크기 살짝 키움 */
-  font-weight: 600; /* 폰트 굵게 */
-  color: #007bff; /* 파란색 텍스트 */
-}
-
-/* 계정 선택 버튼 호버(마우스 올렸을 때) 효과 */
-.sub-account-item:hover {
-  background-color: #007bff; /* 배경을 파란색으로 채움 */
-  color: #fff; /* 텍스트는 흰색으로 변경 */
-  transform: translateY(-2px); /* 살짝 위로 뜨는 효과 */
-}
-
-
-/* Sub-account Creation Form */
-.sub-account-form {
-  margin-top: 30px; /* 계정 선택 목록과 새 계정 추가 폼 사이 간격 */
-  border-top: 1px solid #eee;
-  padding-top: 25px;
-}
-
-/* Error Message */
-.error-msg {
-  color: #e74c3c;
-  margin-top: 15px;
-  font-weight: bold;
-}
-.sub-account-list {
   margin-bottom: 24px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 16px;
+  border-top: 1px solid #eee;
+  padding-top: 25px;
 }
 
+/* Each Item in the Sub-account List */
 .sub-account-item {
   display: flex;
   justify-content: space-between;
@@ -183,7 +115,7 @@
   padding: 12px 8px;
   border-radius: 6px;
   transition: background-color 0.2s;
-  cursor: pointer;
+  text-align: left; /* 계정 정보는 왼쪽 정렬 */
 }
 
 .sub-account-item:hover {
@@ -191,23 +123,62 @@
 }
 
 .sub-account-item .account-info {
-  flex-grow: 1; /* 이름 영역이 너비를 최대한 차지하도록 */
+  flex-grow: 1;
+  cursor: pointer; /* 이름 부분을 클릭할 수 있음을 표시 */
+  font-weight: 500;
 }
 
-.sub-account-item .edit-btn {
-  background-color: #e0e0e0;
-  color: #333;
-  border: none;
+/* ▼▼▼ 여기부터가 수정 및 추가된 핵심 부분입니다 ▼▼▼ */
+
+/* Container for Edit and Delete buttons */
+.account-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* 버튼 사이의 간격 */
+  flex-shrink: 0; /* 버튼 영역이 줄어들지 않도록 설정 */
+}
+
+/* Common style for small buttons */
+.account-actions button {
   padding: 4px 10px;
   border-radius: 4px;
   font-size: 12px;
+  border: none;
   cursor: pointer;
-  margin-left: 10px;
-}
-.sub-account-item .edit-btn:hover {
-    background-color: #d1d1d1;
+  transition: background-color 0.2s;
 }
 
+/* Edit Button Style */
+.account-actions .edit-btn {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
+.account-actions .edit-btn:hover {
+  background-color: #d1d1d1;
+}
+
+/* Delete Button Style (Newly Added) */
+.account-actions .delete-btn {
+  background-color: #e53935; /* 눈에 띄는 빨간색 (에러 메시지와 통일감) */
+  color: white;
+}
+
+.account-actions .delete-btn:hover {
+  background-color: #c62828; /* 호버 시 조금 더 어두운 빨간색 */
+}
+
+/* ▲▲▲ 여기까지가 수정 및 추가된 핵심 부분입니다 ▲▲▲ */
+
+
+/* Sub-account Creation Form */
+.sub-account-form {
+  margin-top: 30px;
+  border-top: 1px solid #eee;
+  padding-top: 25px;
+}
+
+/* Form Actions (Submit, Cancel Buttons) */
 .form-actions {
   display: flex;
   gap: 10px;
@@ -215,7 +186,11 @@
 }
 
 .form-actions button {
-  flex: 1;
+  flex: 1; /* 버튼들이 공간을 균등하게 차지 */
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
 }
 
 .form-actions .cancel-btn {
@@ -227,28 +202,28 @@
   background-color: #5a6268;
 }
 
+/* Main Submit Button */
+button[type="submit"] {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+button[type="submit"]:disabled {
+  background-color: #a0c8f0;
+  cursor: not-allowed;
+}
+
+button[type="submit"]:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+/* Error Message */
 .error-msg {
   color: #e53935;
   font-size: 14px;
-  margin-top: 10px;
-}
-.sub-account-form input {
-  width: calc(100% - 24px); /* 패딩을 고려하여 너비 조정 */
-  padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 14px;
-}
-.sub-account-form button[type="submit"] {
-  background-color: #007bff;
-  color: white;
-  padding: 12px;
-  border: none;                          
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
-}
-.sub-account-form button[type="submit"]:hover {
-  background-color: #0056b3;
+  font-weight: bold;
+  margin-top: 15px;
 }
