@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { signInWithCustomToken, onAuthStateChanged } from 'firebase/auth'; // onAuthStateChanged 추가
-import { auth, db, functions, collection, doc, setDoc, getDocs, addDoc, query, where, serverTimestamp } from '../firebaseConfig';
+// ▼▼▼ 수정된 부분 ▼▼▼: deleteDoc 함수를 추가로 가져옵니다.
+import { auth, db, functions, collection, doc, setDoc, getDocs, addDoc, query, where, serverTimestamp, deleteDoc } from '../firebaseConfig';
 import './AccountModal.css';
 
 
@@ -107,7 +108,32 @@ export default function AccountModal({ onClose, onSelectAccount }) {
   };
   const handleEditClick = (subAccount) => { setIsEditing(true); setFormAccount(subAccount); };
   const handleCancelEdit = () => { setIsEditing(false); setFormAccount(initialSubAccountState); };
-  
+    // ▼▼▼ 추가된 부분: 계정 삭제 처리 함수 ▼▼▼
+  const handleDeleteClick = async (subAccountId) => {
+    // 실수로 삭제하는 것을 방지하기 위해 확인창을 띄웁니다.
+    if (!window.confirm('정말로 이 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError('');
+      // Firestore에서 해당 문서에 대한 참조를 생성합니다.
+      const subAccountRef = doc(db, 'subAccounts', subAccountId);
+      // 문서를 삭제합니다.
+      await deleteDoc(subAccountRef);
+      
+      // 화면(State)에서도 삭제된 계정을 즉시 반영합니다.
+      setSubAccounts(prevAccounts => prevAccounts.filter(acc => acc.id !== subAccountId));
+      alert('계정이 성공적으로 삭제되었습니다.');
+    } catch (err) {
+      console.error("계정 삭제 실패:", err);
+      setError(`삭제 처리 중 오류가 발생했습니다: ${err.message}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSubAccountFormSubmit = async (e) => {
     e.preventDefault();
     if (!currentMainAccountId) return setError("오류: 사용자 정보가 없습니다.");
@@ -172,7 +198,11 @@ export default function AccountModal({ onClose, onSelectAccount }) {
                 {subAccounts.map(acc => (
                   <div key={acc.id} className="sub-account-item">
                     <span onClick={() => handleSelectSubAccount(acc)} className="account-info">{acc.name} ({acc.phoneNumber})</span>
-                    <button onClick={() => handleEditClick(acc)} className="edit-btn">수정</button>
+                    {/* ▼▼▼ 수정된 부분: 버튼을 div로 감싸고 삭제 버튼 추가 ▼▼▼ */}
+                    <div className="account-actions">
+                      <button onClick={() => handleEditClick(acc)} className="edit-btn">수정</button>
+                      <button onClick={() => handleDeleteClick(acc.id)} className="delete-btn">삭제</button>
+                    </div>
                   </div>
                 ))}
               </div>
