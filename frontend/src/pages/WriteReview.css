@@ -18,6 +18,7 @@
     margin-bottom: 12px;
     white-space: pre-line;
     font-size: 14px;
+    white-space: pre-line; /* 이 속성이 핵심입니다. */
   }
   
   .field {
