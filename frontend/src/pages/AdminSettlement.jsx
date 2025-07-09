@@ -161,18 +161,23 @@ export default function AdminSettlement() {
       return;
     }
 
+    const toText = (v) => {
+      const s = (v ?? '').toString();
+      return s.startsWith("'") ? s : `'${s}`;
+    };
+
     const csvData = processedRows.map(r => ({
-      '상품명': r.productInfo?.productName || r.productName || '-',
-      '진행일자': r.productInfo?.reviewDate || '-',
-      '주문번호': r.orderNumber || '-',
-      '본계정 이름': r.mainAccountName || '-', // 본계정 이름 추가
-      '타계정 이름(수취인)': r.subAccountName || '-', // 타계정 이름 추가
-      '전화번호': r.phoneNumber || '-',
-      '주소': r.address || '-',
-      '은행': r.bank || '-',
-      '계좌번호': `'${r.bankNumber || ''}`,
-      '예금주': r.accountHolderName || '-',
-      '금액': r.rewardAmount || '0',
+      '상품명': toText(r.productInfo?.productName || r.productName || '-'),
+      '진행일자': toText(r.productInfo?.reviewDate || '-'),
+      '주문번호': toText(r.orderNumber || '-'),
+      '본계정 이름': toText(r.mainAccountName || '-'), // 본계정 이름 추가
+      '타계정 이름(수취인)': toText(r.subAccountName || '-'), // 타계정 이름 추가
+      '전화번호': toText(r.phoneNumber || '-'),
+      '주소': toText(r.address || '-'),
+      '은행': toText(r.bank || '-'),
+      '계좌번호': toText(r.bankNumber || ''),
+      '예금주': toText(r.accountHolderName || '-'),
+      '금액': toText(r.rewardAmount || '0'),
     }));
 
     const csv = Papa.unparse(csvData, { header: true });
