@@ -167,7 +167,7 @@ export default function WriteReview() {
       <h2 className="title">구매 폼 작성</h2>
       {!currentUser && ( 
         <div className="notice-box">
-        로그인 후 배정받은 상품을 선택해주세요.
+        로그인 후 배정받은 상품을 선택해주세요.<br />
         회원가입 시 전화번호는 숫자만 입력하세요
         </div> )}
       {isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} />}
