@@ -1,7 +1,7 @@
 // D:\hellopiggy\frontend\src\pages\MyReviews.jsx (수정된 최종 버전)
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Link 추가
 import {
   auth,
   onAuthStateChanged,
@@ -17,8 +17,10 @@ import {
   ref,
   uploadBytes,
   getDownloadURL,
-  deleteField
+  deleteField,
+  getDoc // getDoc 추가
 } from '../firebaseConfig';
+import LoginModal from '../components/LoginModal'; // 로그인 모달 추가
 import './MyReviews.css';
 
 // 상태(status)에 따른 텍스트와 클래스를 반환하는 헬퍼 함수
@@ -50,18 +52,22 @@ export default function MyReviews() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
 
-  // ▼▼▼ 모달 관련 상태들을 복원하고 이름을 명확하게 변경합니다 ▼▼▼
-  const [modalType, setModalType] = useState(null);       // 'guide', 'detail', 'upload' 등 모달의 종류
-  const [currentReview, setCurrentReview] = useState(null); // 현재 선택된 리뷰 데이터
+  const [modalType, setModalType] = useState(null);
+  const [currentReview, setCurrentReview] = useState(null); 
   
-  const [isEditing, setIsEditing] = useState(false);      // 'detail' 모달의 수정 모드 여부
-  const [editableData, setEditableData] = useState({});   // 수정 중인 데이터
-  const [files, setFiles] = useState([]);                 // 'upload' 모달의 파일
-  const [uploading, setUploading] = useState(false);      // 업로드/저장 진행 중 상태
+  const [isEditing, setIsEditing] = useState(false);
+  const [editableData, setEditableData] = useState({});
+  const [files, setFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+
+  // 1. 로그인 모달 상태 추가
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        // 로그인된 사용자가 있으면
+        setIsLoginModalOpen(false); // 혹시 열려있을 수 있는 로그인 모달 닫기
         try {
           const q = query(
             collection(db, 'reviews'),
@@ -69,7 +75,23 @@ export default function MyReviews() {
             orderBy('createdAt', 'desc')
           );
           const snap = await getDocs(q);
-          setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+          
+          // 각 리뷰에 연결된 subAccount 정보를 가져와서 병합
+          const reviewsWithDetails = await Promise.all(snap.docs.map(async (d) => {
+            const reviewData = { id: d.id, ...d.data() };
+            if (reviewData.subAccountId) {
+              const subDocRef = doc(db, 'subAccounts', reviewData.subAccountId);
+              const subDocSnap = await getDoc(subDocRef);
+              if (subDocSnap.exists()) {
+                // subAccount의 데이터를 review 데이터에 덮어쓰지 않고, 별도 객체로 관리하거나 필요한 필드만 추가
+                Object.assign(reviewData, subDocSnap.data());
+              }
+            }
+            return reviewData;
+          }));
+
+          setRows(reviewsWithDetails);
+
         } catch (error) {
           console.error("리뷰를 불러오는 중 오류 발생:", error);
           alert('리뷰 정보를 가져오는 데 실패했습니다.');
@@ -77,15 +99,18 @@ export default function MyReviews() {
           setLoading(false);
         }
       } else {
-        nav('/reviewer-login', { replace: true });
+        // 2. 로그인되지 않은 경우, 페이지 이동 대신 로그인 모달을 열도록 유도
+        setLoading(false); // 로딩 종료
+        setIsLoginModalOpen(true);
       }
     });
     return () => unsubscribe();
-  }, [nav]);
+  }, []);
 
   const handleLogout = () => {
     auth.signOut();
     localStorage.clear();
+    nav('/reviewer-login'); // 로그아웃 후 로그인 페이지로 이동
   };
 
   // ▼▼▼ 모달 열기/닫기 함수 (원래 코드의 open/close) ▼▼▼
@@ -178,62 +203,65 @@ export default function MyReviews() {
       setFiles([]);
     }
   };
+  // 3. 로그인 성공 시 모달을 닫기만 함 (페이지는 자동으로 새로고침됨)
+  const handleLoginSuccess = () => {
+    setIsLoginModalOpen(false);
+    // onAuthStateChanged가 로그인 상태를 감지하고 데이터를 다시 불러올 것임
+  };
 
-  if (loading) return <p style={{ padding: 24 }}>로딩중…</p>;
+  if (loading) {
+    return <p style={{ padding: 24, textAlign: 'center' }}>데이터를 불러오는 중...</p>;
+  }
+  
+  if (!currentUser) {
+    return (
+      <div className="my-wrap" style={{ textAlign: 'center', paddingTop: '50px' }}>
+        <h2>내 리뷰 목록</h2>
+        <p>리뷰를 확인하려면 로그인이 필요합니다.</p>
+        <button onClick={() => setIsLoginModalOpen(true)}>로그인 / 회원가입</button>
+        {isLoginModalOpen && (
+          <LoginModal 
+            onClose={() => setIsLoginModalOpen(false)}
+            onLoginSuccess={handleLoginSuccess}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="my-wrap">
-      <button className="logout" onClick={handleLogout}>
-        로그아웃 ➡
-      </button>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+        <h2>내 리뷰 목록</h2>
+        <button className="logout" onClick={handleLogout}>로그아웃 ➡</button>
+      </div>
 
-      {rows.map((r) => {
+      {rows.length === 0 ? <p>작성한 리뷰가 없습니다.</p> : rows.map((r) => {
         const statusInfo = getStatusInfo(r);
         return (
           <div className={`card ${statusInfo.className}`} key={r.id}>
             <div className="card-head">
               <span className="badge">{statusInfo.text}</span>
-              <span className="timestamp">
-                {r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}
-              </span>
+              <span className="timestamp">{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}</span>
             </div>
-
             <div className="btn-wrap">
               <button onClick={() => openModal('guide', r)}>진행 가이드</button>
               <button onClick={() => openModal('detail', r)}>구매 내역</button>
-              <button className="outline" onClick={() => openModal('upload', r)} disabled={r.status === 'settled' || r.status === 'verified'}>
-                리뷰 인증하기
-              </button>
+              <button className="outline" onClick={() => openModal('upload', r)} disabled={r.status === 'settled' || r.status === 'verified'}>리뷰 인증하기</button>
             </div>
-            
             <div className="product">{r.participantId || r.title || '제목 없음'}</div>
-
-            {statusInfo.reason && (
-              <div className="rejection-reason">
-                <strong>반려 사유:</strong> {statusInfo.reason}
-              </div>
-            )}
-            
-            <div className="price">
-              {Number(r.rewardAmount || 0).toLocaleString()}원
-            </div>
+            {statusInfo.reason && <div className="rejection-reason"><strong>반려 사유:</strong> {statusInfo.reason}</div>}
+            <div className="price">{Number(r.rewardAmount || 0).toLocaleString()}원</div>
           </div>
         );
       })}
-
-      {/* ▼▼▼ 여기가 요청하신 모달 렌더링 부분입니다. (정상 작동하도록 수정) ▼▼▼ */}
+      
       {modalType && (
         <div className="modal-back" onClick={closeModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <button className="close" onClick={closeModal}>✖</button>
-            
             {modalType === 'guide' && (
-              <>
-                <h3>진행 가이드</h3>
-                <p style={{ whiteSpace: 'pre-line' }}>
-                  {currentReview?.content || '준비 중입니다.'}
-                </p>
-              </>
+              <><h3>진행 가이드</h3><p style={{ whiteSpace: 'pre-line' }}>{currentReview?.content || '준비 중입니다.'}</p></>
             )}
 
             {modalType === 'detail' && (
@@ -302,13 +330,7 @@ export default function MyReviews() {
             )}
             
             {modalType === 'upload' && (
-              <>
-                <h3>리뷰 인증 이미지 업로드</h3>
-                <input type="file" accept="image/*" multiple onChange={onFile} />
-                <button onClick={uploadConfirm} disabled={uploading || files.length === 0} style={{ marginTop: 16 }}>
-                  {uploading ? '업로드 중…' : '완료'}
-                </button>
-              </>
+              <><h3>리뷰 인증 이미지 업로드</h3><input type="file" accept="image/*" multiple onChange={onFile} /><button onClick={uploadConfirm} disabled={uploading || files.length === 0} style={{ marginTop: 16 }}>{uploading ? '업로드 중…' : '완료'}</button></>
             )}
           </div>
         </div>

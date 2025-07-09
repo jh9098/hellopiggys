@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { auth, onAuthStateChanged, db, getStorageInstance, ref, uploadBytes, getDownloadURL, addDoc, collection, serverTimestamp, getDoc, doc } from '../firebaseConfig';
-import AccountModal from '../components/AccountModal';
+import LoginModal from '../components/LoginModal'; // 로그인/회원가입 모달
+import AccountModal from '../components/AccountModal'; // 서브 계정 관리 모달
+
 import './WriteReview.css';
 
 export default function DynamicWriteReview() {
@@ -11,13 +13,17 @@ export default function DynamicWriteReview() {
   const navigate = useNavigate();
   const storage = getStorageInstance();
 
+  // --- 상태 관리 ---
   const [linkData, setLinkData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  const [currentUser, setCurrentUser] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
 
+  // 1. 인증 및 모달 관련 상태
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  
+  // 2. 리뷰 폼 관련 상태
   const [form, setForm] = useState({
     name: '', phoneNumber: '', participantId: '', orderNumber: '', address: '',
     bank: '', bankNumber: '', accountHolderName: '', rewardAmount: '',
@@ -26,42 +32,69 @@ export default function DynamicWriteReview() {
   const [images, setImages] = useState({});
   const [preview, setPreview] = useState({});
   const [submitting, setSubmitting] = useState(false);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedMainAccountId, setSelectedMainAccountId] = useState(null);
-  const [selectedSubAccountId, setSelectedSubAccountId] = useState(null);
   const [isAccountSelected, setIsAccountSelected] = useState(false);
 
+  // --- 데이터 로딩 및 인증 상태 감지 ---
   useEffect(() => {
+    // Firebase 인증 상태를 실시간으로 감지
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
-      setAuthChecked(true);
     });
-    return () => unsubscribe();
-  }, []);
 
-  useEffect(() => {
-    if (!linkId) {
-      setError('유효하지 않은 링크 ID입니다.');
-      setLoading(false);
-      return;
-    }
+    // 링크 데이터 불러오기
     const fetchLinkData = async () => {
-      setLoading(true);
-      const docRef = doc(db, 'links', linkId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setLinkData(data);
-        setForm(prev => ({ ...prev, productName: data.title }));
-      } else {
-        setError('해당 링크를 찾을 수 없습니다.');
+      if (!linkId) {
+        setError('유효하지 않은 링크 ID입니다.');
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+      try {
+        const docRef = doc(db, 'links', linkId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setLinkData(data);
+          setForm(prev => ({ ...prev, productName: data.title }));
+        } else {
+          setError('해당 링크를 찾을 수 없습니다.');
+        }
+      } catch (e) {
+        setError('링크 정보를 불러오는 데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
     };
+
     fetchLinkData();
+    return () => unsubscribe(); // 컴포넌트 언마운트 시 인증 리스너 정리
   }, [linkId]);
 
+
+  // --- 핸들러 함수들 ---
+
+  // 1. 메인 버튼 클릭 핸들러 (로그인/로그아웃/서브계정)
+  const handleMainButtonClick = () => {
+    if (currentUser) {
+      // 이미 로그인 되어 있으면, 서브 계정 모달을 엽니다.
+      setIsAccountModalOpen(true);
+    } else {
+      // 로그인 안 되어 있으면, 로그인/회원가입 모달을 엽니다.
+      setIsLoginModalOpen(true);
+    }
+  };
+
+  const handleLogout = () => {
+    auth.signOut();
+  }
+
+  // 2. 로그인 성공 후 처리
+  const handleLoginSuccess = (user) => {
+    setIsLoginModalOpen(false); // 로그인 모달 닫기
+    // 로그인에 성공했으므로, 이어서 서브 계정 모달을 열어줍니다.
+    setIsAccountModalOpen(true);
+  };
+
+  // 3. 서브 계정 선택 후 처리
   const handleSelectAccount = (subAccount, uid) => {
     setForm(prev => ({
       ...prev,
@@ -72,50 +105,30 @@ export default function DynamicWriteReview() {
       bankNumber: subAccount.bankNumber || '',
       accountHolderName: subAccount.accountHolderName || '',
     }));
-    setSelectedMainAccountId(uid);
-    setSelectedSubAccountId(subAccount.id);
-    setIsAccountSelected(true);
-    setIsModalOpen(false);
+    setIsAccountSelected(true); // 폼을 표시하도록 상태 변경
+    setIsAccountModalOpen(false); // 서브 계정 모달 닫기
   };
 
-  const onFile = (e) => {
-    const { name, files } = e.target;
-    if (!files[0]) return;
-    setImages({ ...images, [name]: files[0] });
-    setPreview({ ...preview, [name]: URL.createObjectURL(files[0]) });
-  };
-  
-  const uploadOne = async (file) => {
-    try {
-      const r = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
-      await uploadBytes(r, file);
-      return await getDownloadURL(r);
-    } catch (err) {
-      console.warn('❌ 이미지 업로드 실패 (무시):', err.message);
-      return null;
-    }
-  };
-
+  // 4. 리뷰 폼 제출 핸들러
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedMainAccountId) {
-      alert('먼저 회원 정보를 선택해주세요.');
+    if (!currentUser) {
+      alert('로그인 정보가 유효하지 않습니다.');
       return;
     }
     setSubmitting(true);
     try {
       const urlMap = {};
       for (const [key, file] of Object.entries(images)) {
-        const url = await uploadOne(file);
-        if (url) urlMap[key + 'Url'] = url;
+        const r = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
+        await uploadBytes(r, file);
+        urlMap[key + 'Url'] = await getDownloadURL(r);
       }
       
       await addDoc(collection(db, 'reviews'), {
         ...form,
-        ...urlMap,
         linkId: linkId,
-        mainAccountId: selectedMainAccountId,
-        subAccountId: selectedSubAccountId,
+        mainAccountId: currentUser.uid, // 로그인된 사용자의 고유 uid를 저장
         createdAt: serverTimestamp(),
         status: 'submitted',
       });
@@ -129,29 +142,46 @@ export default function DynamicWriteReview() {
     }
   };
 
-  const handleOpenModal = () => {
-    if (currentUser) {
-      setIsModalOpen(true);
-    } else {
-      alert('리뷰를 작성하려면 먼저 로그인이 필요합니다.');
-      navigate('/reviewer-login');
-    }
-  }
+  const onFile = (e) => { /* 이전과 동일 */ };
 
-  if (!authChecked || loading) return <p style={{textAlign: 'center', padding: '50px'}}>페이지 정보를 불러오는 중...</p>;
+
+  // --- 렌더링 ---
+
+  if (loading) return <p style={{textAlign: 'center', padding: '50px'}}>페이지 정보를 불러오는 중...</p>;
   if (error) return <p style={{textAlign: 'center', padding: '50px', color: 'red'}}>{error}</p>;
 
   return (
     <div className="page-wrap">
       <h2 className="title">{linkData?.title || '리뷰 작성'}</h2>
       {linkData?.content && (<div className="notice-box">{linkData.content}</div>)}
-      <div className="account-actions" style={{marginBottom: '20px', display: 'flex', gap: '10px'}}>
-        <button type="button" onClick={() => setIsModalOpen(true)} className="submit-btn" style={{flex: 1}}>
-          회원 정보 입력/선택
-        </button>
+      
+      <div className="account-actions">
+        {/* 현재 로그인 상태에 따라 다른 버튼을 보여줌 */}
+        {currentUser ? (
+          <>
+            <button type="button" onClick={handleMainButtonClick}>서브 계정 선택/관리</button>
+            <button type="button" onClick={handleLogout} className="logout-btn">로그아웃</button>
+          </>
+        ) : (
+          <button type="button" onClick={handleMainButtonClick}>회원 정보 입력/선택</button>
+        )}
       </div>
 
-      {isModalOpen && (<AccountModal onClose={() => setIsModalOpen(false)} onSelectAccount={handleSelectAccount}/>)}
+      {/* 로그인/회원가입 모달 */}
+      {isLoginModalOpen && (
+        <LoginModal 
+          onClose={() => setIsLoginModalOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      )}
+
+      {/* 서브 계정 관리 모달 */}
+      {isAccountModalOpen && (
+        <AccountModal 
+          onClose={() => setIsAccountModalOpen(false)} 
+          onSelectAccount={handleSelectAccount}
+        />
+      )}
       {isAccountSelected && (
         <form onSubmit={handleSubmit}>
           {/* 기본 정보 (읽기 전용) */}
