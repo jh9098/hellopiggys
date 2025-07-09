@@ -123,6 +123,7 @@ export default function DynamicWriteReview() {
         mainAccountId: currentUser.uid,
         createdAt: serverTimestamp(),
         status: 'submitted',
+        ...urlMap // <--- 이 부분이 추가되었습니다.
       });
       alert('리뷰가 성공적으로 제출되었습니다.');
       navigate('/my-reviews', { replace: true });
