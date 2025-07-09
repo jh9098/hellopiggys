@@ -1,8 +1,9 @@
 // src/pages/AdminProductManagement.jsx (진행 상태 컬럼 및 상태 변경 기능 추가)
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { db, collection, getDocs, query, orderBy, deleteDoc, doc, updateDoc } from '../firebaseConfig';
+import Papa from 'papaparse';
 
 const formatDate = (date) => date ? new Date(date.seconds * 1000).toLocaleDateString() : 'N/A';
 const progressStatusOptions = ['진행전', '진행중', '진행완료', '일부완료', '보류'];
@@ -10,6 +11,13 @@ const progressStatusOptions = ['진행전', '진행중', '진행완료', '일부
 export default function AdminProductManagement() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    productName: '',
+    reviewType: '',
+    reviewDate: '',
+    progressStatus: 'all',
+  });
+  const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -23,12 +31,66 @@ export default function AdminProductManagement() {
     fetchProducts();
   }, []);
 
+  const processedProducts = useMemo(() => {
+    let filtered = [...products];
+    Object.entries(filters).forEach(([key, value]) => {
+      if (!value || value === 'all') return;
+      filtered = filtered.filter(p => p[key]?.toString().toLowerCase().includes(value.toLowerCase()));
+    });
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        const valA = a[sortConfig.key];
+        const valB = b[sortConfig.key];
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return filtered;
+  }, [products, filters, sortConfig]);
+
   const handleDelete = async (id) => {
     if (window.confirm('정말로 이 상품을 삭제하시겠습니까?')) {
       await deleteDoc(doc(db, 'products', id));
       alert('상품이 삭제되었습니다.');
       fetchProducts();
     }
+  };
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
+  };
+
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    setSortConfig({ key, direction });
+  };
+
+  const resetFilters = () => setFilters({
+    productName: '',
+    reviewType: '',
+    reviewDate: '',
+    progressStatus: 'all',
+  });
+
+  const downloadCsv = () => {
+    const csvData = processedProducts.map(p => ({
+      '상품명': p.productName || '-',
+      '리뷰 종류': p.reviewType || '-',
+      '진행일자': p.reviewDate || '-',
+      '진행 상태': p.progressStatus || '-',
+      '등록날짜': formatDate(p.createdAt),
+    }));
+    const csv = Papa.unparse(csvData, { header: true });
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `products_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // 진행 상태 변경 핸들러
@@ -50,30 +112,52 @@ export default function AdminProductManagement() {
 
   if (loading) return <p>상품 목록을 불러오는 중...</p>;
 
+  const SortIndicator = ({ columnKey }) => {
+    if (sortConfig.key !== columnKey) return null;
+    return sortConfig.direction === 'asc' ? ' ▲' : ' ▼';
+  };
+
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h2>상품 관리 ({products.length})</h2>
+        <h2>상품 관리 ({processedProducts.length})</h2>
         <Link to="/admin/products/new" style={{ padding: '8px 16px', backgroundColor: '#000', color: '#fff', textDecoration: 'none', borderRadius: '4px' }}>
           상품 생성
         </Link>
       </div>
-      
+      <div className="toolbar">
+        <button onClick={resetFilters}>필터 초기화</button>
+        <button onClick={downloadCsv}>엑셀 다운로드</button>
+      </div>
+
       {/* 테이블 레이아웃을 div로 감싸서 반응형 스크롤을 지원합니다. */}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ minWidth: '800px' }}> {/* 최소 너비 지정 */}
           <thead>
             <tr>
-              <th style={{width: '20%'}}>상품명</th>
-              <th style={{width: '15%'}}>리뷰 종류</th>
-              <th style={{width: '15%'}}>진행일자</th>
-              <th style={{width: '15%'}}>진행 상태</th> {/* 상태 컬럼 추가 */}
-              <th style={{width: '15%'}}>등록날짜</th>
+              <th onClick={() => requestSort('productName')} className="sortable" style={{width: '20%'}}>상품명<SortIndicator columnKey="productName" /></th>
+              <th onClick={() => requestSort('reviewType')} className="sortable" style={{width: '15%'}}>리뷰 종류<SortIndicator columnKey="reviewType" /></th>
+              <th onClick={() => requestSort('reviewDate')} className="sortable" style={{width: '15%'}}>진행일자<SortIndicator columnKey="reviewDate" /></th>
+              <th onClick={() => requestSort('progressStatus')} className="sortable" style={{width: '15%'}}>진행 상태<SortIndicator columnKey="progressStatus" /></th>
+              <th onClick={() => requestSort('createdAt')} className="sortable" style={{width: '15%'}}>등록날짜<SortIndicator columnKey="createdAt" /></th>
               <th style={{width: '20%'}}>관리</th>
+            </tr>
+            <tr className="filter-row">
+              <th><input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></th>
+              <th><input type="text" name="reviewType" value={filters.reviewType} onChange={handleFilterChange} /></th>
+              <th><input type="text" name="reviewDate" value={filters.reviewDate} onChange={handleFilterChange} /></th>
+              <th>
+                <select name="progressStatus" value={filters.progressStatus} onChange={handleFilterChange}>
+                  <option value="all">전체</option>
+                  {progressStatusOptions.map(status => <option key={status} value={status}>{status}</option>)}
+                </select>
+              </th>
+              <th></th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-          {products.length > 0 ? products.map(product => (
+          {processedProducts.length > 0 ? processedProducts.map(product => (
               <tr key={product.id}>
                 <td style={{textAlign: 'left'}}>{product.productName}</td>
                 <td>{product.reviewType}</td>
