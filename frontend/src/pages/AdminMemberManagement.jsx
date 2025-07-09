@@ -15,9 +15,14 @@ export default function AdminMemberManagement() {
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
-    
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedMember, setSelectedMember] = useState(null);
+
+    // 검색 및 정렬 상태
+    const [searchName, setSearchName] = useState('');
+    const [searchPhone, setSearchPhone] = useState('');
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
     useEffect(() => {
         const fetchMemberData = async () => {
@@ -84,17 +89,54 @@ export default function AdminMemberManagement() {
         fetchMemberData();
     }, []);
 
+    const processedMembers = useMemo(() => {
+        let data = [...members];
+
+        if (searchName) {
+            data = data.filter(m => m.mainAccountName?.toLowerCase().includes(searchName.toLowerCase()));
+        }
+
+        if (searchPhone) {
+            data = data.filter(m => m.mainAccountPhone?.includes(searchPhone));
+        }
+
+        if (sortConfig.key) {
+            data.sort((a, b) => {
+                const valA = a[sortConfig.key] || '';
+                const valB = b[sortConfig.key] || '';
+                if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        return data;
+    }, [members, searchName, searchPhone, sortConfig]);
+
     const paginatedMembers = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
-        return members.slice(startIndex, startIndex + itemsPerPage);
-    }, [members, currentPage]);
+        return processedMembers.slice(startIndex, startIndex + itemsPerPage);
+    }, [processedMembers, currentPage]);
 
-    const totalPages = Math.ceil(members.length / itemsPerPage);
+    const totalPages = Math.ceil(processedMembers.length / itemsPerPage);
 
     const goToPage = (page) => {
         if (page > 0 && page <= totalPages) {
             setCurrentPage(page);
         }
+    };
+
+    const requestSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortIndicator = ({ columnKey }) => {
+        if (sortConfig.key !== columnKey) return null;
+        return sortConfig.direction === 'asc' ? ' ▲' : ' ▼';
     };
 
     const handleOpenModal = (member) => {
@@ -108,12 +150,27 @@ export default function AdminMemberManagement() {
 
     return (
         <>
-            <h2>회원 관리 ({members.length}명)</h2>
+            <h2>회원 관리 ({processedMembers.length}명)</h2>
+            <div className="search-bar" style={{ marginBottom: '10px' }}>
+                <input
+                    type="text"
+                    placeholder="이름 검색"
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                    style={{ marginRight: '5px' }}
+                />
+                <input
+                    type="text"
+                    placeholder="전화번호 검색"
+                    value={searchPhone}
+                    onChange={(e) => setSearchPhone(e.target.value)}
+                />
+            </div>
             <table>
                 <thead>
                     <tr>
-                        <th>본계정 이름</th>
-                        <th>본계정 전화번호</th>
+                        <th onClick={() => requestSort('mainAccountName')} className="sortable">본계정 이름<SortIndicator columnKey="mainAccountName" /></th>
+                        <th onClick={() => requestSort('mainAccountPhone')} className="sortable">본계정 전화번호<SortIndicator columnKey="mainAccountPhone" /></th>
                         <th>총 참여횟수</th>
                         <th>최근 참여일</th>
                         <th>정보 보기</th>
