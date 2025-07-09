@@ -27,7 +27,7 @@ export default function AdminLayout() {
         <nav>
           {/* NavLink는 활성 링크에 active 클래스를 자동으로 추가해 줍니다. */}
           <NavLink to="/admin/members">회원관리</NavLink>
-          <NavLink to="/admin/links">링크관리</NavLink>
+          <NavLink to="/admin/products">상품관리</NavLink>
           <NavLink to="/admin/reviews">리뷰관리</NavLink>
           <NavLink to="/admin/settlement">정산내역</NavLink>
           <NavLink to="/admin/settlement-complete">정산완료</NavLink>
