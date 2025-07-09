@@ -188,7 +188,7 @@ export default function AdminReviewManagement() {
       <h2>리뷰 관리 ({processedRows.length})</h2>
       {/* ▼▼▼ 툴바에 삭제 버튼 추가 ▼▼▼ */}
       <div className="toolbar">
-        <button onClick={handleVerify} disabled={selected.size === 0}>선택 항목 리뷰 인증</button>
+        <button onClick={handleVerify} disabled={selected.size === 0} className="verify-button-toolbar">선택 항목 리뷰 인증</button>
         <button onClick={handleDelete} disabled={selected.size === 0} className="delete-button-toolbar">선택 항목 삭제</button>
         <button onClick={resetFilters}>필터 초기화</button>
         <button onClick={downloadCsv}>엑셀 다운로드</button>
@@ -206,7 +206,7 @@ export default function AdminReviewManagement() {
               <th onClick={() => requestSort('mainAccountName')} className="sortable">본계정<SortIndicator columnKey="mainAccountName" /></th>
               <th onClick={() => requestSort('name')} className="sortable">타계정<SortIndicator columnKey="name" /></th>
               <th onClick={() => requestSort('phoneNumber')} className="sortable">전화번호<SortIndicator columnKey="phoneNumber" /></th>
-              <th>리뷰 확인</th>            
+              <th>리뷰 인증</th>
               <th>작업</th>
             </tr>
             <tr className="filter-row">
@@ -239,7 +239,7 @@ export default function AdminReviewManagement() {
                 <td><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></td>
                 <td>{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}</td>
                 <td>{statusMap[r.status] || r.status}</td>
-                <td>{r.productName || '-'}</td>
+                <td className="product-name-cell">{r.productName || '-'}</td>
                 <td>{r.reviewType || '-'}</td>
                 <td>{r.mainAccountName || '-'}</td>
                 <td>{r.name || '-'}</td>
@@ -260,5 +260,4 @@ export default function AdminReviewManagement() {
         <ReviewDetailModal review={selectedReview} onClose={closeDetailModal} />
       )}
     </>
-  );
-}
+  );}

@@ -203,14 +203,14 @@ tbody tr:hover {
 .link-button {
   background: none;
   border: none;
-  color: #007bff;
+  color: #dc3545; /* X 표시는 빨간색 */
   text-decoration: underline;
   cursor: pointer;
   padding: 0;
   font-weight: bold;
 }
 .link-button.completed {
-  color: #28a745;
+  color: #007bff; /* O 표시는 파란색 */
 }
 
 /* 반려 버튼 스타일 */
@@ -238,4 +238,20 @@ tbody tr:hover {
 .toolbar .delete-button-toolbar:disabled {
   background-color: #f5f5f5;
   color: #bdbdbd;
+}
+
+/* 선택 항목 리뷰 인증 버튼 스타일 */
+.toolbar .verify-button-toolbar {
+  background-color: #f5f5f5;
+  color: #bdbdbd;
+}
+
+.toolbar .verify-button-toolbar:enabled {
+  background-color: #007bff;
+  color: #fff;
+}
+
+/* 상품명 왼쪽 정렬 */
+.product-name-cell {
+  text-align: left;
 }
