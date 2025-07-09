@@ -1,6 +1,6 @@
 // src/components/MemberDetailModal.jsx (정보 표시 강화)
 
-import React from 'react';
+import React, { useState } from 'react';
 import './ReviewDetailModal.css'; // 기존 모달 CSS 재사용
 
 const formatDate = (timestamp) => {
@@ -9,7 +9,12 @@ const formatDate = (timestamp) => {
 }
 
 export default function MemberDetailModal({ member, onClose }) {
+  const [searchTerm, setSearchTerm] = useState('');
   if (!member) return null;
+
+  const filteredReviews = member.reviews?.filter((rev) =>
+    JSON.stringify(rev).toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="modal-back" onClick={onClose}>
@@ -31,9 +36,18 @@ export default function MemberDetailModal({ member, onClose }) {
         {/* --- 참여 이력 (리뷰 목록) --- */}
         <div className="modal-section">
           <h4>참여 이력 (최신순)</h4>
+          <div style={{ marginBottom: '10px' }}>
+            <input
+              type="text"
+              placeholder="내용 검색"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ width: '100%', padding: '4px' }}
+            />
+          </div>
           <div className="sub-account-detail-list">
-            {member.reviews && member.reviews.length > 0 ? (
-              member.reviews.map(review => (
+            {filteredReviews && filteredReviews.length > 0 ? (
+              filteredReviews.map(review => (
                 <div key={review.id} className="sub-account-detail-item">
                   <p style={{ fontWeight: 'bold', marginBottom: '10px', borderBottom: '1px solid #ddd', paddingBottom: '5px' }}>
                     {formatDate(review.createdAt)} 제출
@@ -70,11 +84,10 @@ export default function MemberDetailModal({ member, onClose }) {
                 </div>
               ))
             ) : (
-              <p>참여 이력이 없습니다.</p>
+              <p>{searchTerm ? '검색 결과가 없습니다.' : '참여 이력이 없습니다.'}</p>
             )}
           </div>
         </div>
       </div>
     </div>
-  );
-}
+  );}
