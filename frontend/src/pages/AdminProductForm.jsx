@@ -35,7 +35,7 @@ const initialFormState = {
   → https://open.kakao.com/o/sscJn3wh
  - 입장 후 구매일자, 구매상품을 말씀해 주시면 더 빠른 확인이 가능해요!`, // '가이드' 기본값 설정
   reviewDate: '',
-  progressStatus: '진행전',
+  progressStatus: '진행중',
 };
 // ▲▲▲ 이 부분의 초기값을 수정합니다. ▲▲▲
 
@@ -123,7 +123,7 @@ export default function AdminProductForm() {
 
         <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
           <label style={{ display: 'inline-block', width: '100px' }}>진행일자</label>
-          <input type="text" name="reviewDate" value={form.reviewDate} onChange={handleChange} placeholder="예: 7/10(수) ~ 7/12(금)" required style={{width: 'calc(100% - 120px)', padding: '8px'}}/>
+          <input type="text" name="reviewDate" value={form.reviewDate} onChange={handleChange} placeholder="예: 2025-07-09" required style={{width: 'calc(100% - 120px)', padding: '8px'}}/>
         </div>
 
         <div>
