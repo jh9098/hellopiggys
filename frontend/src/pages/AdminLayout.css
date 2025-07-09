@@ -167,3 +167,62 @@ tbody tr:hover {
 .info-grid .full-width {
   grid-column: 1 / -1; /* 그리드 전체 너비를 차지하도록 설정 */
 }
+/* 테이블이 가로로 길어질 경우 스크롤 생성 */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 16px;
+}
+
+/* 정렬 가능한 헤더에 커서 모양 변경 */
+.sortable {
+  cursor: pointer;
+  user-select: none; /* 텍스트 선택 방지 */
+}
+.sortable:hover {
+  background-color: #f0f0f0;
+}
+
+/* 필터 행 스타일 */
+.filter-row th {
+  padding: 4px;
+  background-color: #f8f9fa;
+}
+
+.filter-row input[type="text"],
+.filter-row select {
+  width: 100%;
+  padding: 4px;
+  font-size: 12px;
+  box-sizing: border-box; /* 패딩과 보더를 너비에 포함 */
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+/* 리뷰 확인 버튼 스타일 (기존과 동일하게 유지) */
+.link-button {
+  background: none;
+  border: none;
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font-weight: bold;
+}
+.link-button.completed {
+  color: #28a745;
+}
+
+/* 반려 버튼 스타일 */
+.reject-button {
+  padding: 4px 8px;
+  font-size: 12px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.reject-button:hover {
+  background-color: #c82333;
+}
