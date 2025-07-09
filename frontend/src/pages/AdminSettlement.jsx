@@ -162,8 +162,7 @@ export default function AdminSettlement() {
     }
 
     const toText = (v) => {
-      const s = (v ?? '').toString();
-      return s.startsWith("'") ? s : `'${s}`;
+      return (v ?? '').toString();
     };
 
     const csvData = processedRows.map(r => ({
