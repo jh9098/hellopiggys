@@ -1,219 +1,64 @@
-/* src/pages/MyReviews.css (기존 스타일에 맞춰 통합 수정) */
+/* src/pages/MyReviews.css (오류 수정 최종본) */
 
-/* 기본 페이지 레이아웃 */
-.my-wrap {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 16px;
-  font-family: Pretendard, sans-serif;
-  background-color: #f0f2f5; /* 전체 배경색을 약간 추가하여 카드와 구분 */
-}
-.my-wrap h2 {
-    margin-top: 0;
-}
-
-.logout {
-  background: #fff;
-  border: 1px solid #ccc;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-/* --- 카드 공통 스타일 --- */
-.card {
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  margin: 24px 0;
-  background: #fff;
-  transition: opacity 0.3s, background-color 0.3s;
-  border-left: 5px solid transparent; /* 상태 색상 표시 영역 */
-  display: flex; /* 내부 요소 정렬을 위해 flex로 변경 */
-  flex-direction: column; /* 세로 방향으로 쌓이도록 설정 */
-  padding: 16px; /* 카드 내부에 전체적인 패딩 적용 */
-}
-
-/* --- 카드 상태별 스타일 --- */
+.my-wrap { max-width: 480px; margin: 0 auto; padding: 16px; font-family: Pretendard, sans-serif; background-color: #f0f2f5; }
+.my-wrap h2 { margin-top: 0; }
+.logout { background: #fff; border: 1px solid #ccc; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+.card { border: 1px solid #ddd; border-radius: 12px; margin: 24px 0; background: #fff; transition: opacity 0.3s, background-color 0.3s; border-left: 5px solid transparent; display: flex; flex-direction: column; padding: 16px; }
 .card.submitted { border-left-color: #2196F3; }
 .card.review-completed { border-left-color: #FFC107; }
 .card.verified { border-left-color: #4CAF50; }
 .card.rejected { border-left-color: #F44336; background-color: #fff5f5; }
 .card.settled { opacity: 0.7; border-left-color: #9E9E9E; background-color: #fafafa; }
-
-/* --- 카드 헤더 (상태, 참여계정, 시간) --- */
-.card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start; /* 뱃지가 여러 줄일 경우를 대비 */
-  margin-bottom: 12px;
-  gap: 8px;
-}
-.card-head > div {
-  display: flex;
-  flex-wrap: wrap; /* 뱃지가 많아지면 줄바꿈 */
-  gap: 8px;
-}
-.timestamp {
-  font-size: 12px;
-  color: #666;
-  white-space: nowrap; /* 시간은 줄바꿈되지 않도록 */
-  padding-top: 2px;
-}
-.badge {
-  padding: 4px 10px;
-  border-radius: 16px;
-  color: white;
-  font-size: 12px;
-  font-weight: 600;
-}
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 8px; }
+.card-head > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.timestamp { font-size: 12px; color: #666; white-space: nowrap; padding-top: 2px; }
+.badge { padding: 4px 10px; border-radius: 16px; color: white; font-size: 12px; font-weight: 600; }
 .card.submitted .badge { background-color: #2196F3; }
 .card.review-completed .badge { background-color: #FFC107; color: #333; }
 .card.verified .badge { background-color: #4CAF50; }
 .card.rejected .badge { background-color: #F44336; }
 .card.settled .badge { background-color: #9E9E9E; }
+.badge.secondary { background-color: #e9ecef; color: #495057; }
+.product-details { background-color: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e9ecef; }
+.product-details h4 { margin: 0 0 10px; font-size: 16px; }
+.product-details p { margin: 0 0 6px; font-size: 14px; color: #495057; line-height: 1.5; }
+.guide-box { margin-top: 12px; border-top: 1px solid #e0e0e0; padding-top: 12px; }
+.guide-box p { white-space: pre-wrap; }
+.price { font-size: 20px; font-weight: bold; text-align: right; margin-bottom: 16px; }
+.rejection-reason { background-color: #ffebee; border: 1px solid #ef9a9a; padding: 12px; margin-bottom: 16px; border-radius: 4px; font-size: 14px; }
+.rejection-reason strong { color: #c62828; }
+.btn-wrap { display: flex; gap: 8px; margin-top: auto; padding-top: 16px; border-top: 1px solid #eee; }
+.btn-wrap button { flex: 1; padding: 12px 0; border: none; font-size: 15px; font-weight: 500; background: #e0e0e0; color: #333; border-radius: 6px; cursor: pointer; }
+.btn-wrap button:disabled { background-color: #f5f5f5; color: #bdbdbd; cursor: not-allowed; }
+.btn-wrap button.outline { background: #333; color: #fff; }
+.modal-back { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px 0; }
+.modal { background: #fff; border-radius: 8px; padding: 24px; width: 90%; max-width: 420px; max-height: 90vh; overflow-y: auto; position: relative; }
+.modal .close { position: absolute; top: 12px; right: 12px; border: none; background: none; font-size: 24px; cursor: pointer; color: #888; }
+.detail-view h3 { text-align: center; margin-top: 0; margin-bottom: 24px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.detail-view .field { display: flex; flex-direction: column; margin-bottom: 12px; }
+.detail-view .field label { font-size: 14px; color: #555; margin-bottom: 4px; }
+.detail-view .field p { margin: 0; padding: 8px; font-size: 15px; border: 1px solid #fff; min-height: 19px; }
+.detail-view .field input, .detail-view .field select { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; background: #fafafa; }
+.modal-actions { display: flex; gap: 8px; margin-top: 24px; }
+.modal-actions button { flex: 1; padding: 12px; font-size: 16px; border-radius: 6px; border: none; cursor: pointer; }
+.modal-actions button:first-child { background: #000; color: #fff; }
+.modal-actions button.secondary { background: #e0e0e0; color: #333; }
+.modal-actions button:disabled { background: #f5f5f5; color: #bdbdbd; cursor: not-allowed; }
 
-/* 참여 계정 뱃지 스타일 */
-.badge.secondary {
-  background-color: #e9ecef;
-  color: #495057;
+/* ▼▼▼ 여러 이미지 표시를 위한 스타일 추가 ▼▼▼ */
+.detail-view .field.full-width {
+  grid-column: 1 / -1;
 }
-
-/* --- 상품 정보 섹션 --- */
-.product-details {
-  background-color: #f8f9fa;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  border: 1px solid #e9ecef;
-}
-.product-details h4 {
-  margin: 0 0 10px;
-  font-size: 16px;
-}
-.product-details p {
-  margin: 0 0 6px;
-  font-size: 14px;
-  color: #495057;
-  line-height: 1.5;
-}
-.guide-box {
-  margin-top: 12px;
-  border-top: 1px solid #e0e0e0;
-  padding-top: 12px;
-}
-.guide-box p {
-  white-space: pre-wrap;
-}
-
-/* --- 가격 및 반려 사유 --- */
-.price {
-  font-size: 20px;
-  font-weight: bold;
-  text-align: right;
-  margin-bottom: 16px;
-}
-.rejection-reason {
-  background-color: #ffebee;
-  border: 1px solid #ef9a9a;
-  padding: 12px;
-  margin-bottom: 16px;
-  border-radius: 4px;
-  font-size: 14px;
-}
-.rejection-reason strong {
-  color: #c62828;
-}
-
-/* --- 버튼 영역 --- */
-.btn-wrap {
-  display: flex; /* flex로 변경하여 수평 정렬 */
-  gap: 8px;
-  margin-top: auto; /* 버튼을 카드 하단에 고정 */
-  padding-top: 16px;
-  border-top: 1px solid #eee;
-}
-.btn-wrap button {
-  flex: 1; /* 버튼이 공간을 균등하게 차지 */
-  padding: 12px 0;
-  border: none;
-  font-size: 15px;
-  font-weight: 500;
-  background: #e0e0e0;
-  color: #333;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.btn-wrap button:disabled {
-    background-color: #f5f5f5;
-    color: #bdbdbd;
-    cursor: not-allowed;
-}
-.btn-wrap button.outline {
-  background: #333;
-  color: #fff;
-}
-
-
-/* ───── 모달 공통 스타일 ───── */
-.modal-back {
-  position: fixed; inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 1000; padding: 20px 0;
-}
-.modal {
-  background: #fff; border-radius: 8px;
-  padding: 24px; width: 90%; max-width: 420px;
-  max-height: 90vh; overflow-y: auto;
-  position: relative;
-}
-.modal .close {
-  position: absolute; top: 12px; right: 12px;
-  border: none; background: none; font-size: 24px;
-  cursor: pointer; color: #888;
-}
-
-/* ───── 구매내역 모달 상세 스타일 ───── */
-.detail-view h3 {
-  text-align: center; margin-top: 0; margin-bottom: 24px;
-}
-.form-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-}
-.detail-view .field {
-  display: flex; flex-direction: column; margin-bottom: 12px;
-}
-.detail-view .field label {
-  font-size: 14px; color: #555; margin-bottom: 4px;
-}
-.detail-view .field p {
-  margin: 0; padding: 8px; font-size: 15px;
-  border: 1px solid #fff; min-height: 19px;
-}
-.detail-view .field input,
-.detail-view .field select {
-  padding: 8px; font-size: 14px; border: 1px solid #ccc;
-  border-radius: 4px; background: #fafafa;
+.preview-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
 }
 .detail-view .field .thumb {
-  width: 100%; max-height: 200px; object-fit: cover;
-  border: 1px solid #eee; border-radius: 4px; margin-top: 4px;
+  width: 80px; height: 80px;
+  object-fit: cover; border: 1px solid #eee;
+  border-radius: 4px;
 }
-.modal-actions {
-  display: flex; gap: 8px; margin-top: 24px;
-}
-.modal-actions button {
-  flex: 1; padding: 12px; font-size: 16px;
-  border-radius: 6px; border: none; cursor: pointer;
-}
-.modal-actions button:first-child {
-  background: #000; color: #fff;
-}
-.modal-actions button.secondary {
-  background: #e0e0e0; color: #333;
-}
-.modal-actions button:disabled {
-    background: #f5f5f5;
-    color: #bdbdbd;
-    cursor: not-allowed;
-}
+/* ▲▲▲ 여러 이미지 표시를 위한 스타일 추가 ▲▲▲ */
