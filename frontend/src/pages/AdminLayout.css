@@ -146,3 +146,15 @@ tbody tr:hover {
   color: #fff;
   border-color: #000;
 }
+.sub-account-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sub-account-detail-item {
+  background-color: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
