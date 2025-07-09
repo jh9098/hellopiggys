@@ -161,7 +161,20 @@ export default function MyReviews() {
   };
 
   if (loading) return <p style={{ padding: 24, textAlign: 'center' }}>데이터를 불러오는 중...</p>;
-  if (!currentUser) { return (<div className="my-wrap" style={{ textAlign: 'center', paddingTop: '50px' }}><h2>내 리뷰 목록</h2><p>리뷰를 확인하려면 로그인이 필요합니다.</p><button onClick={() => setIsLoginModalOpen(true)}>로그인 / 회원가입</button>{isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} />}</div>); }
+  if (!currentUser) {
+    return (
+      <div className="my-wrap" style={{ textAlign: 'center', paddingTop: '50px' }}>
+        <h2>내 리뷰 목록</h2>
+        <p>리뷰를 확인하려면 로그인이 필요합니다.</p>
+        <button className="login-open-btn" onClick={() => setIsLoginModalOpen(true)}>
+          로그인 / 회원가입
+        </button>
+        {isLoginModalOpen && (
+          <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="my-wrap">

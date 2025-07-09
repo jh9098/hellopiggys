@@ -84,4 +84,15 @@
   border-radius: 4px;
   background-color: #f8f8f8;
 }
-/* ▲▲▲ 여러 이미지 표시를 위한 스타일 (핵심 수정) ▲▲▲ */
+
+/* 로그인 모달 열기 버튼 */
+.login-open-btn {
+  padding: 14px 20px;
+  font-size: 18px;
+  border: none;
+  border-radius: 8px;
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+  margin-top: 20px;
+}/* ▲▲▲ 여러 이미지 표시를 위한 스타일 (핵심 수정) ▲▲▲ */
