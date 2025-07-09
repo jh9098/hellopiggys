@@ -231,10 +231,10 @@ export default function WriteReview() {
           ))}
 
           {[
-            { key: 'likeImage', label: '상품 찜 캡처 (필수)', req = true },
-            { key: 'orderImage', label: '구매 인증 캡처 (필수)', req = false },
-            { key: 'cashcardImage', label: '현영/매출전표 (필수)', req = false },
-            { key: 'keywordImage', label: '키워드 인증 (필수)', req = false },
+            { key: 'likeImage', label: '상품 찜 캡처 (필수)' },
+            { key: 'orderImage', label: '구매 인증 캡처 (필수)' },
+            { key: 'cashcardImage', label: '현영/매출전표 (필수)' },
+            { key: 'keywordImage', label: '키워드 인증 (필수)' },
           ].map(({ key, label }) => (
             <div className="field" key={key}>
               <label>{label}</label>
