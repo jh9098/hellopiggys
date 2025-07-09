@@ -28,7 +28,7 @@ export default function ReviewDetailModal({ review, onClose }) {
             <div><label>구매자(수취인)</label><p>{review.name || '-'}</p></div>
             <div><label>전화번호</label><p>{review.phoneNumber || '-'}</p></div>
             <div><label>주소</label><p>{review.address || '-'}</p></div>
-            <div><label>참가자ID</label><p>{review.participantId || '-'}</p></div>
+            <div><label>쿠팡 ID</label><p>{review.participantId || '-'}</p></div>
             <div><label>주문번호</label><p>{review.orderNumber || '-'}</p></div>
             <div><label>금액</label><p>{Number(review.rewardAmount || 0).toLocaleString()}원</p></div>
           </div>

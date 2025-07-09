@@ -46,6 +46,7 @@ export default function MyReviews() {
   const [uploading, setUploading] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -95,6 +96,8 @@ export default function MyReviews() {
   const handleLoginSuccess = () => setIsLoginModalOpen(false);
   const openModal = (type, review) => { setCurrentReview(review); setModalType(type); setIsEditing(false); };
   const closeModal = () => { setModalType(null); setCurrentReview(null); setFiles([]); setUploading(false); setIsEditing(false); };
+  const openImagePreview = (url) => setImagePreview(url);
+  const closeImagePreview = () => setImagePreview(null);
   
   const handleEdit = () => {
     setIsEditing(true);
@@ -177,6 +180,7 @@ export default function MyReviews() {
   }
 
   return (
+    <>
     <div className="my-wrap">
       {/* ▼▼▼ 이 부분에 버튼 추가 ▼▼▼ */}
       <div className="page-header">
@@ -208,8 +212,8 @@ export default function MyReviews() {
       })}
       
       {modalType && (
-        <div className="modal-back" onClick={closeModal}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-back">
+          <div className="modal">
             <button className="close" onClick={closeModal}>✖</button>
             {modalType === 'detail' && (
               <div className="detail-view">
@@ -226,7 +230,7 @@ export default function MyReviews() {
                 </div>
                 {[
                   { key: 'orderNumber', label: '주문번호' }, 
-                  { key: 'participantId', label: '참가자ID'}, 
+                  { key: 'participantId', label: '쿠팡 ID'},
                   { key: 'address', label: '주소' }, 
                   { key: 'bankNumber', label: '계좌번호' }, 
                   { key: 'accountHolderName', label: '예금주' }, 
@@ -252,13 +256,36 @@ export default function MyReviews() {
                     <label>{label}</label>
                     <div className="preview-container">
                       {currentReview[key].map((url, i) => (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`${label} ${i+1}`} className="thumb" /></a>
+                        <img
+                          key={i}
+                          src={url}
+                          alt={`${label} ${i + 1}`}
+                          className="thumb"
+                          onClick={() => openImagePreview(url)}
+                          style={{ cursor: 'pointer' }}
+                        />
                       ))}
                     </div>
                   </div>
                 )))}
                 
-                {currentReview.confirmImageUrls && currentReview.confirmImageUrls.length > 0 && (<div className="field full-width"><label>리뷰 완료 인증</label><div className="preview-container"> {currentReview.confirmImageUrls.map((url, i) => (<a key={i} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`리뷰인증 ${i+1}`} className="thumb" /></a>))}</div></div>)}
+                {currentReview.confirmImageUrls && currentReview.confirmImageUrls.length > 0 && (
+                  <div className="field full-width">
+                    <label>리뷰 완료 인증</label>
+                    <div className="preview-container">
+                      {currentReview.confirmImageUrls.map((url, i) => (
+                        <img
+                          key={i}
+                          src={url}
+                          alt={`리뷰인증 ${i + 1}`}
+                          className="thumb"
+                          onClick={() => openImagePreview(url)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="modal-actions">
                   {isEditing ? (
                     <>
@@ -285,5 +312,13 @@ export default function MyReviews() {
         </div>
       )}
     </div>
-  );
-}
+    {imagePreview && (
+      <div className="modal-back" onClick={closeImagePreview}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <button className="close" onClick={closeImagePreview}>✖</button>
+          <img src={imagePreview} alt="미리보기" style={{ width: '100%' }} />
+        </div>
+      </div>
+    )}
+    </>
+  );}
