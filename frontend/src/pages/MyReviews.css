@@ -1,14 +1,19 @@
-/* src/pages/MyReviews.css (오류 수정 최종본) */
+/* src/pages/MyReviews.css (모달 내부 이미지 표시 스타일 강화) */
 
+/* 기본 페이지 레이아웃 */
 .my-wrap { max-width: 480px; margin: 0 auto; padding: 16px; font-family: Pretendard, sans-serif; background-color: #f0f2f5; }
 .my-wrap h2 { margin-top: 0; }
 .logout { background: #fff; border: 1px solid #ccc; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+
+/* 카드 공통 스타일 */
 .card { border: 1px solid #ddd; border-radius: 12px; margin: 24px 0; background: #fff; transition: opacity 0.3s, background-color 0.3s; border-left: 5px solid transparent; display: flex; flex-direction: column; padding: 16px; }
 .card.submitted { border-left-color: #2196F3; }
 .card.review-completed { border-left-color: #FFC107; }
 .card.verified { border-left-color: #4CAF50; }
 .card.rejected { border-left-color: #F44336; background-color: #fff5f5; }
 .card.settled { opacity: 0.7; border-left-color: #9E9E9E; background-color: #fafafa; }
+
+/* 카드 헤더 */
 .card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 8px; }
 .card-head > div { display: flex; flex-wrap: wrap; gap: 8px; }
 .timestamp { font-size: 12px; color: #666; white-space: nowrap; padding-top: 2px; }
@@ -19,21 +24,31 @@
 .card.rejected .badge { background-color: #F44336; }
 .card.settled .badge { background-color: #9E9E9E; }
 .badge.secondary { background-color: #e9ecef; color: #495057; }
+
+/* 상품 정보 섹션 */
 .product-details { background-color: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e9ecef; }
 .product-details h4 { margin: 0 0 10px; font-size: 16px; }
 .product-details p { margin: 0 0 6px; font-size: 14px; color: #495057; line-height: 1.5; }
 .guide-box { margin-top: 12px; border-top: 1px solid #e0e0e0; padding-top: 12px; }
 .guide-box p { white-space: pre-wrap; }
+
+/* 가격 및 반려 사유 */
 .price { font-size: 20px; font-weight: bold; text-align: right; margin-bottom: 16px; }
 .rejection-reason { background-color: #ffebee; border: 1px solid #ef9a9a; padding: 12px; margin-bottom: 16px; border-radius: 4px; font-size: 14px; }
 .rejection-reason strong { color: #c62828; }
+
+/* 버튼 영역 */
 .btn-wrap { display: flex; gap: 8px; margin-top: auto; padding-top: 16px; border-top: 1px solid #eee; }
 .btn-wrap button { flex: 1; padding: 12px 0; border: none; font-size: 15px; font-weight: 500; background: #e0e0e0; color: #333; border-radius: 6px; cursor: pointer; }
 .btn-wrap button:disabled { background-color: #f5f5f5; color: #bdbdbd; cursor: not-allowed; }
 .btn-wrap button.outline { background: #333; color: #fff; }
+
+/* ───── 모달 공통 스타일 ───── */
 .modal-back { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px 0; }
 .modal { background: #fff; border-radius: 8px; padding: 24px; width: 90%; max-width: 420px; max-height: 90vh; overflow-y: auto; position: relative; }
 .modal .close { position: absolute; top: 12px; right: 12px; border: none; background: none; font-size: 24px; cursor: pointer; color: #888; }
+
+/* ───── 구매내역 모달 상세 스타일 ───── */
 .detail-view h3 { text-align: center; margin-top: 0; margin-bottom: 24px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .detail-view .field { display: flex; flex-direction: column; margin-bottom: 12px; }
@@ -46,19 +61,27 @@
 .modal-actions button.secondary { background: #e0e0e0; color: #333; }
 .modal-actions button:disabled { background: #f5f5f5; color: #bdbdbd; cursor: not-allowed; }
 
-/* ▼▼▼ 여러 이미지 표시를 위한 스타일 추가 ▼▼▼ */
+/* ▼▼▼ 여러 이미지 표시를 위한 스타일 (핵심 수정) ▼▼▼ */
+/* 모달 내에서 그리드 전체 너비를 차지하도록 설정 */
 .detail-view .field.full-width {
   grid-column: 1 / -1;
 }
+
+/* 이미지들을 담는 컨테이너 */
 .preview-container {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-wrap: wrap; /* 이미지가 많아지면 다음 줄로 넘어감 */
+  gap: 10px; /* 이미지 사이의 간격 */
   margin-top: 4px;
 }
-.detail-view .field .thumb {
-  width: 80px; height: 80px;
-  object-fit: cover; border: 1px solid #eee;
+
+/* 개별 이미지 썸네일 스타일 */
+.detail-view .thumb {
+  width: 80px;      /* 너비 */
+  height: 80px;     /* 높이 */
+  object-fit: cover;/* 이미지가 잘리지 않고 꽉 차게 */
+  border: 1px solid #eee;
   border-radius: 4px;
+  background-color: #f8f8f8;
 }
-/* ▲▲▲ 여러 이미지 표시를 위한 스타일 추가 ▲▲▲ */
+/* ▲▲▲ 여러 이미지 표시를 위한 스타일 (핵심 수정) ▲▲▲ */
