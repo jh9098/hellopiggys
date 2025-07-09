@@ -28,12 +28,14 @@ const bankOptions = [
 ];
 
 // 컴포넌트 밖으로 빼서 불필요한 재선언 방지
+// ▼▼▼ 이 상수를 수정합니다 ▼▼▼
 const initialImageFields = [
-  { key: 'keywordImageUrls', label: '키워드 검색 인증' },
-  { key: 'likeImageUrls', label: '상품 찜 인증' },
+  // 통합된 필드명을 사용합니다.
+  { key: 'keywordAndLikeImageUrls', label: '키워드 & 찜 인증' },
   { key: 'orderImageUrls', label: '구매 인증' },
   { key: 'cashcardImageUrls', label: '현영/매출전표' },
 ];
+// ▲▲▲
 
 export default function MyReviews() {
   const navigate = useNavigate();

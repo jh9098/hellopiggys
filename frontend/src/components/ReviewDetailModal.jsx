@@ -4,12 +4,14 @@ import React from 'react';
 import './ReviewDetailModal.css'; // 아래에서 생성할 CSS 파일
 
 // 모달에 표시할 이미지 목록 정의
+// ▼▼▼ 이 상수를 수정합니다 ▼▼▼
 const initialImageFields = [
-  { key: 'likeImageUrl', label: '상품 찜 캡처' },
-  { key: 'orderImageUrl', label: '구매 인증 캡처' },
-  { key: 'cashcardImageUrl', label: '현영/매출전표' },
-  { key: 'keywordImageUrl', label: '키워드 인증' },
+  // 통합된 필드명을 사용합니다.
+  { key: 'keywordAndLikeImageUrls', label: '키워드 & 찜 인증' },
+  { key: 'orderImageUrls', label: '구매 인증' },
+  { key: 'cashcardImageUrls', label: '현영/매출전표' },
 ];
+// ▲▲▲
 
 export default function ReviewDetailModal({ review, onClose }) {
   if (!review) return null;

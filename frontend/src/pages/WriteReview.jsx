@@ -13,8 +13,8 @@ import './WriteReview.css';
 
 // 업로드 필드 정의 (handleSubmit에서 사용)
 const UPLOAD_FIELDS = [
-  { key: 'keywordImage', label: '키워드 검색 인증', group: 'keyword-like' },
-  { key: 'likeImage', label: '상품 찜(🩷) 인증', group: 'keyword-like' },
+  // 'keywordImage'와 'likeImage'를 'keywordAndLikeImages'로 통합
+  { key: 'keywordAndLikeImages', label: '1. 키워드 & 찜 인증', group: 'keyword-like' },
   { key: 'orderImage', label: '구매 인증', group: 'purchase' },
   { key: 'cashcardImage', label: '현금영수증/매출전표', group: 'purchase' },
 ];
@@ -153,11 +153,12 @@ export default function WriteReview() {
 
           {/* ▼▼▼ 이미지 업로드 UI 수정 ▼▼▼ */}
           <div className="image-upload-group">
-            <h4>1. 키워드 & 찜 인증</h4>
+            {/* 키워드 & 찜 인증 그룹 */}
             {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label }) => (
               <div className="field" key={key}>
+                {/* label을 필드 정의에서 가져옵니다 */}
                 <label>{label} (최대 5장)</label>
-                {/* onChange를 onFileChange로 수정 */}
+                {/* name을 통합된 key로 사용합니다 */}
                 <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple required />
                 <div className="preview-container">
                   {previews[key] && previews[key].map((src, i) => <img key={i} className="thumb" src={src} alt={`${label} ${i+1}`} />)}
@@ -165,12 +166,12 @@ export default function WriteReview() {
               </div>
             ))}
           </div>
+
           <div className="image-upload-group">
             <h4>2. 구매 & 증빙 인증</h4>
             {UPLOAD_FIELDS.filter(f => f.group === 'purchase').map(({ key, label }) => (
               <div className="field" key={key}>
                 <label>{label} (최대 5장)</label>
-                {/* onChange를 onFileChange로 수정 */}
                 <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple required />
                 <div className="preview-container">
                   {previews[key] && previews[key].map((src, i) => <img key={i} className="thumb" src={src} alt={`${label} ${i+1}`} />)}
