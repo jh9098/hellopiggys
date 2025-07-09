@@ -171,7 +171,11 @@ export default function WriteReview() {
         회원가입 시 전화번호는 숫자만 입력하세요
         </div> )}
       {isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} />}
-      {currentUser ? (<button onClick={() => auth.signOut()} className="logout-btn" style={{marginBottom: '20px'}}>로그아웃</button>) : (<button onClick={() => setIsLoginModalOpen(true)} style={{marginBottom: '20px'}}>로그인 / 회원가입</button>)}
+      {currentUser ? (
+        <button onClick={() => auth.signOut()} className="logout-btn">로그아웃</button>
+      ) : (
+        <button onClick={() => setIsLoginModalOpen(true)} className="login-open-btn">로그인 / 회원가입</button>
+      )}
       {currentUser && (
         <div className="field">
           <label>상품 선택</label>
