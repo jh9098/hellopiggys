@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, deleteDoc, getDoc } from '../firebaseConfig';
+import ReviewDetailModal from '../components/ReviewDetailModal';
 import Papa from 'papaparse';
 
 // 필터 초기 상태
@@ -11,12 +12,15 @@ const initialFilters = {
   mainAccountName: '',
   subAccountName: '',
   phoneNumber: '',
+  reviewConfirm: 'all',
 };
 
 export default function AdminSettlement() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(new Set());
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedReview, setSelectedReview] = useState(null);
 
   // 1. 필터와 정렬을 위한 상태 추가
   const [filters, setFilters] = useState(initialFilters);
@@ -68,17 +72,23 @@ export default function AdminSettlement() {
   }, []);
 
   // 2. 필터링과 정렬을 모두 처리하는 useMemo
-  const processedRows = useMemo(() => {
+const processedRows = useMemo(() => {
     let filtered = [...rows];
 
     Object.entries(filters).forEach(([key, value]) => {
-      if (!value) return;
+      if (!value || value === 'all') return;
       filtered = filtered.filter(row => {
         // productName은 productInfo 객체 안에 있을 수 있음
-        const targetValue = key === 'productName' 
-          ? row.productInfo?.productName || row.productName 
+        const targetValue = key === 'productName'
+          ? row.productInfo?.productName || row.productName
           : row[key];
-        
+
+        if (key === 'reviewConfirm') {
+          const hasConfirmImages = row.confirmImageUrls && row.confirmImageUrls.length > 0;
+          if (value === 'O') return hasConfirmImages;
+          if (value === 'X') return !hasConfirmImages;
+        }
+
         return targetValue?.toString().toLowerCase().includes(value.toLowerCase());
       });
     });
@@ -190,6 +200,16 @@ export default function AdminSettlement() {
     URL.revokeObjectURL(url);
   };
 
+  const openDetailModal = (review) => {
+    setSelectedReview(review);
+    setIsModalOpen(true);
+  };
+
+  const closeDetailModal = () => {
+    setIsModalOpen(false);
+    setSelectedReview(null);
+  };
+
   if (loading) return <p>정산 내역을 불러오는 중...</p>;
 
   const SortIndicator = ({ columnKey }) => {
@@ -221,6 +241,7 @@ export default function AdminSettlement() {
               <th onClick={() => requestSort('subAccountName')} className="sortable">타계정 이름<SortIndicator columnKey="subAccountName" /></th>
               <th onClick={() => requestSort('phoneNumber')} className="sortable">전화번호<SortIndicator columnKey="phoneNumber" /></th>
               <th onClick={() => requestSort('orderNumber')} className="sortable">주문번호<SortIndicator columnKey="orderNumber" /></th>
+              <th>리뷰 인증</th>
               <th onClick={() => requestSort('rewardAmount')} className="sortable">정산 금액<SortIndicator columnKey="rewardAmount" /></th>
             </tr>
             {/* 필터 행: 각 컬럼별 필터 입력 UI */}
@@ -232,6 +253,13 @@ export default function AdminSettlement() {
               <th><input type="text" name="subAccountName" value={filters.subAccountName} onChange={handleFilterChange} /></th>
               <th><input type="text" name="phoneNumber" value={filters.phoneNumber} onChange={handleFilterChange} /></th>
               <th><input type="text" name="orderNumber" value={filters.orderNumber} onChange={handleFilterChange} /></th>
+              <th>
+                <select name="reviewConfirm" value={filters.reviewConfirm} onChange={handleFilterChange}>
+                  <option value="all">전체</option>
+                  <option value="O">O</option>
+                  <option value="X">X</option>
+                </select>
+              </th>
               <th></th> {/* 금액 필터는 생략 */}
             </tr>
           </thead>
@@ -245,12 +273,19 @@ export default function AdminSettlement() {
                 <td>{r.subAccountName || '-'}</td>
                 <td>{r.phoneNumber || '-'}</td>
                 <td>{r.orderNumber || '-'}</td>
+                <td>
+                  <button className={`link-button ${r.confirmImageUrls?.length > 0 ? 'completed' : ''}`} onClick={() => openDetailModal(r)}>
+                    {r.confirmImageUrls?.length > 0 ? 'O' : 'X'}
+                  </button>
+                </td>
                 <td>{r.rewardAmount ? Number(r.rewardAmount).toLocaleString() + '원' : '-'}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {isModalOpen && (
+        <ReviewDetailModal review={selectedReview} onClose={closeDetailModal} />
+      )}
     </>
-  );
-}
+  );}
