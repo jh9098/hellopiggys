@@ -161,8 +161,9 @@ export default function AdminSettlement() {
       return;
     }
 
-    const toText = (v) => {
-      return (v ?? '').toString();
+    const toText = (v, excelText = false) => {
+      const str = (v ?? '').toString();
+      return excelText ? `="${str}"` : str;
     };
 
     const csvData = processedRows.map(r => ({
@@ -171,10 +172,10 @@ export default function AdminSettlement() {
       '주문번호': toText(r.orderNumber || '-'),
       '본계정 이름': toText(r.mainAccountName || '-'), // 본계정 이름 추가
       '타계정 이름(수취인)': toText(r.subAccountName || '-'), // 타계정 이름 추가
-      '전화번호': toText(r.phoneNumber || '-'),
+      '전화번호': toText(r.phoneNumber || '-', true),
       '주소': toText(r.address || '-'),
       '은행': toText(r.bank || '-'),
-      '계좌번호': toText(r.bankNumber || ''),
+      '계좌번호': toText(r.bankNumber || '', true),
       '예금주': toText(r.accountHolderName || '-'),
       '금액': toText(r.rewardAmount || '0'),
     }));
