@@ -42,17 +42,37 @@ export default function WriteReview() {
     });
 
     const fetchProducts = async () => {
+      setLoading(true);
+      setError(null); // 에러 상태 초기화
       try {
-        const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+        // ▼▼▼ 쿼리를 다시 한번 명확하게 정의합니다. ▼▼▼
+        const productsCollection = collection(db, 'products');
+        const q = query(
+          productsCollection, 
+          where('progressStatus', '==', '진행중'), // '진행중' 상태인 문서만
+          orderBy('createdAt', 'desc') // 최신순으로 정렬
+        );
+        // ▲▲▲ 쿼리 정의 ▲▲▲
+
         const snapshot = await getDocs(q);
-        setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const productList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setProducts(productList);
+        
       } catch (e) {
+        // ▼▼▼ 에러 핸들링 강화 ▼▼▼
         console.error("상품 목록 로딩 실패:", e);
+        if (e.code === 'failed-precondition') {
+            setError(
+                "데이터를 불러오는 데 필요한 색인(index)이 없습니다. Firebase 콘솔에서 에러 메시지에 나온 링크를 통해 색인을 생성해주세요. 생성에는 몇 분 정도 소요될 수 있습니다."
+            );
+        } else {
+            setError("진행중인 상품 목록을 불러오는 데 실패했습니다.");
+        }
+        // ▲▲▲ 에러 핸들링 강화 ▲▲▲
       } finally {
         setLoading(false);
       }
     };
-
     fetchProducts();
     return () => unsubscribeAuth();
   }, []);
