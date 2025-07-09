@@ -1,7 +1,7 @@
-// src/pages/AdminReviewManagement.jsx (엑셀 스타일 필터/정렬 기능 추가 최종본)
+// src/pages/AdminReviewManagement.jsx (삭제 기능 추가 최종본)
 
 import { useEffect, useState, useMemo } from 'react';
-import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, getDoc } from '../firebaseConfig';
+import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, getDoc, deleteDoc } from '../firebaseConfig'; // deleteDoc 임포트
 import Papa from 'papaparse';
 import ReviewDetailModal from '../components/ReviewDetailModal';
 
@@ -33,14 +33,11 @@ export default function AdminReviewManagement() {
   const [selected, setSelected] = useState(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
-
-  // 1. 필터와 정렬을 위한 상태 추가
   const [filters, setFilters] = useState(initialFilters);
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
 
   const fetchReviews = async () => {
     setLoading(true);
-    // status 필터링은 클라이언트에서 하므로 초기 쿼리는 범위를 넓게 잡습니다.
     const q = query(collection(db, 'reviews'), where('status', 'in', ['submitted', 'review_completed', 'rejected', 'verified']), orderBy('createdAt', 'desc'));
     const snap = await getDocs(q);
     
@@ -56,13 +53,12 @@ export default function AdminReviewManagement() {
           const subAccountSnap = await getDoc(subAccountRef);
           if(subAccountSnap.exists()){
               const subData = subAccountSnap.data();
-              Object.assign(review, subData); // 타계정 정보 병합
+              Object.assign(review, subData);
           }
       }
       return review;
     }));
     
-    // verified 상태는 관리 페이지에서 보여주지 않음 (정산 페이지로 넘어감)
     setRows(reviewsData.filter(r => r.status !== 'verified'));
     setLoading(false);
   };
@@ -71,44 +67,33 @@ export default function AdminReviewManagement() {
     fetchReviews();
   }, []);
 
-  // 2. 필터링과 정렬을 모두 처리하는 useMemo
   const processedRows = useMemo(() => {
     let filtered = [...rows];
-
-    // 필터링 로직
     Object.entries(filters).forEach(([key, value]) => {
       if (!value || value === 'all') return;
-
       filtered = filtered.filter(row => {
-        if (key === 'status') {
-          return row.status === getStatusKeyByValue(value);
-        }
+        if (key === 'status') return row.status === getStatusKeyByValue(value);
         if (key === 'reviewConfirm') {
           const hasConfirmImages = row.confirmImageUrls && row.confirmImageUrls.length > 0;
           if (value === 'O') return hasConfirmImages;
           if (value === 'X') return !hasConfirmImages;
         }
-        // 일반 텍스트 필터링
         return row[key]?.toString().toLowerCase().includes(value.toLowerCase());
       });
     });
 
-    // 정렬 로직
     if (sortConfig.key) {
       filtered.sort((a, b) => {
         const valA = a[sortConfig.key];
         const valB = b[sortConfig.key];
-
         if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
         if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
-    
     return filtered;
   }, [rows, filters, sortConfig]);
   
-  // 3. 필터와 정렬을 위한 핸들러 함수들
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
@@ -116,30 +101,22 @@ export default function AdminReviewManagement() {
 
   const requestSort = (key) => {
     let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
     setSortConfig({ key, direction });
   };
   
-  const resetFilters = () => {
-    setFilters(initialFilters);
-  };
+  const resetFilters = () => setFilters(initialFilters);
 
-  // --- 기존 함수들은 processedRows를 사용하도록 수정 ---
   const toggleSelectAll = (e) => {
     if (e.target.checked) setSelected(new Set(processedRows.map((r) => r.id)));
     else setSelected(new Set());
   };
 
   const downloadCsv = () => {
-    const csvData = processedRows.map((r, i) => ({
-      //... CSV 데이터 생성
-    }));
-    // ... 기존 다운로드 로직 동일
+    const csvData = processedRows.map((r, i) => ({ /* ... */ }));
+    // ...
   };
 
-  // --- 나머지 기존 함수들은 거의 동일 ---
   const toggleSelect = (id) => {
     const newSelected = new Set(selected);
     if (newSelected.has(id)) newSelected.delete(id);
@@ -149,15 +126,39 @@ export default function AdminReviewManagement() {
   
   const handleVerify = async () => {
     if (selected.size === 0) return;
-    if (!window.confirm(`${selected.size}개의 항목을 리뷰 인증 처리하고 정산내역으로 넘기시겠습니까?`)) return;
+    if (!window.confirm(`${selected.size}개의 항목을 리뷰 인증 처리하시겠습니까?`)) return;
     const promises = Array.from(selected).map(id => 
         updateDoc(doc(db, 'reviews', id), { status: 'verified', verifiedAt: serverTimestamp() })
     );
     await Promise.all(promises);
     alert('리뷰 인증이 완료되었습니다.');
-    await fetchReviews(); // 목록 새로고침
+    await fetchReviews();
     setSelected(new Set());
   };
+
+  // ▼▼▼ 삭제 함수 추가 ▼▼▼
+  const handleDelete = async () => {
+    if (selected.size === 0) {
+      alert('삭제할 항목을 선택해주세요.');
+      return;
+    }
+    // 사용자에게 재확인 경고창 표시
+    if (!window.confirm(`선택된 ${selected.size}개의 리뷰 항목을 영구적으로 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+      return;
+    }
+
+    try {
+      const deletePromises = Array.from(selected).map(id => deleteDoc(doc(db, 'reviews', id)));
+      await Promise.all(deletePromises);
+      alert(`${selected.size}개의 항목이 성공적으로 삭제되었습니다.`);
+      await fetchReviews(); // 목록 새로고침
+      setSelected(new Set()); // 선택 초기화
+    } catch (error) {
+      console.error("리뷰 삭제 실패:", error);
+      alert('항목 삭제 중 오류가 발생했습니다.');
+    }
+  };
+  // ▲▲▲ 삭제 함수 추가 완료 ▲▲▲
 
   const handleReject = async (id) => {
     const reason = prompt("반려 사유를 입력하세요:");
@@ -185,15 +186,17 @@ export default function AdminReviewManagement() {
   return (
     <>
       <h2>리뷰 관리 ({processedRows.length})</h2>
+      {/* ▼▼▼ 툴바에 삭제 버튼 추가 ▼▼▼ */}
       <div className="toolbar">
         <button onClick={handleVerify} disabled={selected.size === 0}>선택 항목 리뷰 인증</button>
+        <button onClick={handleDelete} disabled={selected.size === 0} className="delete-button-toolbar">선택 항목 삭제</button>
         <button onClick={resetFilters}>필터 초기화</button>
         <button onClick={downloadCsv}>엑셀 다운로드</button>
       </div>
-      <div className="table-container"> {/* 테이블 스크롤을 위해 컨테이너 추가 */}
+      {/* ▲▲▲ 툴바 수정 완료 ▲▲▲ */}
+      <div className="table-container">
         <table>
           <thead>
-            {/* 4. 컬럼 헤더: 제목과 정렬 기능 */}
             <tr>
               <th><input type="checkbox" checked={selected.size === processedRows.length && processedRows.length > 0} onChange={toggleSelectAll} /></th>
               <th onClick={() => requestSort('createdAt')} className="sortable">등록일시<SortIndicator columnKey="createdAt" /></th>
@@ -206,10 +209,9 @@ export default function AdminReviewManagement() {
               <th>리뷰 확인</th>            
               <th>작업</th>
             </tr>
-            {/* 5. 필터 행: 각 컬럼별 필터 입력 UI */}
             <tr className="filter-row">
               <th></th>
-              <th></th>{/* 등록일시 필터는 생략 */}
+              <th></th>
               <th>
                 <select name="status" value={filters.status} onChange={handleFilterChange}>
                   <option value="all">전체</option>

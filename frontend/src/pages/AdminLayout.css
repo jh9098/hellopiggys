@@ -226,3 +226,16 @@ tbody tr:hover {
 .reject-button:hover {
   background-color: #c82333;
 }
+.toolbar .delete-button-toolbar {
+  background-color: #e53935; /* 진한 빨간색 */
+  color: white;
+}
+
+.toolbar .delete-button-toolbar:hover {
+  background-color: #c62828; /* 더 진한 빨간색 */
+}
+
+.toolbar .delete-button-toolbar:disabled {
+  background-color: #f5f5f5;
+  color: #bdbdbd;
+}
