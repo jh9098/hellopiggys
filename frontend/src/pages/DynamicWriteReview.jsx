@@ -75,26 +75,22 @@ export default function DynamicWriteReview() {
   // 1. 메인 버튼 클릭 핸들러 (로그인/로그아웃/서브계정)
   const handleMainButtonClick = () => {
     if (currentUser) {
-      // 이미 로그인 되어 있으면, 서브 계정 모달을 엽니다.
       setIsAccountModalOpen(true);
     } else {
-      // 로그인 안 되어 있으면, 로그인/회원가입 모달을 엽니다.
       setIsLoginModalOpen(true);
     }
   };
 
   const handleLogout = () => {
     auth.signOut();
-  }
+  };
 
-  // 2. 로그인 성공 후 처리
   const handleLoginSuccess = (user) => {
-    setIsLoginModalOpen(false); // 로그인 모달 닫기
-    // 로그인에 성공했으므로, 이어서 서브 계정 모달을 열어줍니다.
+    setIsLoginModalOpen(false);
+    // 로그인에 성공했으므로, 바로 이어서 서브 계정 모달을 열어줍니다.
     setIsAccountModalOpen(true);
   };
 
-  // 3. 서브 계정 선택 후 처리
   const handleSelectAccount = (subAccount, uid) => {
     setForm(prev => ({
       ...prev,
@@ -105,17 +101,13 @@ export default function DynamicWriteReview() {
       bankNumber: subAccount.bankNumber || '',
       accountHolderName: subAccount.accountHolderName || '',
     }));
-    setIsAccountSelected(true); // 폼을 표시하도록 상태 변경
-    setIsAccountModalOpen(false); // 서브 계정 모달 닫기
+    setIsAccountSelected(true);
+    setIsAccountModalOpen(false);
   };
 
-  // 4. 리뷰 폼 제출 핸들러
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!currentUser) {
-      alert('로그인 정보가 유효하지 않습니다.');
-      return;
-    }
+    if (!currentUser) return alert('로그인 정보가 유효하지 않습니다.');
     setSubmitting(true);
     try {
       const urlMap = {};
@@ -128,11 +120,10 @@ export default function DynamicWriteReview() {
       await addDoc(collection(db, 'reviews'), {
         ...form,
         linkId: linkId,
-        mainAccountId: currentUser.uid, // 로그인된 사용자의 고유 uid를 저장
+        mainAccountId: currentUser.uid,
         createdAt: serverTimestamp(),
         status: 'submitted',
       });
-
       alert('리뷰가 성공적으로 제출되었습니다.');
       navigate('/my-reviews', { replace: true });
     } catch (err) {
@@ -141,11 +132,13 @@ export default function DynamicWriteReview() {
       setSubmitting(false);
     }
   };
-
-  const onFile = (e) => { /* 이전과 동일 */ };
-
-
-  // --- 렌더링 ---
+  
+  const onFile = (e) => {
+    const { name, files } = e.target;
+    if (!files[0]) return;
+    setImages({ ...images, [name]: files[0] });
+    setPreview({ ...preview, [name]: URL.createObjectURL(files[0]) });
+  };
 
   if (loading) return <p style={{textAlign: 'center', padding: '50px'}}>페이지 정보를 불러오는 중...</p>;
   if (error) return <p style={{textAlign: 'center', padding: '50px', color: 'red'}}>{error}</p>;
@@ -156,7 +149,6 @@ export default function DynamicWriteReview() {
       {linkData?.content && (<div className="notice-box">{linkData.content}</div>)}
       
       <div className="account-actions">
-        {/* 현재 로그인 상태에 따라 다른 버튼을 보여줌 */}
         {currentUser ? (
           <>
             <button type="button" onClick={handleMainButtonClick}>서브 계정 선택/관리</button>
@@ -167,15 +159,12 @@ export default function DynamicWriteReview() {
         )}
       </div>
 
-      {/* 로그인/회원가입 모달 */}
       {isLoginModalOpen && (
         <LoginModal 
           onClose={() => setIsLoginModalOpen(false)}
           onLoginSuccess={handleLoginSuccess}
         />
       )}
-
-      {/* 서브 계정 관리 모달 */}
       {isAccountModalOpen && (
         <AccountModal 
           onClose={() => setIsAccountModalOpen(false)} 
