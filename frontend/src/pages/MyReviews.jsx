@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   auth, onAuthStateChanged, db,
   collection, query, where, orderBy, getDocs, doc, getDoc,
-  updateDoc, ref, uploadBytes, getDownloadURL, deleteField
+  updateDoc, ref, uploadBytes, getDownloadURL, deleteField, getStorageInstance
 } from '../firebaseConfig';
 import LoginModal from '../components/LoginModal';
 import './MyReviews.css';
@@ -30,8 +30,8 @@ const bankOptions = [
 // 컴포넌트 밖으로 빼서 불필요한 재선언 방지
 // ▼▼▼ 이 상수를 수정합니다 ▼▼▼
 const initialImageFields = [
-  // 통합된 필드명을 사용합니다.
-  { key: 'keywordAndLikeImageUrls', label: '키워드 & 찜 인증' },
+  // 통합된 필드명을 사용합니다. 'keywordAndLikeImageUrls' -> 'keywordAndLikeImagesUrls' 로 수정
+  { key: 'keywordAndLikeImagesUrls', label: '키워드 & 찜 인증' },
   { key: 'orderImageUrls', label: '구매 인증' },
   { key: 'cashcardImageUrls', label: '현영/매출전표' },
 ];
@@ -39,6 +39,7 @@ const initialImageFields = [
 
 export default function MyReviews() {
   const navigate = useNavigate();
+  const storage = getStorageInstance(); // storage 인스턴스 가져오기
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [modalType, setModalType] = useState(null);
@@ -98,7 +99,12 @@ export default function MyReviews() {
   const handleLoginSuccess = () => setIsLoginModalOpen(false);
   const openModal = (type, review) => { setCurrentReview(review); setModalType(type); setIsEditing(false); };
   const closeModal = () => { setModalType(null); setCurrentReview(null); setFiles([]); setUploading(false); setIsEditing(false); };
-  const handleEdit = () => setEditableData({ ...currentReview });
+  
+  const handleEdit = () => {
+    setIsEditing(true); // 수정 모드로 변경
+    setEditableData({ ...currentReview });
+  };
+  
   const handleCancelEdit = () => setIsEditing(false);
   const handleDataChange = (e) => setEditableData({ ...editableData, [e.target.name]: e.target.value });
   const onFile = (e) => setFiles(Array.from(e.target.files || []));
@@ -176,7 +182,7 @@ export default function MyReviews() {
             {modalType === 'detail' && (
               <div className="detail-view">
                 <h3>제출 내역 상세</h3>
-                <div className="form-grid"><div className="field"><label>구매자(수취인)</label><p>{currentReview?.name}</p></div><div className="field"><label>전화번호</label><p>{currentReview?.phoneNumber}</p></div></div>
+                <div className="form-grid"><div className="field"><label>구매자(수취인)</label>{isEditing ? <input name="name" value={editableData.name || ''} onChange={handleDataChange} /> : <p>{currentReview?.name}</p>}</div><div className="field"><label>전화번호</label>{isEditing ? <input name="phoneNumber" value={editableData.phoneNumber || ''} onChange={handleDataChange} /> : <p>{currentReview?.phoneNumber}</p>}</div></div>
                 {[{ key: 'orderNumber', label: '주문번호' }, { key: 'participantId', label: '참가자ID'}, { key: 'address', label: '주소' }, { key: 'bankNumber', label: '계좌번호' }, { key: 'accountHolderName', label: '예금주' }, { key: 'rewardAmount', label: '금액' }].map(({ key, label }) => ( <div className="field" key={key}><label>{label}</label>{isEditing ? <input name={key} value={editableData[key] || ''} onChange={handleDataChange} /> : <p>{currentReview?.[key]}</p>}</div>))}
                 <div className="field"><label>은행</label>{isEditing ? (<select name="bank" value={editableData.bank || ''} onChange={handleDataChange}><option value="">은행 선택</option>{bankOptions.map(b => <option key={b} value={b}>{b}</option>)}</select>) : (<p>{currentReview?.bank}</p>)}</div>
                 
