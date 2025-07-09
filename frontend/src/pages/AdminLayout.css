@@ -158,3 +158,12 @@ tbody tr:hover {
   border-radius: 8px;
   border: 1px solid #e9ecef;
 }
+
+/* 2단 그리드 및 전체 너비 클래스 추가 */
+.info-grid.half {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.info-grid .full-width {
+  grid-column: 1 / -1; /* 그리드 전체 너비를 차지하도록 설정 */
+}

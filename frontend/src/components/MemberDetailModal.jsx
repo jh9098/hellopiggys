@@ -1,7 +1,7 @@
-// src/components/MemberDetailModal.jsx (신규 파일)
+// src/components/MemberDetailModal.jsx (정보 표시 강화)
 
 import React from 'react';
-import './ReviewDetailModal.css'; // 기존 모달 CSS를 재사용합니다.
+import './ReviewDetailModal.css'; // 기존 모달 CSS 재사용
 
 const formatDate = (timestamp) => {
     if (!timestamp) return 'N/A';
@@ -23,31 +23,57 @@ export default function MemberDetailModal({ member, onClose }) {
           <div className="info-grid">
             <div><label>이름</label><p>{member.mainAccountName || '-'}</p></div>
             <div><label>전화번호</label><p>{member.mainAccountPhone || '-'}</p></div>
-            <div><label>총 참여 횟수</label><p>{member.totalSubmissions || 0}회</p></div>
+            <div><label>총 참여 횟수</label><p>{member.reviews.length || 0}회</p></div>
             <div><label>최근 참여일</label><p>{formatDate(member.lastSubmissionDate)}</p></div>
           </div>
         </div>
 
-        {/* --- 타계정(리뷰 참여) 목록 --- */}
-        {member.subAccounts && Object.keys(member.subAccounts).length > 0 && (
-          <div className="modal-section">
-            <h4>참여 계정 목록 (타계정)</h4>
-            <div className="sub-account-detail-list">
-              {Object.values(member.subAccounts).map(sub => (
-                <div key={sub.id} className="sub-account-detail-item">
-                  <div className="info-grid">
-                    <div><label>이름</label><p>{sub.name || '-'}</p></div>
-                    <div><label>전화번호</label><p>{sub.phoneNumber || '-'}</p></div>
-                    <div><label>참여 횟수</label><p>{sub.submissionCount || 0}회</p></div>
-                    <div><label>은행</label><p>{sub.bank || '-'}</p></div>
-                    <div><label>계좌번호</label><p>{sub.bankNumber || '-'}</p></div>
-                    <div><label>예금주</label><p>{sub.accountHolderName || '-'}</p></div>
+        {/* --- 참여 이력 (리뷰 목록) --- */}
+        <div className="modal-section">
+          <h4>참여 이력 (최신순)</h4>
+          <div className="sub-account-detail-list">
+            {member.reviews && member.reviews.length > 0 ? (
+              member.reviews.map(review => (
+                <div key={review.id} className="sub-account-detail-item">
+                  <p style={{ fontWeight: 'bold', marginBottom: '10px', borderBottom: '1px solid #ddd', paddingBottom: '5px' }}>
+                    {formatDate(review.createdAt)} 제출
+                  </p>
+
+                  {/* 상품 정보 */}
+                  <div className="info-grid half">
+                    <div><label>상품명</label><p>{review.productName || '-'}</p></div>
+                    <div><label>리뷰 종류</label><p>{review.reviewType || '-'}</p></div>
+                  </div>
+
+                  {/* 리뷰 참여 계정 (타계정) 정보 */}
+                  {review.subAccountInfo && (
+                    <>
+                      <h5 style={{ marginTop: '15px', marginBottom: '5px' }}>리뷰 참여 계정</h5>
+                      <div className="info-grid half">
+                        <div><label>이름</label><p>{review.subAccountInfo.name || '-'}</p></div>
+                        <div><label>전화번호</label><p>{review.subAccountInfo.phoneNumber || '-'}</p></div>
+                        <div className="full-width"><label>주소</label><p>{review.subAccountInfo.address || '-'}</p></div>
+                        <div><label>은행</label><p>{review.subAccountInfo.bank || '-'}</p></div>
+                        <div><label>계좌번호</label><p>{review.subAccountInfo.bankNumber || '-'}</p></div>
+                        <div><label>예금주</label><p>{review.subAccountInfo.accountHolderName || '-'}</p></div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* 제출된 폼 데이터 */}
+                  <h5 style={{ marginTop: '15px', marginBottom: '5px' }}>제출된 데이터</h5>
+                  <div className="info-grid half">
+                    <div><label>주문번호</label><p>{review.orderNumber || '-'}</p></div>
+                    <div><label>금액</label><p>{review.rewardAmount ? Number(review.rewardAmount).toLocaleString() + '원' : '-'}</p></div>
+                    <div><label>참가자 ID</label><p>{review.participantId || '-'}</p></div>
                   </div>
                 </div>
-              ))}
-            </div>
+              ))
+            ) : (
+              <p>참여 이력이 없습니다.</p>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
