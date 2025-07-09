@@ -1,121 +1,114 @@
-// src/pages/AdminProductForm.jsx (신규 파일)
+// src/pages/AdminProductManagement.jsx (진행 상태 컬럼 및 상태 변경 기능 추가)
 
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { db, collection, addDoc, serverTimestamp, updateDoc, doc, getDoc } from '../firebaseConfig';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { db, collection, getDocs, query, orderBy, deleteDoc, doc, updateDoc } from '../firebaseConfig';
 
-const initialFormState = {
-  productName: '',
-  reviewType: '',
-  guide: '',
-  reviewDate: '',
-};
+const formatDate = (date) => date ? new Date(date.seconds * 1000).toLocaleDateString() : 'N/A';
+const progressStatusOptions = ['진행전', '진행중', '진행완료', '일부완료', '보류'];
 
-export default function AdminProductForm() {
-  const { productId } = useParams(); // URL에서 productId를 가져옵니다.
-  const isEditMode = Boolean(productId); // productId가 있으면 수정 모드
+export default function AdminProductManagement() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [form, setForm] = useState(initialFormState);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loading, setLoading] = useState(isEditMode); // 수정 모드일 때만 초기에 로딩
-  const navigate = useNavigate();
+  const fetchProducts = async () => {
+    setLoading(true);
+    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    setLoading(false);
+  };
 
-  // 수정 모드일 경우, 기존 데이터를 불러옵니다.
   useEffect(() => {
-    if (isEditMode) {
-      const fetchProductData = async () => {
-        const docRef = doc(db, 'products', productId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setForm(docSnap.data());
-        } else {
-          alert('해당 상품 정보를 찾을 수 없습니다.');
-          navigate('/admin/products');
-        }
-        setLoading(false);
-      };
-      fetchProductData();
-    }
-  }, [isEditMode, productId, navigate]);
+    fetchProducts();
+  }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+  const handleDelete = async (id) => {
+    if (window.confirm('정말로 이 상품을 삭제하시겠습니까?')) {
+      await deleteDoc(doc(db, 'products', id));
+      alert('상품이 삭제되었습니다.');
+      fetchProducts();
+    }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.productName || !form.reviewType || !form.reviewDate) {
-      alert('상품명, 리뷰 종류, 진행일자는 필수 항목입니다.');
-      return;
-    }
-    setIsSubmitting(true);
-
+  // 진행 상태 변경 핸들러
+  const handleStatusChange = async (id, newStatus) => {
     try {
-      if (isEditMode) {
-        // 수정 모드: 기존 문서를 업데이트합니다.
-        const docRef = doc(db, 'products', productId);
-        await updateDoc(docRef, {
-          productName: form.productName,
-          reviewType: form.reviewType,
-          guide: form.guide,
-          reviewDate: form.reviewDate,
-        });
-        alert('상품이 성공적으로 수정되었습니다.');
-      } else {
-        // 생성 모드: 새 문서를 추가합니다.
-        await addDoc(collection(db, 'products'), {
-          ...form,
-          createdAt: serverTimestamp(),
-        });
-        alert('상품이 성공적으로 생성되었습니다.');
-      }
-      navigate('/admin/products');
+      const productRef = doc(db, 'products', id);
+      await updateDoc(productRef, { progressStatus: newStatus });
+      
+      // 화면 상태 즉시 업데이트
+      setProducts(prevProducts =>
+        prevProducts.map(p => (p.id === id ? { ...p, progressStatus: newStatus } : p))
+      );
+      // alert('상태가 변경되었습니다.'); // 너무 잦은 알림 방지를 위해 주석 처리
     } catch (error) {
-      alert(`오류가 발생했습니다: ${error.message}`);
-    } finally {
-      setIsSubmitting(false);
+      alert('상태 변경 중 오류가 발생했습니다: ' + error.message);
     }
   };
 
-  if (loading) {
-    return <p>상품 정보를 불러오는 중...</p>;
-  }
+
+  if (loading) return <p>상품 목록을 불러오는 중...</p>;
 
   return (
     <>
-      <h2>{isEditMode ? '상품 수정' : '상품 생성'}</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        
-        <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-          <label style={{ display: 'inline-block', width: '100px' }}>상품명</label>
-          <input type="text" name="productName" value={form.productName} onChange={handleChange} placeholder="예: [헬로피기] 베이컨 500g" required style={{width: 'calc(100% - 120px)', padding: '8px'}}/>
-        </div>
-
-        <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-          <label style={{ display: 'inline-block', width: '100px' }}>리뷰 종류</label>
-          <input type="text" name="reviewType" value={form.reviewType} onChange={handleChange} placeholder="예: 구매리뷰(영수증)" required style={{width: 'calc(100% - 120px)', padding: '8px'}}/>
-        </div>
-
-        <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-          <label style={{ display: 'inline-block', width: '100px' }}>진행일자</label>
-          <input type="text" name="reviewDate" value={form.reviewDate} onChange={handleChange} placeholder="예: 7/10(수) ~ 7/12(금)" required style={{width: 'calc(100% - 120px)', padding: '8px'}}/>
-        </div>
-
-        <div>
-          <label style={{ display: 'block', marginBottom: '8px' }}>가이드</label>
-          <textarea name="guide" value={form.guide} onChange={handleChange} placeholder="리뷰 작성 시 필요한 상세 안내 내용을 입력하세요." style={{ width: '100%', minHeight: '150px', padding: '8px' }}></textarea>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-          <button type="button" onClick={() => navigate('/admin/products')} disabled={isSubmitting} style={{padding: '10px 20px', border: '1px solid #ccc', borderRadius: '4px', background: '#fff'}}>
-            닫기
-          </button>
-          <button type="submit" disabled={isSubmitting} style={{padding: '10px 20px', border: 'none', borderRadius: '4px', background: '#000', color: '#fff'}}>
-            {isSubmitting ? '저장 중...' : (isEditMode ? '수정 완료' : '상품 등록')}
-          </button>
-        </div>
-      </form>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h2>상품 관리 ({products.length})</h2>
+        <Link to="/admin/products/new" style={{ padding: '8px 16px', backgroundColor: '#000', color: '#fff', textDecoration: 'none', borderRadius: '4px' }}>
+          상품 생성
+        </Link>
+      </div>
+      
+      {/* 테이블 레이아웃을 div로 감싸서 반응형 스크롤을 지원합니다. */}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ minWidth: '800px' }}> {/* 최소 너비 지정 */}
+          <thead>
+            <tr>
+              <th style={{width: '20%'}}>상품명</th>
+              <th style={{width: '15%'}}>리뷰 종류</th>
+              <th style={{width: '15%'}}>진행일자</th>
+              <th style={{width: '15%'}}>진행 상태</th> {/* 상태 컬럼 추가 */}
+              <th style={{width: '15%'}}>등록날짜</th>
+              <th style={{width: '20%'}}>관리</th>
+            </tr>
+          </thead>
+          <tbody>
+          {products.length > 0 ? products.map(product => (
+              <tr key={product.id}>
+                <td style={{textAlign: 'left'}}>{product.productName}</td>
+                <td>{product.reviewType}</td>
+                <td>{product.reviewDate}</td>
+                <td>
+                  <select 
+                    value={product.progressStatus || '진행전'} 
+                    onChange={(e) => handleStatusChange(product.id, e.target.value)}
+                    style={{ padding: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
+                  >
+                    {progressStatusOptions.map(status => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </td>
+                <td>{formatDate(product.createdAt)}</td>
+                <td style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                  <Link to={`/admin/products/edit/${product.id}`} style={{ backgroundColor: '#1976d2', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', textDecoration: 'none' }}>
+                    수정
+                  </Link>
+                  <button onClick={() => handleDelete(product.id)} style={{ backgroundColor: '#e53935', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}>
+                    삭제
+                  </button>
+                </td>
+              </tr>
+            )) : (
+              <tr>
+                <td colSpan="6" style={{ padding: '50px', textAlign: 'center' }}>
+                  생성된 상품이 없습니다.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }
