@@ -77,25 +77,32 @@ export default function WriteReview() {
     }
     setSubmitting(true);
     try {
-      const uploadPromises = [];
       const urlMap = {};
 
+      // [변경 전] Promise.all을 사용한 동시 업로드 방식
+      /*
+      const uploadPromises = [];
+      for (const field of UPLOAD_FIELDS) { ... }
+      await Promise.all(uploadPromises);
+      */
+
+      // [변경 후] for...of 루프를 사용한 순차 업로드 방식
       for (const field of UPLOAD_FIELDS) {
         const fieldName = field.key;
         if (images[fieldName] && images[fieldName].length > 0) {
-          urlMap[`${fieldName}Urls`] = [];
-          
-          images[fieldName].forEach(file => {
+          const urls = [];
+          for (const file of images[fieldName]) {
+            console.log(`Uploading ${file.name} for ${fieldName}...`); // 진행 상황 확인용 로그
             const storageRef = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
-            const uploadPromise = uploadBytes(storageRef, file)
-              .then(snapshot => getDownloadURL(snapshot.ref))
-              .then(url => { urlMap[`${fieldName}Urls`].push(url); });
-            uploadPromises.push(uploadPromise);
-          });
+            const snapshot = await uploadBytes(storageRef, file);
+            const downloadUrl = await getDownloadURL(snapshot.ref);
+            urls.push(downloadUrl);
+            console.log(`... ${file.name} upload complete.`);
+          }
+          urlMap[`${fieldName}Urls`] = urls;
         }
       }
-
-      await Promise.all(uploadPromises);
+      // ▲▲▲ 순차 업로드 로직으로 변경 완료 ▲▲▲
 
       const reviewData = {
         mainAccountId: currentUser.uid, subAccountId: form.subAccountId,
