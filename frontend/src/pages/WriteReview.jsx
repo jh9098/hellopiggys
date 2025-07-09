@@ -1,43 +1,127 @@
-import { useState } from 'react';
+// src/pages/WriteReview.jsx (상품 시스템에 맞게 전면 수정)
+
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  db,
-  getStorageInstance,
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  addDoc,
-  collection,
-  serverTimestamp,
+import { 
+  auth, onAuthStateChanged, db, getStorageInstance, 
+  ref, uploadBytes, getDownloadURL, addDoc, collection, 
+  serverTimestamp, getDocs, query, orderBy 
 } from '../firebaseConfig';
+import LoginModal from '../components/LoginModal';
+import AccountModal from '../components/AccountModal';
 import './WriteReview.css';
 
 export default function WriteReview() {
   const navigate = useNavigate();
-  const storage  = getStorageInstance();      // 필요 시만 초기화
+  const storage = getStorageInstance();
 
-  /* ───────────────────────── state ───────────────────────── */
+  const [products, setProducts] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  
   const [form, setForm] = useState({
-    name: '',
-    phoneNumber: '',
-    participantId: '',
-    orderNumber: '',
-    address: '',
-    bank: '',
-    bankNumber: '',
-    accountHolderName: '',
-    rewardAmount: '',
-    title: '',
-    content: '',
+    participantId: '', orderNumber: '', rewardAmount: '', subAccountId: null,
   });
-  const [images, setImages]   = useState({});
+  const [images, setImages] = useState({});
   const [preview, setPreview] = useState({});
-  const [msg, setMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [isAccountSelected, setIsAccountSelected] = useState(false);
+  const [selectedSubAccountInfo, setSelectedSubAccountInfo] = useState(null); // 선택된 서브 계정 정보 표시용
 
-  /* ────────────────────── helpers ────────────────────── */
-  const onChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      if (!user) { // 로그아웃 시 상태 초기화
+        setSelectedProduct(null);
+        setIsAccountSelected(false);
+      }
+    });
+
+    const fetchProducts = async () => {
+      try {
+        const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      } catch (e) {
+        console.error("상품 목록 로딩 실패:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+    return () => unsubscribeAuth();
+  }, []);
+
+  const handleMainButtonClick = () => {
+    if (currentUser) {
+      if (selectedProduct) {
+        setIsAccountModalOpen(true);
+      } else {
+        alert("먼저 참여할 상품을 선택해주세요.");
+      }
+    } else {
+      setIsLoginModalOpen(true);
+    }
+  };
+
+  const handleLoginSuccess = () => setIsLoginModalOpen(false);
+
+  const handleProductSelect = (e) => {
+    const productId = e.target.value;
+    const product = products.find(p => p.id === productId) || null;
+    setSelectedProduct(product);
+    setIsAccountSelected(false); // 상품 변경 시 계정 선택 초기화
+  };
+
+  const handleSelectAccount = (subAccount) => {
+    setForm(prev => ({ ...prev, subAccountId: subAccount.id }));
+    setSelectedSubAccountInfo(subAccount); // 화면 표시용 정보 저장
+    setIsAccountSelected(true);
+    setIsAccountModalOpen(false);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!currentUser || !selectedProduct || !form.subAccountId) {
+      return alert('로그인, 상품 선택, 계정 선택이 모두 완료되어야 합니다.');
+    }
+    setSubmitting(true);
+    try {
+      const urlMap = {};
+      for (const [key, file] of Object.entries(images)) {
+        const r = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
+        await uploadBytes(r, file);
+        urlMap[key + 'Url'] = await getDownloadURL(r);
+      }
+      
+      const reviewData = {
+        mainAccountId: currentUser.uid,
+        subAccountId: form.subAccountId,
+        productId: selectedProduct.id,
+        productName: selectedProduct.productName,
+        reviewType: selectedProduct.reviewType,
+        createdAt: serverTimestamp(),
+        status: 'submitted',
+        orderNumber: form.orderNumber,
+        rewardAmount: form.rewardAmount,
+        participantId: form.participantId,
+        ...urlMap,
+      };
+
+      await addDoc(collection(db, 'reviews'), reviewData);
+      alert('리뷰가 성공적으로 제출되었습니다.');
+      navigate('/my-reviews', { replace: true });
+    } catch (err) {
+      alert('제출 실패: ' + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const onFile = (e) => {
     const { name, files } = e.target;
@@ -45,143 +129,103 @@ export default function WriteReview() {
     setImages({ ...images, [name]: files[0] });
     setPreview({ ...preview, [name]: URL.createObjectURL(files[0]) });
   };
+  
+  const onFormChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  // ⬇️ 실패하면 null 반환 — Firestore에 넣지 않음
-  const uploadOne = async (file) => {
-    try {
-      const r = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
-      await uploadBytes(r, file);
-      return await getDownloadURL(r);
-    } catch (err) {
-      console.warn('❌ 이미지 업로드 실패 (무시):', err.message);
-      return null;
-    }
-  };
+  if (loading) return <p style={{textAlign: 'center', padding: '50px'}}>페이지 정보를 불러오는 중...</p>;
 
-  /* ───────────────────── submit ───────────────────── */
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      /* 이미지 업로드 */
-      const urlMap = {};
-      for (const [key, file] of Object.entries(images)) {
-        const url = await uploadOne(file);
-        if (url) urlMap[key + 'Url'] = url; // 성공한 것만 저장
-      }
-
-      /* 리뷰 문서 저장 */
-      await addDoc(collection(db, 'reviews'), {
-        ...form,
-        ...urlMap,
-        createdAt: serverTimestamp(),
-      });
-
-      /* 이름·전화 localStorage 저장 */
-      localStorage.setItem('REVIEWER_NAME', form.name.trim());
-      localStorage.setItem('REVIEWER_PHONE', form.phoneNumber.trim());
-
-      /* 로그인 화면으로 이동 (SPA 라우팅) */
-      navigate('/reviewer-login', { replace: true });
-
-    } catch (err) {
-      setMsg('❌ 제출 실패: ' + err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  /* ───────────────────── JSX ───────────────────── */
   return (
     <div className="page-wrap">
-      <h2 className="title">🟢환영🟢별리⭐</h2>
+      <h2 className="title">리뷰 작성</h2>
+      
+      {!currentUser && ( <div className="notice-box">로그인 후 참여할 상품을 선택해주세요.</div> )}
 
-      <form onSubmit={handleSubmit}>
-        {/* 기본 정보 */}
-        {[
-          { key: 'name', label: '구매자(수취인)', ph: '이름을 입력하세요.' },
-          { key: 'phoneNumber', label: '전화번호', ph: '숫자만 입력하세요.', type: 'tel' },
-          { key: 'participantId', label: '참가자ID', ph: '' },
-          { key: 'orderNumber', label: '주문번호', ph: '' },
-          { key: 'address', label: '주소', ph: '도로명 주소' },
-        ].map(({ key, label, ph, type }) => (
-          <div className="field" key={key}>
-            <label>{label}</label>
-            <input
-              name={key}
-              value={form[key]}
-              onChange={onChange}
-              placeholder={ph}
-              type={type || 'text'}
-            />
-          </div>
-        ))}
+      {isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} />}
+      
+      {currentUser ? (
+        <button onClick={() => auth.signOut()} className="logout-btn" style={{marginBottom: '20px'}}>로그아웃</button>
+      ) : (
+        <button onClick={() => setIsLoginModalOpen(true)} style={{marginBottom: '20px'}}>로그인 / 회원가입</button>
+      )}
 
-        {/* 입금 정보 */}
+      {currentUser && (
         <div className="field">
-          <label>은행</label>
-          <select name="bank" value={form.bank} onChange={onChange} required>
-            <option value="">은행 선택</option>
-            {[  '신한', '국민', '산업', 'KEB하나', '케이뱅크', '경남', '저축', '우리', 
-  '카카오뱅크', '광주', '새마을금고', '우체국', '토스뱅크', '기업', '수협', 
-  '전북', '농협', 'SC', '아이엠뱅크', '신협', '제주', '부산', '씨티', 'HSBC'
-].map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
+          <label>상품 선택</label>
+          <select onChange={handleProductSelect} value={selectedProduct?.id || ''}>
+            <option value="" disabled>참여할 상품을 선택하세요</option>
+            {products.map(p => <option key={p.id} value={p.id}>{p.productName} ({p.reviewType})</option>)}
           </select>
         </div>
-        {[
-          { key: 'bankNumber', label: '계좌번호' },
-          { key: 'accountHolderName', label: '예금주' },
-          { key: 'rewardAmount', label: '금액' },
-        ].map(({ key, label }) => (
-          <div className="field" key={key}>
-            <label>{label}</label>
-            <input
-              name={key}
-              value={form[key]}
-              onChange={onChange}
-              required={key !== 'rewardAmount'}
-            />
+      )}
+
+      {selectedProduct && (
+        <>
+          <div className="product-info-box">
+            <h4>{selectedProduct.productName}</h4>
+            <p><strong>리뷰 종류:</strong> {selectedProduct.reviewType}</p>
+            <p><strong>진행 일자:</strong> {selectedProduct.reviewDate}</p>
+            {selectedProduct.guide && (
+                <div className="guide-content">
+                    <strong>가이드:</strong>
+                    <p style={{whiteSpace: 'pre-line'}}>{selectedProduct.guide}</p>
+                </div>
+            )}
           </div>
-        ))}
-
-        {/* 이미지 업로드 */}
-        {[
-          { key: 'likeImage', label: '상품 찜 캡처 (필수)', req: false },
-          { key: 'orderImage', label: '구매 인증 캡처 (최대 2개)', req: false },
-          { key: 'secondOrderImage', label: '추가 구매 인증 (선택)', req: false },
-          { key: 'reviewImage', label: '리뷰 인증 캡처 (필수)', req: false },
-        ].map(({ key, label, req }) => (
-          <div className="field" key={key}>
-            <label>{label}</label>
-            <input
-              type="file"
-              accept="image/*"
-              name={key}
-              onChange={onFile}
-              required={req}
-            />
-              {preview[key] && (
-                <img className="thumb" src={preview[key]} alt={key} />
-              )}
+          
+          <div className="account-actions">
+            <button type="button" onClick={handleMainButtonClick}>
+              {isAccountSelected ? '✓ 계정 선택 완료 (변경하기)' : '구매/리뷰 진행 계정 선택'}
+            </button>
           </div>
-        ))}
 
-        {/* 약관 */}
-        <div className="field">
-          <label>
-            <input type="checkbox" required /> 개인정보 이용에 동의합니다
-          </label>
-        </div>
+          {isAccountModalOpen && <AccountModal onClose={() => setIsAccountModalOpen(false)} onSelectAccount={handleSelectAccount}/>}
+        </>
+      )}
+      
+      {isAccountSelected && selectedSubAccountInfo && (
+        <form onSubmit={handleSubmit}>
+          {[
+            { key: 'name', label: '구매자(수취인)', value: selectedSubAccountInfo.name },
+            { key: 'phoneNumber', label: '전화번호', value: selectedSubAccountInfo.phoneNumber },
+            { key: 'address', label: '주소', value: selectedSubAccountInfo.address },
+            { key: 'bank', label: '은행', value: selectedSubAccountInfo.bank },
+            { key: 'bankNumber', label: '계좌번호', value: selectedSubAccountInfo.bankNumber },
+            { key: 'accountHolderName', label: '예금주', value: selectedSubAccountInfo.accountHolderName },
+          ].map(({ key, label, value }) => (
+            <div className="field" key={key}>
+              <label>{label}</label>
+              <input value={value || ''} readOnly style={{background: '#f0f0f0', cursor: 'not-allowed'}}/>
+            </div>
+          ))}
+          
+          {[
+            { key: 'participantId', label: '참가자 ID', ph: '참가자 ID를 입력하세요' },
+            { key: 'orderNumber', label: '주문번호', ph: '주문번호를 그대로 복사하세요' },
+            { key: 'rewardAmount', label: '금액', ph: '결제금액을 입력하세요' },
+          ].map(({ key, label, ph }) => (
+            <div className="field" key={key}>
+              <label>{label}</label>
+              <input name={key} value={form[key]} onChange={onFormChange} placeholder={ph} required/>
+            </div>
+          ))}
 
-        <button className="submit-btn" disabled={submitting}>
-          {submitting ? '제출 중…' : '제출하기'}
-        </button>
-        {msg && <p className="msg">{msg}</p>}
-      </form>
+          {[
+            { key: 'likeImage', label: '상품 찜 캡처 (필수)' },
+            { key: 'orderImage', label: '구매 인증 캡처 (필수)' },
+            { key: 'cashcardImage', label: '현영/매출전표 (필수)' },
+            { key: 'keywordImage', label: '키워드 인증 (필수)' },
+          ].map(({ key, label }) => (
+            <div className="field" key={key}>
+              <label>{label}</label>
+              <input type="file" accept="image/*" name={key} onChange={onFile} required />
+              {preview[key] && (<img className="thumb" src={preview[key]} alt={key} />)}
+            </div>
+          ))}
+
+          <div className="field"><label><input type="checkbox" required /> 개인정보 이용에 동의합니다.</label></div>
+          <button className="submit-btn" type="submit" disabled={submitting}>{submitting ? '제출 중…' : '제출하기'}</button>
+        </form>
+      )}
     </div>
   );
 }

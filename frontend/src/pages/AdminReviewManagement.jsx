@@ -1,4 +1,4 @@
-// D:\hellopiggy\frontend\src\pages\AdminReviewManagement.jsx (최종 수정 버전)
+// src/pages/AdminReviewManagement.jsx (상품 관리 시스템에 맞게 수정)
 
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, getDoc } from '../firebaseConfig';
@@ -31,23 +31,31 @@ export default function AdminReviewManagement() {
     const reviewsData = await Promise.all(snap.docs.map(async (d) => {
       const review = { id: d.id, ...d.data() };
 
-      // ▼▼▼ 핵심 수정 부분 ▼▼▼
-      // 이전의 subAccounts 조회 로직은 불필요하므로 모두 제거합니다.
-
-      // mainAccountId(uid)를 사용해 'users' 컬렉션에서 본계정 이름만 조회합니다.
+      // 본계정 이름 조회
       if (review.mainAccountId) {
         const userDocRef = doc(db, 'users', review.mainAccountId);
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
-          // '본계정 이름'을 위한 새로운 필드를 만듭니다.
           review.mainAccountName = userDocSnap.data().name; 
         }
       }
       
-      // '타계정 이름'은 review 문서에 이미 'name' 필드로 존재합니다.
-      // 별도의 처리가 필요 없습니다.
-      // ▲▲▲ 핵심 수정 부분 ▲▲▲
-
+      // 타계정 정보 조회 (subAccountId 사용)
+      if (review.subAccountId) {
+          const subAccountRef = doc(db, "subAccounts", review.subAccountId);
+          const subAccountSnap = await getDoc(subAccountRef);
+          if(subAccountSnap.exists()){
+              // 상세 모달 및 테이블 표시를 위해 필요한 정보들을 review 객체에 합친다.
+              const subData = subAccountSnap.data();
+              review.name = subData.name; // 타계정 이름 (수취인)
+              review.phoneNumber = subData.phoneNumber;
+              review.address = subData.address;
+              review.bank = subData.bank;
+              review.bankNumber = subData.bankNumber;
+              review.accountHolderName = subData.accountHolderName;
+          }
+      }
+      
       return review;
     }));
     
@@ -70,12 +78,11 @@ export default function AdminReviewManagement() {
       const s = search.toLowerCase();
       tempRows = tempRows.filter((r) =>
         [
-          r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '',
-          r.participantId,
-          r.mainAccountName, 
-          r.name, // '타계정 이름'인 r.name을 검색 대상에 포함
+          r.productName, // 상품명으로 검색
+          r.reviewType,  // 리뷰 종류로 검색
+          r.mainAccountName, // 본계정 이름
+          r.name, // 타계정 이름
           r.phoneNumber, 
-          r.title,
         ].filter(Boolean).join(' ').toLowerCase().includes(s)
       );
     }
@@ -113,26 +120,21 @@ export default function AdminReviewManagement() {
       return;
     }
     if (window.confirm(`이 리뷰를 반려 처리하시겠습니까?\n사유: ${reason}`)) {
-      try {
-        await updateDoc(doc(db, 'reviews', id), { status: 'rejected', rejectionReason: reason.trim(), rejectedAt: serverTimestamp() });
-        alert('리뷰가 반려 처리되었습니다.');
-        await fetchReviews();
-      } catch (e) {
-        alert('처리 중 오류가 발생했습니다: ' + e.message);
-      }
+      await updateDoc(doc(db, 'reviews', id), { status: 'rejected', rejectionReason: reason.trim(), rejectedAt: serverTimestamp() });
+      alert('리뷰가 반려 처리되었습니다.');
+      await fetchReviews();
     }
   };
-
 
   const downloadCsv = () => {
     const csvData = filteredRows.map((r, i) => ({
       '순번': i + 1,
       '등록일시': r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : '',
-      '리뷰 제목': r.title,
-      '상품명': r.participantId || '-',
+      '상품명': r.productName || '-',
+      '리뷰 종류': r.reviewType || '-',
       '본계정 이름': r.mainAccountName || '-',
-      '타계정 이름': r.name || '-', // '타계정 이름'으로 review.name을 사용
-      '전화번호': r.phoneNumber || '-', // '전화번호'로 review.phoneNumber를 사용
+      '타계정 이름': r.name || '-',
+      '전화번호': r.phoneNumber || '-',
       '리뷰 제출': r.confirmImageUrls && r.confirmImageUrls.length > 0 ? 'O' : 'X',
     }));
     const csv = Papa.unparse(csvData);
@@ -164,10 +166,7 @@ export default function AdminReviewManagement() {
         <button onClick={handleVerify} disabled={selected.size === 0}>선택 항목 리뷰 인증</button>
         <button 
           onClick={() => setFilterCompleted(!filterCompleted)}
-          style={{ 
-            backgroundColor: filterCompleted ? '#28a745' : '#fff',
-            color: filterCompleted ? '#fff' : '#333'
-          }}
+          style={{ backgroundColor: filterCompleted ? '#28a745' : '#fff', color: filterCompleted ? '#fff' : '#333' }}
         >
           리뷰 확인 'O'만 보기
         </button>
@@ -178,11 +177,10 @@ export default function AdminReviewManagement() {
         <thead>
           <tr>
             <th><input type="checkbox" checked={selected.size === filteredRows.length && filteredRows.length > 0} onChange={toggleSelectAll} /></th>
-            <th>순번</th>
             <th>등록일시</th>
             <th>상태</th>
-            <th>리뷰 제목</th>
             <th>상품명</th>
+            <th>리뷰 종류</th>
             <th>본계정 이름</th>
             <th>타계정 이름</th>
             <th>전화번호</th>
@@ -191,24 +189,18 @@ export default function AdminReviewManagement() {
           </tr>
         </thead>
         <tbody>
-          {filteredRows.map((r, idx) => (
+          {filteredRows.map((r) => (
             <tr key={r.id}>
               <td><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></td>
-              <td>{idx + 1}</td>
               <td>{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}</td>
               <td>{getStatusText(r.status)}</td>
-              <td>{r.title}</td>
-              <td>{r.participantId || '-'}</td>
+              <td>{r.productName || '-'}</td>
+              <td>{r.reviewType || '-'}</td>
               <td>{r.mainAccountName || '-'}</td>
-              {/* ▼▼▼ 최종 수정된 부분 ▼▼▼ */}
-              <td>{r.name || '-'}</td> {/* '타계정 이름'으로 review.name 필드를 직접 사용 */}
-              <td>{r.phoneNumber || '-'}</td> {/* '전화번호'로 review.phoneNumber 필드를 직접 사용 */}
-              {/* ▲▲▲ 최종 수정된 부분 ▲▲▲ */}
+              <td>{r.name || '-'}</td>
+              <td>{r.phoneNumber || '-'}</td>
               <td>
-                <button 
-                  className={`link-button ${r.confirmImageUrls?.length > 0 ? 'completed' : ''}`}
-                  onClick={() => openDetailModal(r)}
-                >
+                <button className={`link-button ${r.confirmImageUrls?.length > 0 ? 'completed' : ''}`} onClick={() => openDetailModal(r)}>
                   {r.confirmImageUrls?.length > 0 ? 'O' : 'X'}
                 </button>
               </td>
@@ -221,10 +213,7 @@ export default function AdminReviewManagement() {
       </table>
 
       {isModalOpen && (
-        <ReviewDetailModal 
-          review={selectedReview} 
-          onClose={closeDetailModal} 
-        />
+        <ReviewDetailModal review={selectedReview} onClose={closeDetailModal} />
       )}
     </>
   );
