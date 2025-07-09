@@ -148,7 +148,17 @@ export default function WriteReview() {
   const handleLoginSuccess = () => setIsLoginModalOpen(false);
   const handleProductSelect = (e) => { const productId = e.target.value; const product = products.find(p => p.id === productId) || null; setSelectedProduct(product); setIsAccountSelected(false); };
   const handleSelectAccount = (subAccount) => { setForm(prev => ({ ...prev, subAccountId: subAccount.id })); setSelectedSubAccountInfo(subAccount); setIsAccountSelected(true); setIsAccountModalOpen(false); };
-  const onFormChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  // ▼▼▼ onFormChange 함수 수정 ▼▼▼
+  const onFormChange = (e) => {
+    const { name, value } = e.target;
+    // 주문번호와 금액 필드에 대해 숫자만 허용
+    if (name === 'orderNumber' || name === 'rewardAmount') {
+      setForm({ ...form, [name]: value.replace(/[^0-9]/g, '') });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+  };
+  // ▲▲▲ 수정 완료 ▲▲▲
 
   if (loading) return <p style={{textAlign: 'center', padding: '50px'}}>페이지 정보를 불러오는 중...</p>;
 

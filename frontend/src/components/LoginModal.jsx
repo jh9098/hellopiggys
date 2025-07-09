@@ -1,11 +1,11 @@
-// src/components/LoginModal.jsx
+// src/components/LoginModal.jsx (숫자만 입력되도록 수정)
 
 import { useState } from 'react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db, doc, setDoc, getDoc } from '../firebaseConfig';
 
 export default function LoginModal({ onClose, onLoginSuccess }) {
-  const [isLoginView, setIsLoginView] = useState(true); // true: 로그인 뷰, false: 회원가입 뷰
+  const [isLoginView, setIsLoginView] = useState(true);
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -13,6 +13,26 @@ export default function LoginModal({ onClose, onLoginSuccess }) {
   
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // ▼▼▼ 핸들러 함수 수정 ▼▼▼
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    switch (name) {
+      case 'name':
+        setName(value);
+        break;
+      case 'phone':
+        // 숫자 이외의 문자 제거
+        setPhone(value.replace(/[^0-9]/g, ''));
+        break;
+      case 'password':
+        setPassword(value);
+        break;
+      default:
+        break;
+    }
+  };
+  // ▲▲▲ 수정 완료 ▲▲▲
 
   const handleSubmit = async (e) => {
     e.preventDefault();
