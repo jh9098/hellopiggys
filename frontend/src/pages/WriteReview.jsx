@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   auth, onAuthStateChanged, db, getStorageInstance, 
   ref, uploadBytes, getDownloadURL, addDoc, collection, 
-  serverTimestamp, getDocs, query, orderBy 
+  serverTimestamp, getDocs, query, orderBy, where
 } from '../firebaseConfig';
 import LoginModal from '../components/LoginModal';
 import AccountModal from '../components/AccountModal';
