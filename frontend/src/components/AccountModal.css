@@ -227,3 +227,36 @@ button[type="submit"]:hover:not(:disabled) {
   font-weight: bold;
   margin-top: 15px;
 }
+
+/* -------- 로그인 모달 전용 스타일 -------- */
+.auth-submit-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 1.1rem;
+  border-radius: 8px;
+}
+
+.auth-submit-btn:disabled {
+  background-color: #a0c8f0;
+  cursor: not-allowed;
+}
+
+.auth-submit-btn:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.view-toggle {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.view-toggle button {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 14px;}

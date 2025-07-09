@@ -97,7 +97,7 @@ export default function LoginModal({ onClose, onLoginSuccess }) {
   };
 
   return (
-    <div className="modal-back" onClick={onClose}>
+    <div className="modal-back">
       <div className="account-modal" onClick={(e) => e.stopPropagation()}>
         <button className="close-btn" onClick={onClose}>✖</button>
         
@@ -110,7 +110,7 @@ export default function LoginModal({ onClose, onLoginSuccess }) {
           <input type="tel" placeholder="전화번호 ('-' 없이 입력)" value={phone} onChange={e => setPhone(e.target.value)} required />
           <input type="password" placeholder="비밀번호 (6자리 이상)" value={password} onChange={e => setPassword(e.target.value)} required />
           
-          <button type="submit" disabled={submitting}>
+          <button type="submit" className="auth-submit-btn" disabled={submitting}>
             {submitting ? '처리 중...' : (isLoginView ? '로그인' : '회원가입')}
           </button>
           {error && <p className="error-msg">{error}</p>}
@@ -124,5 +124,4 @@ export default function LoginModal({ onClose, onLoginSuccess }) {
         </div>
       </div>
     </div>
-  );
-}
+  );}
