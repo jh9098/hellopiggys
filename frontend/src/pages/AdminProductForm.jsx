@@ -123,7 +123,7 @@ export default function AdminProductForm() {
 
         <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
           <label style={{ display: 'inline-block', width: '100px' }}>진행일자</label>
-          <input type="text" name="reviewDate" value={form.reviewDate} onChange={handleChange} placeholder="예: 2025-07-09" required style={{width: 'calc(100% - 120px)', padding: '8px'}}/>
+          <input type="date" name="reviewDate" value={form.reviewDate} onChange={handleChange} required style={{width: 'calc(100% - 120px)', padding: '8px'}}/>
         </div>
 
         <div>
@@ -131,11 +131,10 @@ export default function AdminProductForm() {
           <textarea name="guide" value={form.guide} onChange={handleChange} placeholder="리뷰 작성 시 필요한 상세 안내 내용을 입력하세요." style={{ width: '100%', minHeight: '300px', padding: '8px' }}></textarea>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-          <button type="button" onClick={() => navigate('/admin/products')} disabled={isSubmitting} style={{padding: '10px 20px', border: '1px solid #ccc', borderRadius: '4px', background: '#fff'}}>닫기</button>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '20px' }}>
           <button type="submit" disabled={isSubmitting} style={{padding: '10px 20px', border: 'none', borderRadius: '4px', background: '#000', color: '#fff'}}>{isSubmitting ? '저장 중...' : (isEditMode ? '수정 완료' : '상품 등록')}</button>
+          <button type="button" onClick={() => navigate('/admin/products')} disabled={isSubmitting} style={{padding: '10px 20px', border: '1px solid #ccc', borderRadius: '4px', background: '#fff'}}>닫기</button>
         </div>
       </form>
     </>
-  );
-}
+  );}
