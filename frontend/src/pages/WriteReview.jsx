@@ -10,6 +10,7 @@ import {
 import LoginModal from '../components/LoginModal';
 import AccountModal from '../components/AccountModal';
 import './WriteReview.css';
+import imageCompression from 'browser-image-compression';
 
 // 업로드 필드 정의 (handleSubmit에서 사용)
 const UPLOAD_FIELDS = [
@@ -59,17 +60,36 @@ export default function WriteReview() {
     return () => unsubscribeAuth();
   }, []);
 
-  const onFileChange = (e) => {
+  const onFileChange = async (e) => { // async로 변경
     const { name, files } = e.target;
     if (!files || files.length === 0) return;
-
-    const selectedFiles = Array.from(files).slice(0, 5);
-    setImages(prev => ({ ...prev, [name]: selectedFiles }));
-    
-    const previewUrls = selectedFiles.map(file => URL.createObjectURL(file));
-    setPreviews(prev => ({ ...prev, [name]: previewUrls }));
+  
+    const options = {
+      maxSizeMB: 1, // 이미지 최대 용량 (1MB)
+      maxWidthOrHeight: 1920, // 최대 해상도
+      useWebWorker: true,
+    };
+  
+    try {
+      const compressedFiles = [];
+      for (const file of files) {
+        console.log(`압축 전: ${file.name}, ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        const compressedFile = await imageCompression(file, options);
+        console.log(`압축 후: ${compressedFile.name}, ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+        compressedFiles.push(compressedFile);
+      }
+      
+      const selectedFiles = compressedFiles.slice(0, 5);
+      setImages(prev => ({ ...prev, [name]: selectedFiles }));
+      const previewUrls = selectedFiles.map(file => URL.createObjectURL(file));
+      setPreviews(prev => ({ ...prev, [name]: previewUrls }));
+  
+    } catch (error) {
+      console.error('이미지 압축 실패:', error);
+      alert('이미지 처리 중 오류가 발생했습니다. 다른 사진을 선택해주세요.');
+    }
   };
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!currentUser || !selectedProduct || !form.subAccountId) {
