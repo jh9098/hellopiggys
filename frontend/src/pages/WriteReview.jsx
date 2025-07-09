@@ -157,9 +157,9 @@ export default function WriteReview() {
 
   return (
     <div className="page-wrap">
-      <h2 className="title">리뷰 작성</h2>
+      <h2 className="title">구매 폼 작성</h2>
       
-      {!currentUser && ( <div className="notice-box">로그인 후 참여할 상품을 선택해주세요.</div> )}
+      {!currentUser && ( <div className="notice-box">로그인 후 배정받은 상품을 선택해주세요.</div> )}
 
       {isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} />}
       
@@ -173,7 +173,7 @@ export default function WriteReview() {
         <div className="field">
           <label>상품 선택</label>
           <select onChange={handleProductSelect} value={selectedProduct?.id || ''}>
-            <option value="" disabled>참여할 상품을 선택하세요</option>
+            <option value="" disabled>배정받은 상품을 선택하세요</option>
             {products.map(p => <option key={p.id} value={p.id}>{p.productName} ({p.reviewType})</option>)}
           </select>
         </div>
@@ -231,10 +231,10 @@ export default function WriteReview() {
           ))}
 
           {[
-            { key: 'likeImage', label: '상품 찜 캡처 (필수)' },
-            { key: 'orderImage', label: '구매 인증 캡처 (필수)' },
-            { key: 'cashcardImage', label: '현영/매출전표 (필수)' },
-            { key: 'keywordImage', label: '키워드 인증 (필수)' },
+            { key: 'likeImage', label: '상품 찜 캡처 (필수)', req = true },
+            { key: 'orderImage', label: '구매 인증 캡처 (필수)', req = false },
+            { key: 'cashcardImage', label: '현영/매출전표 (필수)', req = false },
+            { key: 'keywordImage', label: '키워드 인증 (필수)', req = false },
           ].map(({ key, label }) => (
             <div className="field" key={key}>
               <label>{label}</label>
