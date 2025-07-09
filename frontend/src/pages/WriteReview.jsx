@@ -194,7 +194,7 @@ export default function WriteReview() {
       {isAccountSelected && selectedSubAccountInfo && (
         <form onSubmit={handleSubmit}>
           {[ { key: 'name', label: '구매자(수취인)', value: selectedSubAccountInfo.name }, { key: 'phoneNumber', label: '전화번호', value: selectedSubAccountInfo.phoneNumber }, { key: 'address', label: '주소', value: selectedSubAccountInfo.address }, { key: 'bank', label: '은행', value: selectedSubAccountInfo.bank }, { key: 'bankNumber', label: '계좌번호', value: selectedSubAccountInfo.bankNumber }, { key: 'accountHolderName', label: '예금주', value: selectedSubAccountInfo.accountHolderName }, ].map(({ key, label, value }) => (<div className="field" key={key}><label>{label}</label><input value={value || ''} readOnly style={{background: '#f0f0f0', cursor: 'not-allowed'}}/></div>))}
-          {[ { key: 'participantId', label: '참가자 ID', ph: '참가자 ID를 입력하세요' }, { key: 'orderNumber', label: '주문번호', ph: '주문번호를 그대로 복사하세요' }, { key: 'rewardAmount', label: '금액', ph: '결제금액을 입력하세요' }, ].map(({ key, label, ph }) => (<div className="field" key={key}><label>{label}</label><input name={key} value={form[key]} onChange={onFormChange} placeholder={ph} required/></div>))}
+          {[ { key: 'participantId', label: '쿠팡 ID', ph: '쿠팡 ID를 입력하세요' }, { key: 'orderNumber', label: '주문번호', ph: '주문번호를 그대로 복사하세요' }, { key: 'rewardAmount', label: '금액', ph: '결제금액을 입력하세요' }, ].map(({ key, label, ph }) => (<div className="field" key={key}><label>{label}</label><input name={key} value={form[key]} onChange={onFormChange} placeholder={ph} required/></div>))}
 
           {/* ▼▼▼ 이미지 업로드 UI 수정 ▼▼▼ */}
           <div className="image-upload-group">

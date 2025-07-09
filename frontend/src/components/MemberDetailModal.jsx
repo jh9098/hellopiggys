@@ -79,7 +79,7 @@ export default function MemberDetailModal({ member, onClose }) {
                   <div className="info-grid half">
                     <div><label>주문번호</label><p>{review.orderNumber || '-'}</p></div>
                     <div><label>금액</label><p>{review.rewardAmount ? Number(review.rewardAmount).toLocaleString() + '원' : '-'}</p></div>
-                    <div><label>참가자 ID</label><p>{review.participantId || '-'}</p></div>
+                    <div><label>쿠팡 ID</label><p>{review.participantId || '-'}</p></div>
                   </div>
                 </div>
               ))
@@ -89,5 +89,4 @@ export default function MemberDetailModal({ member, onClose }) {
           </div>
         </div>
       </div>
-    </div>
-  );}
+    </div>  );}
