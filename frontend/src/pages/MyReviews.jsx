@@ -1,4 +1,4 @@
-// src/pages/MyReviews.jsx (오류 수정 최종본)
+// src/pages/MyReviews.jsx (구매폼 작성 버튼 추가)
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -27,19 +27,15 @@ const bankOptions = [
   '전북', '농협', 'SC', '아이엠뱅크', '신협', '제주', '부산', '씨티', 'HSBC'
 ];
 
-// 컴포넌트 밖으로 빼서 불필요한 재선언 방지
-// ▼▼▼ 이 상수를 수정합니다 ▼▼▼
 const initialImageFields = [
-  // 통합된 필드명을 사용합니다. 'keywordAndLikeImageUrls' -> 'keywordAndLikeImagesUrls' 로 수정
   { key: 'keywordAndLikeImagesUrls', label: '키워드 & 찜 인증' },
   { key: 'orderImageUrls', label: '구매 인증' },
   { key: 'cashcardImageUrls', label: '현영/매출전표' },
 ];
-// ▲▲▲
 
 export default function MyReviews() {
   const navigate = useNavigate();
-  const storage = getStorageInstance(); // storage 인스턴스 가져오기
+  const storage = getStorageInstance();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [modalType, setModalType] = useState(null);
@@ -101,12 +97,22 @@ export default function MyReviews() {
   const closeModal = () => { setModalType(null); setCurrentReview(null); setFiles([]); setUploading(false); setIsEditing(false); };
   
   const handleEdit = () => {
-    setIsEditing(true); // 수정 모드로 변경
+    setIsEditing(true);
     setEditableData({ ...currentReview });
   };
   
   const handleCancelEdit = () => setIsEditing(false);
-  const handleDataChange = (e) => setEditableData({ ...editableData, [e.target.name]: e.target.value });
+  
+  // 숫자만 입력되도록 필터링하는 로직 추가
+  const handleDataChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'phoneNumber' || name === 'bankNumber' || name === 'orderNumber' || name === 'rewardAmount') {
+      setEditableData({ ...editableData, [name]: value.replace(/[^0-9]/g, '') });
+    } else {
+      setEditableData({ ...editableData, [name]: value });
+    }
+  };
+
   const onFile = (e) => setFiles(Array.from(e.target.files || []));
   
   const handleSave = async () => {
@@ -159,7 +165,20 @@ export default function MyReviews() {
 
   return (
     <div className="my-wrap">
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}><h2>내 리뷰 목록</h2><button className="logout" onClick={handleLogout}>로그아웃 ➡</button></div>
+      {/* ▼▼▼ 이 부분에 버튼 추가 ▼▼▼ */}
+      <div className="page-header">
+        <h2>내 리뷰 목록</h2>
+        <div className="header-actions">
+          <button className="action-btn" onClick={() => navigate('/link')}>
+            구매폼 작성
+          </button>
+          <button className="logout" onClick={handleLogout}>
+            로그아웃 ➡
+          </button>
+        </div>
+      </div>
+      {/* ▲▲▲ 버튼 추가 완료 ▲▲▲ */}
+
       {rows.length === 0 ? <p>작성한 리뷰가 없습니다.</p> : rows.map((r) => {
         const statusInfo = getStatusInfo(r);
         const participantName = r.subAccountInfo?.name || r.mainAccountInfo?.name || '알 수 없음';
@@ -182,9 +201,38 @@ export default function MyReviews() {
             {modalType === 'detail' && (
               <div className="detail-view">
                 <h3>제출 내역 상세</h3>
-                <div className="form-grid"><div className="field"><label>구매자(수취인)</label>{isEditing ? <input name="name" value={editableData.name || ''} onChange={handleDataChange} /> : <p>{currentReview?.name}</p>}</div><div className="field"><label>전화번호</label>{isEditing ? <input name="phoneNumber" value={editableData.phoneNumber || ''} onChange={handleDataChange} /> : <p>{currentReview?.phoneNumber}</p>}</div></div>
-                {[{ key: 'orderNumber', label: '주문번호' }, { key: 'participantId', label: '참가자ID'}, { key: 'address', label: '주소' }, { key: 'bankNumber', label: '계좌번호' }, { key: 'accountHolderName', label: '예금주' }, { key: 'rewardAmount', label: '금액' }].map(({ key, label }) => ( <div className="field" key={key}><label>{label}</label>{isEditing ? <input name={key} value={editableData[key] || ''} onChange={handleDataChange} /> : <p>{currentReview?.[key]}</p>}</div>))}
-                <div className="field"><label>은행</label>{isEditing ? (<select name="bank" value={editableData.bank || ''} onChange={handleDataChange}><option value="">은행 선택</option>{bankOptions.map(b => <option key={b} value={b}>{b}</option>)}</select>) : (<p>{currentReview?.bank}</p>)}</div>
+                <div className="form-grid">
+                  <div className="field">
+                    <label>구매자(수취인)</label>
+                    {isEditing ? <input name="name" value={editableData.name || ''} onChange={handleDataChange} /> : <p>{currentReview?.name}</p>}
+                  </div>
+                  <div className="field">
+                    <label>전화번호</label>
+                    {isEditing ? <input name="phoneNumber" value={editableData.phoneNumber || ''} onChange={handleDataChange} /> : <p>{currentReview?.phoneNumber}</p>}
+                  </div>
+                </div>
+                {[
+                  { key: 'orderNumber', label: '주문번호' }, 
+                  { key: 'participantId', label: '참가자ID'}, 
+                  { key: 'address', label: '주소' }, 
+                  { key: 'bankNumber', label: '계좌번호' }, 
+                  { key: 'accountHolderName', label: '예금주' }, 
+                  { key: 'rewardAmount', label: '금액' }
+                ].map(({ key, label }) => (
+                  <div className="field" key={key}>
+                    <label>{label}</label>
+                    {isEditing ? <input name={key} value={editableData[key] || ''} onChange={handleDataChange} /> : <p>{currentReview?.[key]}</p>}
+                  </div>
+                ))}
+                <div className="field">
+                  <label>은행</label>
+                  {isEditing ? (
+                    <select name="bank" value={editableData.bank || ''} onChange={handleDataChange}>
+                      <option value="">은행 선택</option>
+                      {bankOptions.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  ) : (<p>{currentReview?.bank}</p>)}
+                </div>
                 
                 {initialImageFields.map(({ key, label }) => ( currentReview?.[key] && currentReview[key].length > 0 && (
                   <div className="field full-width" key={key}>
@@ -198,10 +246,28 @@ export default function MyReviews() {
                 )))}
                 
                 {currentReview.confirmImageUrls && currentReview.confirmImageUrls.length > 0 && (<div className="field full-width"><label>리뷰 완료 인증</label><div className="preview-container"> {currentReview.confirmImageUrls.map((url, i) => (<a key={i} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`리뷰인증 ${i+1}`} className="thumb" /></a>))}</div></div>)}
-                <div className="modal-actions">{isEditing ? (<><button onClick={handleSave} disabled={uploading}>{uploading ? '저장 중...' : '저장'}</button><button onClick={handleCancelEdit} className="secondary">취소</button></>) : (<><button onClick={handleEdit} disabled={currentReview?.status === 'verified' || currentReview?.status === 'settled'}>수정</button><button onClick={closeModal} className="secondary">닫기</button></>)}</div>
+                <div className="modal-actions">
+                  {isEditing ? (
+                    <>
+                      <button onClick={handleSave} disabled={uploading}>{uploading ? '저장 중...' : '저장'}</button>
+                      <button onClick={handleCancelEdit} className="secondary">취소</button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={handleEdit} disabled={currentReview?.status === 'verified' || currentReview?.status === 'settled'}>수정</button>
+                      <button onClick={closeModal} className="secondary">닫기</button>
+                    </>
+                  )}
+                </div>
               </div>
             )}
-            {modalType === 'upload' && (<><h3>리뷰 인증 이미지 업로드</h3><input type="file" accept="image/*" multiple onChange={onFile} /><button onClick={uploadConfirm} disabled={uploading || files.length === 0} style={{ marginTop: 16 }}>{uploading ? '업로드 중…' : '완료'}</button></>)}
+            {modalType === 'upload' && (
+              <>
+                <h3>리뷰 인증 이미지 업로드</h3>
+                <input type="file" accept="image/*" multiple onChange={onFile} />
+                <button onClick={uploadConfirm} disabled={uploading || files.length === 0} style={{ marginTop: 16 }}>{uploading ? '업로드 중…' : '완료'}</button>
+              </>
+            )}
           </div>
         </div>
       )}
