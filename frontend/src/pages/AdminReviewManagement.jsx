@@ -30,13 +30,28 @@ export default function AdminReviewManagement() {
     const snap = await getDocs(q);
     const reviewsData = await Promise.all(snap.docs.map(async (d) => {
       const review = { id: d.id, ...d.data() };
+      // ▼▼▼ 핵심 수정 부분 ▼▼▼
+      // DynamicWriteReview에서 서브 계정 정보를 review 문서에 직접 저장하지 않으므로,
+      // subAccountId를 이용해 subAccounts 컬렉션에서 정보를 가져와야 합니다.
       if (review.subAccountId) {
         const subAccountRef = doc(db, 'subAccounts', review.subAccountId);
         const subAccountSnap = await getDoc(subAccountRef);
         if (subAccountSnap.exists()) {
-          review.subAccountName = subAccountSnap.data().name;
+          const subAccountData = subAccountSnap.data();
+          // 가져온 서브 계정 정보를 review 객체에 합칩니다.
+          // 이렇게 해야 '타계정 이름', '전화번호' 등이 올바르게 표시됩니다.
+          Object.assign(review, {
+            subAccountName: subAccountData.name, // 타계정 이름
+            name: subAccountData.name, // 수취인 이름 (상세 모달용)
+            phoneNumber: subAccountData.phoneNumber, // 전화번호
+            address: subAccountData.address,
+            bank: subAccountData.bank,
+            bankNumber: subAccountData.bankNumber,
+            accountHolderName: subAccountData.accountHolderName,
+          });
         }
       }
+      // ▲▲▲ 핵심 수정 부분 ▲▲▲
       // mainAccountId는 이제 uid입니다. 이 uid를 사용해 'users' 컬렉션을 조회합니다.
       if (review.mainAccountId) {
         const userDocRef = doc(db, 'users', review.mainAccountId);
