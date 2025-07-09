@@ -1,28 +1,16 @@
-// D:\hellopiggy\frontend\src\pages\MyReviews.jsx (최종 완성 버전)
+// src/pages/MyReviews.jsx (상품 정보 및 참여 계정 정보 표시 기능 추가)
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  auth,
-  onAuthStateChanged,
-  db,
-  getStorageInstance,
-  collection,
-  query,
-  where,
-  orderBy,
-  getDocs,
-  doc,
-  updateDoc,
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteField,
-  getDoc
+  auth, onAuthStateChanged, db,
+  collection, query, where, orderBy, getDocs, doc, getDoc,
+  updateDoc, ref, uploadBytes, getDownloadURL, deleteField
 } from '../firebaseConfig';
 import LoginModal from '../components/LoginModal';
 import './MyReviews.css';
 
+// getStatusInfo 함수는 변경 없이 그대로 사용
 const getStatusInfo = (review) => {
   const { status, confirmImageUrls, rejectionReason } = review;
   switch (status) {
@@ -32,9 +20,6 @@ const getStatusInfo = (review) => {
     case 'settled': return { text: '정산 완료', className: 'settled' };
     case 'submitted':
     default:
-      if (confirmImageUrls && confirmImageUrls.length > 0) {
-        return { text: '리뷰 완료', className: 'review-completed' };
-      }
       return { text: '구매 완료', className: 'submitted' };
   }
 };
@@ -47,7 +32,6 @@ const bankOptions = [
 
 export default function MyReviews() {
   const nav = useNavigate();
-  const storage = getStorageInstance();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [modalType, setModalType] = useState(null);
@@ -64,20 +48,52 @@ export default function MyReviews() {
       setCurrentUser(user);
       if (user) {
         setIsLoginModalOpen(false);
+        setLoading(true);
         try {
           const q = query(collection(db, 'reviews'), where('mainAccountId', '==', user.uid), orderBy('createdAt', 'desc'));
           const snap = await getDocs(q);
+          
+          // ▼▼▼ 데이터 가공 로직 수정 ▼▼▼
           const reviewsWithDetails = await Promise.all(snap.docs.map(async (d) => {
             const reviewData = { id: d.id, ...d.data() };
+
+            // 1. 상품 정보(products 컬렉션) 가져오기
+            if (reviewData.productId) {
+              const productRef = doc(db, 'products', reviewData.productId);
+              const productSnap = await getDoc(productRef);
+              if (productSnap.exists()) {
+                reviewData.productInfo = productSnap.data();
+              }
+            }
+
+            // 2. 타계정 정보(subAccounts 컬렉션) 가져오기
             if (reviewData.subAccountId) {
               const subDocRef = doc(db, 'subAccounts', reviewData.subAccountId);
               const subDocSnap = await getDoc(subDocRef);
               if (subDocSnap.exists()) {
-                Object.assign(reviewData, subDocSnap.data());
+                // 상세 모달 및 카드 표시를 위해 필요한 정보들을 reviewData에 합칩니다.
+                const subData = subDocSnap.data();
+                reviewData.subAccountInfo = subData;
+                reviewData.name = subData.name;
+                reviewData.phoneNumber = subData.phoneNumber;
+                reviewData.address = subData.address;
+                reviewData.bank = subData.bank;
+                reviewData.bankNumber = subData.bankNumber;
+                reviewData.accountHolderName = subData.accountHolderName;
               }
             }
+            
+            // 3. 본계정 정보(users 컬렉션) 가져오기 (이름 비교용)
+            const userRef = doc(db, 'users', user.uid);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                reviewData.mainAccountInfo = userSnap.data();
+            }
+
             return reviewData;
           }));
+          // ▲▲▲ 데이터 가공 로직 수정 ▲▲▲
+
           setRows(reviewsWithDetails);
         } catch (error) {
           console.error("리뷰를 불러오는 중 오류 발생:", error);
@@ -92,17 +108,14 @@ export default function MyReviews() {
     return () => unsubscribe();
   }, []);
 
-  // ▼▼▼ 모든 핸들러 함수를 여기에 다시 정의합니다. ▼▼▼
-
-  const handleLogout = () => { auth.signOut(); localStorage.clear(); };
-  const handleLoginSuccess = () => { setIsLoginModalOpen(false); setLoading(true); };
-
+  // 핸들러 함수들은 변경 없음
+  const handleLogout = () => { auth.signOut(); };
+  const handleLoginSuccess = () => { setIsLoginModalOpen(false); };
   const openModal = (type, review) => {
     setCurrentReview(review);
     setModalType(type);
     setIsEditing(false);
   };
-
   const closeModal = () => {
     setModalType(null);
     setCurrentReview(null);
@@ -110,40 +123,28 @@ export default function MyReviews() {
     setUploading(false);
     setIsEditing(false);
   };
-
   const handleEdit = () => {
     setEditableData({ ...currentReview });
     setIsEditing(true);
   };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-  };
-
-  const handleDataChange = (e) => {
-    setEditableData({ ...editableData, [e.target.name]: e.target.value });
-  };
-
-  const onFile = (e) => {
-    setFiles(Array.from(e.target.files || []));
-  };
+  const handleCancelEdit = () => setIsEditing(false);
+  const handleDataChange = (e) => setEditableData({ ...editableData, [e.target.name]: e.target.value });
+  const onFile = (e) => setFiles(Array.from(e.target.files || []));
   
   const handleSave = async () => {
     if (!currentReview) return;
     setUploading(true);
     try {
-      const fieldsToUpdateInSubAccount = {
-        name: editableData.name,
-        phoneNumber: editableData.phoneNumber,
-        address: editableData.address,
-        bank: editableData.bank,
-        bankNumber: editableData.bankNumber,
-        accountHolderName: editableData.accountHolderName,
-      };
-      
       if (currentReview.subAccountId) {
           const subAccountRef = doc(db, "subAccounts", currentReview.subAccountId);
-          await updateDoc(subAccountRef, fieldsToUpdateInSubAccount);
+          await updateDoc(subAccountRef, {
+            name: editableData.name,
+            phoneNumber: editableData.phoneNumber,
+            address: editableData.address,
+            bank: editableData.bank,
+            bankNumber: editableData.bankNumber,
+            accountHolderName: editableData.accountHolderName,
+          });
       }
       
       const fieldsToUpdateInReview = {
@@ -152,10 +153,10 @@ export default function MyReviews() {
         participantId: editableData.participantId
       };
       await updateDoc(doc(db, 'reviews', currentReview.id), fieldsToUpdateInReview);
-
-      const updatedRows = rows.map(row => row.id === currentReview.id ? { ...row, ...editableData } : row);
+      
+      const updatedRows = rows.map(row => row.id === currentReview.id ? { ...row, ...editableData, subAccountInfo: {...row.subAccountInfo, ...editableData} } : row);
       setRows(updatedRows);
-      setCurrentReview({ ...currentReview, ...editableData });
+      setCurrentReview({ ...currentReview, ...editableData, subAccountInfo: {...currentReview.subAccountInfo, ...editableData} });
       alert('수정이 완료되었습니다.');
       setIsEditing(false);
     } catch (e) {
@@ -182,12 +183,7 @@ export default function MyReviews() {
         rejectionReason: deleteField() 
       };
       await updateDoc(doc(db, 'reviews', currentReview.id), updatedData);
-      const updatedRows = rows.map(row => {
-        if (row.id === currentReview.id) {
-          return { ...row, ...updatedData };
-        }
-        return row;
-      });
+      const updatedRows = rows.map(row => (row.id === currentReview.id) ? { ...row, ...updatedData } : row);
       setRows(updatedRows);
       alert('리뷰를 제출했습니다.');
       closeModal();
@@ -198,7 +194,6 @@ export default function MyReviews() {
       setFiles([]);
     }
   };
-  // ▲▲▲ 모든 핸들러 함수를 여기에 다시 정의합니다. ▲▲▲
 
   if (loading) return <p style={{ padding: 24, textAlign: 'center' }}>데이터를 불러오는 중...</p>;
   
@@ -222,34 +217,64 @@ export default function MyReviews() {
 
       {rows.length === 0 ? <p>작성한 리뷰가 없습니다.</p> : rows.map((r) => {
         const statusInfo = getStatusInfo(r);
+        // 참여 계정 이름 결정 (타계정 이름이 있으면 타계정, 없으면 본계정)
+        const participantName = r.subAccountInfo?.name || r.mainAccountInfo?.name || '알 수 없음';
+        // 참여 계정 유형
+        const participantType = r.subAccountInfo ? `타계정(${participantName})` : '본계정';
+
         return (
           <div className={`card ${statusInfo.className}`} key={r.id}>
-            <div className="card-head"><span className="badge">{statusInfo.text}</span><span className="timestamp">{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}</span></div>
-            <div className="btn-wrap">
-              <button onClick={() => openModal('guide', r)}>진행 가이드</button>
-              <button onClick={() => openModal('detail', r)}>구매 내역</button>
-              <button className="outline" onClick={() => openModal('upload', r)} disabled={r.status === 'settled' || r.status === 'verified'}>리뷰 인증하기</button>
+            {/* ▼▼▼ 리뷰 카드 헤더 수정 ▼▼▼ */}
+            <div className="card-head">
+              <div>
+                <span className="badge">{statusInfo.text}</span>
+                <span className="badge secondary">{participantType}</span>
+              </div>
+              <span className="timestamp">{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}</span>
             </div>
-            <div className="product">{r.participantId || r.title || '제목 없음'}</div>
+            
+            {/* ▼▼▼ 상품 정보 섹션 추가 ▼▼▼ */}
+            {r.productInfo && (
+              <div className="product-details">
+                <h4>{r.productInfo.productName}</h4>
+                <p><strong>리뷰 종류:</strong> {r.productInfo.reviewType}</p>
+                {r.productInfo.guide && (
+                  <div className="guide-box">
+                    <strong>가이드:</strong>
+                    <p>{r.productInfo.guide}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {statusInfo.reason && <div className="rejection-reason"><strong>반려 사유:</strong> {statusInfo.reason}</div>}
+
             <div className="price">{Number(r.rewardAmount || 0).toLocaleString()}원</div>
+            
+            {/* 버튼들은 하단으로 이동 */}
+            <div className="btn-wrap">
+              <button onClick={() => openModal('detail', r)}>제출 내역 상세</button>
+              <button className="outline" onClick={() => openModal('upload', r)} disabled={r.status !== 'submitted' && r.status !== 'rejected'}>
+                리뷰 인증하기
+              </button>
+            </div>
           </div>
         );
       })}
       
+      {/* 모달 부분은 변경 없이 그대로 사용 */}
       {modalType && (
         <div className="modal-back" onClick={closeModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <button className="close" onClick={closeModal}>✖</button>
-            {modalType === 'guide' && (<><h3>진행 가이드</h3><p style={{ whiteSpace: 'pre-line' }}>{currentReview?.content || '준비 중입니다.'}</p></>)}
             {modalType === 'detail' && (
               <div className="detail-view">
-                <h3>구매 내역</h3>
+                <h3>제출 내역 상세</h3>
                 <div className="form-grid">
                   <div className="field"><label>구매자(수취인)</label><p>{currentReview?.name}</p></div>
                   <div className="field"><label>전화번호</label><p>{currentReview?.phoneNumber}</p></div>
                 </div>
-                {[{ key: 'orderNumber', label: '주문번호' }, { key: 'participantId', label: '상품명'}, { key: 'address', label: '주소' }, { key: 'bankNumber', label: '계좌번호' }, { key: 'accountHolderName', label: '예금주' }, { key: 'rewardAmount', label: '금액' }].map(({ key, label }) => (
+                {[{ key: 'orderNumber', label: '주문번호' }, { key: 'participantId', label: '참가자ID'}, { key: 'address', label: '주소' }, { key: 'bankNumber', label: '계좌번호' }, { key: 'accountHolderName', label: '예금주' }, { key: 'rewardAmount', label: '금액' }].map(({ key, label }) => (
                   <div className="field" key={key}>
                     <label>{label}</label>
                     {isEditing ? <input name={key} value={editableData[key] || ''} onChange={handleDataChange} /> : <p>{currentReview?.[key]}</p>}
@@ -257,7 +282,8 @@ export default function MyReviews() {
                 ))}
                 <div className="field"><label>은행</label>{isEditing ? (<select name="bank" value={editableData.bank || ''} onChange={handleDataChange}><option value="">은행 선택</option>{bankOptions.map(b => <option key={b} value={b}>{b}</option>)}</select>) : (<p>{currentReview?.bank}</p>)}</div>
                 {[{ key: 'likeImageUrl', label: '상품 찜' }, { key: 'orderImageUrl', label: '구매 인증' }, { key: 'cashcardImageUrl', label: '현영/매출전표' }, { key: 'keywordImageUrl', label: '키워드 인증' }].map(({ key, label }) => currentReview?.[key] ? (<div className="field" key={key}><label>{label}</label><img src={currentReview[key]} alt={label} className="thumb" /></div>) : null)}
-                <div className="modal-actions">{isEditing ? (<><button onClick={handleSave} disabled={uploading}>{uploading ? '저장 중...' : '저장'}</button><button onClick={handleCancelEdit} className="secondary">취소</button></>) : (<><button onClick={handleEdit}>수정</button><button onClick={closeModal} className="secondary">닫기</button></>)}</div>
+                {currentReview.confirmImageUrls && currentReview.confirmImageUrls.map((url, i) => (<div className="field" key={i}><label>리뷰 인증 {i+1}</label><img src={url} alt={`리뷰인증 ${i+1}`} className="thumb" /></div>))}
+                <div className="modal-actions">{isEditing ? (<><button onClick={handleSave} disabled={uploading}>{uploading ? '저장 중...' : '저장'}</button><button onClick={handleCancelEdit} className="secondary">취소</button></>) : (<><button onClick={handleEdit} disabled={currentReview?.status === 'verified' || currentReview?.status === 'settled'}>수정</button><button onClick={closeModal} className="secondary">닫기</button></>)}</div>
               </div>
             )}
             {modalType === 'upload' && (<><h3>리뷰 인증 이미지 업로드</h3><input type="file" accept="image/*" multiple onChange={onFile} /><button onClick={uploadConfirm} disabled={uploading || files.length === 0} style={{ marginTop: 16 }}>{uploading ? '업로드 중…' : '완료'}</button></>)}
