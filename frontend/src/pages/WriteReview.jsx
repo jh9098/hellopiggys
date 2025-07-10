@@ -1,4 +1,4 @@
-// src/pages/WriteReview.jsx (수정 완료된 최종본)
+// src/pages/WriteReview.jsx
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -47,7 +47,7 @@ export default function WriteReview() {
   const [submitting, setSubmitting] = useState(false);
   const [isAccountSelected, setIsAccountSelected] = useState(false);
   const [selectedSubAccountInfo, setSelectedSubAccountInfo] = useState(null);
-  const [isAgreed, setIsAgreed] = useState(false); // 개인정보 동의 상태 추가
+  const [isAgreed, setIsAgreed] = useState(false);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -66,6 +66,7 @@ export default function WriteReview() {
     return () => unsubscribeAuth();
   }, []);
 
+  // ▼▼▼ onFileChange 함수 수정 (압축 실패 시 원본 파일 사용) ▼▼▼
   const onFileChange = async (e) => {
     const { name, files } = e.target;
     if (!files || files.length === 0) return;
@@ -76,27 +77,33 @@ export default function WriteReview() {
       useWebWorker: true,
     };
   
-    try {
-      const compressedFiles = [];
-      for (const file of files) {
-        const compressedFile = await imageCompression(file, options);
-        compressedFiles.push(compressedFile);
-      }
-      
-      const selectedFiles = compressedFiles.slice(0, 5);
-      setImages(prev => ({ ...prev, [name]: selectedFiles }));
-      const previewUrls = selectedFiles.map(file => URL.createObjectURL(file));
-      setPreviews(prev => ({ ...prev, [name]: previewUrls }));
+    // 압축된 파일 또는 원본 파일을 담을 배열
+    const processedFiles = [];
   
-    } catch (error) {
-      console.error('이미지 압축 실패:', error);
-      alert('이미지 처리 중 오류가 발생했습니다. 다른 사진을 선택해주세요.');
+    for (const file of files) {
+      try {
+        // 1. 이미지 압축 시도
+        const compressedFile = await imageCompression(file, options);
+        processedFiles.push(compressedFile);
+      } catch (error) {
+        // 2. 압축 실패 시, 콘솔에 경고를 남기고 원본 파일을 그대로 사용
+        console.warn(`이미지 압축 실패. 원본 파일을 사용합니다: ${file.name}`, error);
+        processedFiles.push(file);
+      }
     }
+    
+    // 처리된 파일들로 상태 업데이트 (압축 성공/실패 여부와 관계없이 진행)
+    const selectedFiles = processedFiles.slice(0, 5);
+    setImages(prev => ({ ...prev, [name]: selectedFiles }));
+    
+    const previewUrls = selectedFiles.map(file => URL.createObjectURL(file));
+    setPreviews(prev => ({ ...prev, [name]: previewUrls }));
   };
+  // ▲▲▲ 수정 완료 ▲▲▲
   
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isFormValid) { // isFormValid를 통해 최종 유효성 검사
+    if (!isFormValid) {
       return alert('필수 입력 항목을 모두 채워주세요.');
     }
     setSubmitting(true);
@@ -126,7 +133,7 @@ export default function WriteReview() {
         createdAt: serverTimestamp(),
         status: 'submitted',
         orderNumber: form.orderNumber,
-        rewardAmount: form.rewardAmount, // 콤마 없는 숫자 문자열 저장
+        rewardAmount: form.rewardAmount,
         participantId: form.participantId,
         paymentType: form.paymentType,
         productType: form.productType,
@@ -150,10 +157,8 @@ export default function WriteReview() {
   const handleProductSelect = (e) => { const productId = e.target.value; const product = products.find(p => p.id === productId) || null; setSelectedProduct(product); setIsAccountSelected(false); };
   const handleSelectAccount = (subAccount) => { setForm(prev => ({ ...prev, subAccountId: subAccount.id })); setSelectedSubAccountInfo(subAccount); setIsAccountSelected(true); setIsAccountModalOpen(false); };
 
-  // ▼▼▼ onFormChange 함수 수정 (금액 포맷팅 로직 대응) ▼▼▼
   const onFormChange = (e) => {
     const { name, value } = e.target;
-
     if (name === 'orderNumber' || name === 'rewardAmount') {
       const numericValue = value.replace(/[^0-9]/g, '');
       setForm({ ...form, [name]: numericValue });
@@ -163,9 +168,7 @@ export default function WriteReview() {
       setForm({ ...form, [name]: value });
     }
   };
-  // ▲▲▲ 수정 완료 ▲▲▲
 
-  // ▼▼▼ 제출 버튼 활성화를 위한 유효성 검사 변수 ▼▼▼
   const isFormValid =
     isAccountSelected &&
     form.participantId.trim() !== '' &&
@@ -175,7 +178,6 @@ export default function WriteReview() {
       !field.required || (images[field.key] && images[field.key].length > 0)
     ) &&
     isAgreed;
-  // ▲▲▲ 유효성 검사 로직 추가 ▲▲▲
 
   if (loading) return <p style={{textAlign: 'center', padding: '50px'}}>페이지 정보를 불러오는 중...</p>;
 
@@ -214,7 +216,6 @@ export default function WriteReview() {
         <form onSubmit={handleSubmit}>
           {[ { key: 'name', label: '구매자(수취인)', value: selectedSubAccountInfo.name }, { key: 'phoneNumber', label: '전화번호', value: selectedSubAccountInfo.phoneNumber }, { key: 'address', label: '주소', value: selectedSubAccountInfo.address }, { key: 'bank', label: '은행', value: selectedSubAccountInfo.bank }, { key: 'bankNumber', label: '계좌번호', value: selectedSubAccountInfo.bankNumber }, { key: 'accountHolderName', label: '예금주', value: selectedSubAccountInfo.accountHolderName }, ].map(({ key, label, value }) => (<div className="field" key={key}><label>{label}</label><input value={value || ''} readOnly style={{background: '#f0f0f0', cursor: 'not-allowed'}}/></div>))}
           
-          {/* ▼▼▼ 금액 입력 필드 수정 (value 속성) ▼▼▼ */}
           <div className="field">
             <label>쿠팡 ID</label>
             <input name="participantId" value={form.participantId} onChange={onFormChange} placeholder="쿠팡 ID를 입력하세요" required/>
@@ -266,8 +267,7 @@ export default function WriteReview() {
               )}
             </select>
           </div>
-          {/* ▲▲▲ 수정 완료 ▲▲▲ */}
-
+          
           <div className="image-upload-group">
             {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label, required }) => (
               <div className="field" key={key}>
@@ -292,8 +292,7 @@ export default function WriteReview() {
               </div>
             ))}
           </div>
-
-          {/* ▼▼▼ 개인정보 동의 체크박스 및 제출 버튼 수정 ▼▼▼ */}
+          
           <div className="field">
             <label>
               <input 
@@ -310,7 +309,6 @@ export default function WriteReview() {
           >
             {submitting ? '제출 중…' : '제출하기'}
           </button>
-          {/* ▲▲▲ 수정 완료 ▲▲▲ */}
         </form>
       )}
     </div>
