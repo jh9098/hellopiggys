@@ -202,7 +202,7 @@ export default function AdminReviewManagement() {
               <th onClick={() => requestSort('createdAt')} className="sortable">등록일시<SortIndicator columnKey="createdAt" /></th>
               <th onClick={() => requestSort('status')} className="sortable">상태<SortIndicator columnKey="status" /></th>
               <th onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></th>
-              <th onClick={() => requestSort('reviewType')} className="sortable">리뷰 종류<SortIndicator columnKey="reviewType" /></th>
+              <th onClick={() => requestSort('reviewType')} className="sortable">결제 종류<SortIndicator columnKey="reviewType" /></th>
               <th onClick={() => requestSort('mainAccountName')} className="sortable">본계정<SortIndicator columnKey="mainAccountName" /></th>
               <th onClick={() => requestSort('name')} className="sortable">타계정<SortIndicator columnKey="name" /></th>
               <th onClick={() => requestSort('phoneNumber')} className="sortable">전화번호<SortIndicator columnKey="phoneNumber" /></th>

@@ -225,7 +225,7 @@ export default function MyReviews() {
               <div className="product-details">
                 <h4>{r.productInfo.productName}</h4>
                 <p>
-                  <strong>리뷰 종류:</strong> {r.productInfo.reviewType}
+                  <strong>결제 종류:</strong> {r.productInfo.reviewType}
                 </p>
                 {r.productInfo.guide && <GuideToggle text={r.productInfo.guide} />}
               </div>

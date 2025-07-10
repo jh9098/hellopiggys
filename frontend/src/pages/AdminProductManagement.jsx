@@ -78,7 +78,7 @@ export default function AdminProductManagement() {
   const downloadCsv = () => {
     const csvData = processedProducts.map(p => ({
       '상품명': p.productName || '-',
-      '리뷰 종류': p.reviewType || '-',
+      '결제 종류': p.reviewType || '-',
       '진행일자': p.reviewDate || '-',
       '진행 상태': p.progressStatus || '-',
       '등록날짜': formatDate(p.createdAt),
@@ -136,7 +136,7 @@ export default function AdminProductManagement() {
           <thead>
             <tr>
               <th onClick={() => requestSort('productName')} className="sortable" style={{width: '20%'}}>상품명<SortIndicator columnKey="productName" /></th>
-              <th onClick={() => requestSort('reviewType')} className="sortable" style={{width: '15%'}}>리뷰 종류<SortIndicator columnKey="reviewType" /></th>
+              <th onClick={() => requestSort('reviewType')} className="sortable" style={{width: '15%'}}>결제 종류<SortIndicator columnKey="reviewType" /></th>
               <th onClick={() => requestSort('reviewDate')} className="sortable" style={{width: '15%'}}>진행일자<SortIndicator columnKey="reviewDate" /></th>
               <th onClick={() => requestSort('progressStatus')} className="sortable" style={{width: '15%'}}>진행 상태<SortIndicator columnKey="progressStatus" /></th>
               <th onClick={() => requestSort('createdAt')} className="sortable" style={{width: '15%'}}>등록날짜<SortIndicator columnKey="createdAt" /></th>

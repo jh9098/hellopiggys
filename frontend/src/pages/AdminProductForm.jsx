@@ -9,7 +9,7 @@ const progressStatusOptions = ['진행전', '진행중', '진행완료', '일부
 // ▼▼▼ 이 부분의 초기값을 수정합니다. ▼▼▼
 const initialFormState = {
   productName: '',
-  reviewType: '현영', // '리뷰 종류' 기본값 설정
+  reviewType: '현영', // '결제 종류' 기본값 설정
   guide: `현영(지출증빙): 736-28-00836, 7362800836
 🚫상품명 검색 금지🚫
 🚫타계 동일 연락처, 동일 주소 중복 불가🚫
@@ -74,7 +74,7 @@ export default function AdminProductForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.productName || !form.reviewType || !form.reviewDate) {
-      alert('상품명, 리뷰 종류, 진행일자는 필수 항목입니다.');
+      alert('상품명, 결제 종류, 진행일자는 필수 항목입니다.');
       return;
     }
     setIsSubmitting(true);
@@ -117,7 +117,7 @@ export default function AdminProductForm() {
         </div>
 
         <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-          <label style={{ display: 'inline-block', width: '100px' }}>리뷰 종류</label>
+          <label style={{ display: 'inline-block', width: '100px' }}>결제 종류</label>
           <input type="text" name="reviewType" value={form.reviewType} onChange={handleChange} placeholder="예: 구매리뷰(영수증)" required style={{width: 'calc(100% - 120px)', padding: '8px'}}/>
         </div>
 
