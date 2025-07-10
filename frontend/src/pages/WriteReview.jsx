@@ -185,7 +185,9 @@ export default function WriteReview() {
       {!currentUser && ( 
         <div className="notice-box">
         로그인 후 배정받은 상품을 선택해주세요.<br />
-        회원가입 시 전화번호는 숫자만 입력하세요
+        회원가입 시 전화번호는 숫자만 입력하세요.<br />
+        회원가입은 지금 본인계정 이름과 전화번호로 가입하시고<br />
+        계정 추가 시 실제 진행 계정을 입력하셔서 등록하세요.
         </div> )}
       {isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} />}
       {currentUser ? (
