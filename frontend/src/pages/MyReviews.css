@@ -23,7 +23,7 @@
 .card.verified .badge { background-color: #4CAF50; }
 .card.rejected .badge { background-color: #F44336; }
 .card.settled .badge { background-color: #9E9E9E; }
-.badge.secondary { background-color: #e9ecef; color: #495057; }
+.badge.secondary { background-color: #9E9E9E; color: #fff; }
 
 /* 상품 정보 섹션 */
 .product-details { background-color: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e9ecef; }
@@ -31,6 +31,15 @@
 .product-details p { margin: 0 0 6px; font-size: 14px; color: #495057; line-height: 1.5; }
 .guide-box { margin-top: 12px; border-top: 1px solid #e0e0e0; padding-top: 12px; }
 .guide-box p { white-space: pre-wrap; }
+.guide-box .toggle-btn {
+  margin-top: 8px;
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+}
 
 /* 가격 및 반려 사유 */
 .price { font-size: 20px; font-weight: bold; text-align: right; margin-bottom: 16px; }
