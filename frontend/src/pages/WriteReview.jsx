@@ -312,21 +312,21 @@ export default function WriteReview() {
             />
           </div>
           <div className="field">
-            <label>결제유형</label>
+            <label>결제유형(선택하세요)</label>
             <select name="paymentType" value={form.paymentType} onChange={onFormChange}>
               <option value="현영">현영</option>
               <option value="자율결제">자율결제</option>
             </select>
           </div>
           <div className="field">
-            <label>상품종류</label>
+            <label>상품종류(선택하세요)</label>
             <select name="productType" value={form.productType} onChange={onFormChange}>
               <option value="실배송">실배송</option>
               <option value="빈박스">빈박스</option>
             </select>
           </div>
           <div className="field">
-            <label>리뷰종류</label>
+            <label>리뷰종류(선택하세요)</label>
             <select name="reviewOption" value={form.reviewOption} onChange={onFormChange}>
               {form.productType === '빈박스' ? (
                 <>
