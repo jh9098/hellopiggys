@@ -21,7 +21,7 @@ const initialSubAccountState = {
   accountHolderName: ''
 };
 
-export default function AccountModal({ onClose, onSelectAccount }) {
+export default function AccountModal({ onClose, onSelectAccount, onAddressAdded }) {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   
@@ -31,6 +31,7 @@ export default function AccountModal({ onClose, onSelectAccount }) {
   const [isEditing, setIsEditing] = useState(false);
   const [formAccount, setFormAccount] = useState(initialSubAccountState);
   const [newAddress, setNewAddress] = useState('');
+  const [globalAddresses, setGlobalAddresses] = useState([]);
 
   // ▼▼▼ 핵심 수정 부분 ▼▼▼
   // 모달이 마운트될 때, 이미 로그인된 사용자 정보를 기반으로 서브 계정을 불러옵니다.
@@ -39,6 +40,7 @@ export default function AccountModal({ onClose, onSelectAccount }) {
     if (user) {
       setCurrentMainAccountId(user.uid);
       fetchSubAccounts(user.uid);
+      fetchGlobalAddresses();
     } else {
       // 이 경우는 발생하면 안 되지만, 안전장치로 에러 처리
       setError("로그인 정보가 유효하지 않습니다. 다시 시도해주세요.");
@@ -63,6 +65,15 @@ export default function AccountModal({ onClose, onSelectAccount }) {
     } catch (err) {
         setError("계정 목록을 불러오는 데 실패했습니다.");
         console.error(err);
+    }
+  };
+
+  const fetchGlobalAddresses = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'addresses'));
+      setGlobalAddresses(snap.docs.map(d => d.data().value));
+    } catch (err) {
+      console.error('주소 목록을 불러오는 데 실패했습니다.', err);
     }
   };
   
@@ -106,7 +117,7 @@ export default function AccountModal({ onClose, onSelectAccount }) {
     }
   };
 
-  const handleAddAddress = () => {
+  const handleAddAddress = async () => {
     const addr = newAddress.trim();
     if (!addr) return;
     setFormAccount(prev => ({
@@ -115,6 +126,17 @@ export default function AccountModal({ onClose, onSelectAccount }) {
       address: addr
     }));
     setNewAddress('');
+    if (!globalAddresses.includes(addr)) {
+      try {
+        await addDoc(collection(db, 'addresses'), { value: addr, createdAt: serverTimestamp() });
+        setGlobalAddresses(prev => [...prev, addr]);
+        if (onAddressAdded) onAddressAdded(addr);
+      } catch (err) {
+        console.error('주소 저장 실패:', err);
+      }
+    } else {
+      if (onAddressAdded) onAddressAdded(addr);
+    }
   };
 
   const handleRemoveAddress = (addr) => {
@@ -194,7 +216,7 @@ export default function AccountModal({ onClose, onSelectAccount }) {
             <div className="address-group">
               <select name="address" value={formAccount.address} onChange={handleFormChange} required>
                 <option value="" disabled>주소 선택</option>
-                {formAccount.addresses.map((addr, idx) => (
+                {Array.from(new Set([...globalAddresses, ...formAccount.addresses])).map((addr, idx) => (
                   <option key={idx} value={addr}>{addr}</option>
                 ))}
               </select>
