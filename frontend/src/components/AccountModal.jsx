@@ -248,7 +248,7 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
             <input type="text" placeholder="계좌번호 ('-' 없이 입력)" name="bankNumber" value={formAccount.bankNumber} onChange={handleFormChange} required/>
             <input type="text" placeholder="예금주" name="accountHolderName" value={formAccount.accountHolderName} onChange={handleFormChange} required/>
             <div className="form-actions">
-              <button type="submit" disabled={submitting}>{submitting ? '처리 중...' : (isEditing ? '수정하기' : '이 계정으로 시작하기')}</button>
+              <button type="submit" disabled={submitting}>{submitting ? '처리 중...' : (isEditing ? '수정하기' : '이 계정 추가하기')}</button>
               {isEditing && (<button type="button" onClick={handleCancelEdit} className="cancel-btn" disabled={submitting}>취소</button>)}
             </div>
             {error && <p className="error-msg">{error}</p>}
