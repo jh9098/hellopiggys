@@ -240,6 +240,9 @@ const processedRows = useMemo(() => {
               <th onClick={() => requestSort('mainAccountName')} className="sortable">본계정 이름<SortIndicator columnKey="mainAccountName" /></th>
               <th onClick={() => requestSort('subAccountName')} className="sortable">타계정 이름<SortIndicator columnKey="subAccountName" /></th>
               <th onClick={() => requestSort('phoneNumber')} className="sortable">전화번호<SortIndicator columnKey="phoneNumber" /></th>
+              <th onClick={() => requestSort('paymentType')} className="sortable">결제유형<SortIndicator columnKey="paymentType" /></th>
+              <th onClick={() => requestSort('productType')} className="sortable">상품종류<SortIndicator columnKey="productType" /></th>
+              <th onClick={() => requestSort('reviewOption')} className="sortable">리뷰종류<SortIndicator columnKey="reviewOption" /></th>
               <th onClick={() => requestSort('orderNumber')} className="sortable">주문번호<SortIndicator columnKey="orderNumber" /></th>
               <th>리뷰 인증</th>
               <th onClick={() => requestSort('rewardAmount')} className="sortable">정산 금액<SortIndicator columnKey="rewardAmount" /></th>
@@ -252,6 +255,9 @@ const processedRows = useMemo(() => {
               <th><input type="text" name="mainAccountName" value={filters.mainAccountName} onChange={handleFilterChange} /></th>
               <th><input type="text" name="subAccountName" value={filters.subAccountName} onChange={handleFilterChange} /></th>
               <th><input type="text" name="phoneNumber" value={filters.phoneNumber} onChange={handleFilterChange} /></th>
+              <th></th>
+              <th></th>
+              <th></th>
               <th><input type="text" name="orderNumber" value={filters.orderNumber} onChange={handleFilterChange} /></th>
               <th>
                 <select name="reviewConfirm" value={filters.reviewConfirm} onChange={handleFilterChange}>
@@ -272,6 +278,9 @@ const processedRows = useMemo(() => {
                 <td>{r.mainAccountName || '-'}</td>
                 <td>{r.subAccountName || '-'}</td>
                 <td>{r.phoneNumber || '-'}</td>
+                <td>{r.paymentType || '-'}</td>
+                <td>{r.productType || '-'}</td>
+                <td>{r.reviewOption || '-'}</td>
                 <td>{r.orderNumber || '-'}</td>
                 <td>
                   <button className={`link-button ${r.confirmImageUrls?.length > 0 ? 'completed' : ''}`} onClick={() => openDetailModal(r)}>
