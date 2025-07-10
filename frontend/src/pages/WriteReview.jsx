@@ -1,4 +1,4 @@
-// src/pages/WriteReview.jsx (오류 수정 최종본)
+// src/pages/WriteReview.jsx (수정 완료된 최종본)
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -14,10 +14,9 @@ import imageCompression from 'browser-image-compression';
 
 // 업로드 필드 정의 (handleSubmit에서 사용)
 const UPLOAD_FIELDS = [
-  // 'keywordImage'와 'likeImage'를 'keywordAndLikeImages'로 통합
-  { key: 'keywordAndLikeImages', label: '1. 키워드 & 찜 인증', group: 'keyword-like' },
-  { key: 'orderImage', label: '구매 인증', group: 'purchase' },
-  { key: 'cashcardImage', label: '현금영수증/매출전표', group: 'purchase' },
+  { key: 'keywordAndLikeImages', label: '1. 키워드 & 찜 인증', group: 'keyword-like', required: true },
+  { key: 'orderImage', label: '구매 인증', group: 'purchase', required: true },
+  { key: 'cashcardImage', label: '현금영수증/매출전표', group: 'purchase', required: true },
 ];
 
 export default function WriteReview() {
@@ -42,6 +41,7 @@ export default function WriteReview() {
   const [submitting, setSubmitting] = useState(false);
   const [isAccountSelected, setIsAccountSelected] = useState(false);
   const [selectedSubAccountInfo, setSelectedSubAccountInfo] = useState(null);
+  const [isAgreed, setIsAgreed] = useState(false); // 개인정보 동의 상태 추가
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -60,22 +60,20 @@ export default function WriteReview() {
     return () => unsubscribeAuth();
   }, []);
 
-  const onFileChange = async (e) => { // async로 변경
+  const onFileChange = async (e) => {
     const { name, files } = e.target;
     if (!files || files.length === 0) return;
   
     const options = {
-      maxSizeMB: 1, // 이미지 최대 용량 (1MB)
-      maxWidthOrHeight: 1920, // 최대 해상도
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1920,
       useWebWorker: true,
     };
   
     try {
       const compressedFiles = [];
       for (const file of files) {
-        console.log(`압축 전: ${file.name}, ${(file.size / 1024 / 1024).toFixed(2)}MB`);
         const compressedFile = await imageCompression(file, options);
-        console.log(`압축 후: ${compressedFile.name}, ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
         compressedFiles.push(compressedFile);
       }
       
@@ -92,44 +90,35 @@ export default function WriteReview() {
   
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!currentUser || !selectedProduct || !form.subAccountId) {
-      return alert('로그인, 상품 선택, 계정 선택이 모두 완료되어야 합니다.');
+    if (!isFormValid) { // isFormValid를 통해 최종 유효성 검사
+      return alert('필수 입력 항목을 모두 채워주세요.');
     }
     setSubmitting(true);
     try {
       const urlMap = {};
 
-      // [변경 전] Promise.all을 사용한 동시 업로드 방식
-      /*
-      const uploadPromises = [];
-      for (const field of UPLOAD_FIELDS) { ... }
-      await Promise.all(uploadPromises);
-      */
-
-      // [변경 후] for...of 루프를 사용한 순차 업로드 방식
       for (const field of UPLOAD_FIELDS) {
         const fieldName = field.key;
         if (images[fieldName] && images[fieldName].length > 0) {
           const urls = [];
           for (const file of images[fieldName]) {
-            console.log(`Uploading ${file.name} for ${fieldName}...`); // 진행 상황 확인용 로그
             const storageRef = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
             const snapshot = await uploadBytes(storageRef, file);
             const downloadUrl = await getDownloadURL(snapshot.ref);
             urls.push(downloadUrl);
-            console.log(`... ${file.name} upload complete.`);
           }
           urlMap[`${fieldName}Urls`] = urls;
         }
       }
-      // ▲▲▲ 순차 업로드 로직으로 변경 완료 ▲▲▲
 
       const reviewData = {
         mainAccountId: currentUser.uid, subAccountId: form.subAccountId,
         productId: selectedProduct.id, productName: selectedProduct.productName,
         reviewType: selectedProduct.reviewType, createdAt: serverTimestamp(),
-        status: 'submitted', orderNumber: form.orderNumber,
-        rewardAmount: form.rewardAmount, participantId: form.participantId,
+        status: 'submitted', 
+        orderNumber: form.orderNumber,
+        rewardAmount: form.rewardAmount, // 콤마 없는 숫자 문자열 저장
+        participantId: form.participantId,
         ...urlMap,
       };
 
@@ -148,17 +137,31 @@ export default function WriteReview() {
   const handleLoginSuccess = () => setIsLoginModalOpen(false);
   const handleProductSelect = (e) => { const productId = e.target.value; const product = products.find(p => p.id === productId) || null; setSelectedProduct(product); setIsAccountSelected(false); };
   const handleSelectAccount = (subAccount) => { setForm(prev => ({ ...prev, subAccountId: subAccount.id })); setSelectedSubAccountInfo(subAccount); setIsAccountSelected(true); setIsAccountModalOpen(false); };
-  // ▼▼▼ onFormChange 함수 수정 ▼▼▼
+
+  // ▼▼▼ onFormChange 함수 수정 (금액 포맷팅 로직 대응) ▼▼▼
   const onFormChange = (e) => {
     const { name, value } = e.target;
-    // 주문번호와 금액 필드에 대해 숫자만 허용
+    // 주문번호와 금액 필드는 숫자 이외의 문자 제거
     if (name === 'orderNumber' || name === 'rewardAmount') {
-      setForm({ ...form, [name]: value.replace(/[^0-9]/g, '') });
+      const numericValue = value.replace(/[^0-9]/g, '');
+      setForm({ ...form, [name]: numericValue });
     } else {
       setForm({ ...form, [name]: value });
     }
   };
   // ▲▲▲ 수정 완료 ▲▲▲
+
+  // ▼▼▼ 제출 버튼 활성화를 위한 유효성 검사 변수 ▼▼▼
+  const isFormValid =
+    isAccountSelected &&
+    form.participantId.trim() !== '' &&
+    form.orderNumber.trim() !== '' &&
+    form.rewardAmount.trim() !== '' &&
+    UPLOAD_FIELDS.every(field => 
+      !field.required || (images[field.key] && images[field.key].length > 0)
+    ) &&
+    isAgreed;
+  // ▲▲▲ 유효성 검사 로직 추가 ▲▲▲
 
   if (loading) return <p style={{textAlign: 'center', padding: '50px'}}>페이지 정보를 불러오는 중...</p>;
 
@@ -194,17 +197,33 @@ export default function WriteReview() {
       {isAccountSelected && selectedSubAccountInfo && (
         <form onSubmit={handleSubmit}>
           {[ { key: 'name', label: '구매자(수취인)', value: selectedSubAccountInfo.name }, { key: 'phoneNumber', label: '전화번호', value: selectedSubAccountInfo.phoneNumber }, { key: 'address', label: '주소', value: selectedSubAccountInfo.address }, { key: 'bank', label: '은행', value: selectedSubAccountInfo.bank }, { key: 'bankNumber', label: '계좌번호', value: selectedSubAccountInfo.bankNumber }, { key: 'accountHolderName', label: '예금주', value: selectedSubAccountInfo.accountHolderName }, ].map(({ key, label, value }) => (<div className="field" key={key}><label>{label}</label><input value={value || ''} readOnly style={{background: '#f0f0f0', cursor: 'not-allowed'}}/></div>))}
-          {[ { key: 'participantId', label: '쿠팡 ID', ph: '쿠팡 ID를 입력하세요' }, { key: 'orderNumber', label: '주문번호', ph: '주문번호를 그대로 복사하세요' }, { key: 'rewardAmount', label: '금액', ph: '결제금액을 입력하세요' }, ].map(({ key, label, ph }) => (<div className="field" key={key}><label>{label}</label><input name={key} value={form[key]} onChange={onFormChange} placeholder={ph} required/></div>))}
+          
+          {/* ▼▼▼ 금액 입력 필드 수정 (value 속성) ▼▼▼ */}
+          <div className="field">
+            <label>쿠팡 ID</label>
+            <input name="participantId" value={form.participantId} onChange={onFormChange} placeholder="쿠팡 ID를 입력하세요" required/>
+          </div>
+          <div className="field">
+            <label>주문번호</label>
+            <input name="orderNumber" value={form.orderNumber} onChange={onFormChange} placeholder="주문번호를 그대로 복사하세요" required/>
+          </div>
+          <div className="field">
+            <label>금액</label>
+            <input 
+              name="rewardAmount" 
+              value={form.rewardAmount ? Number(form.rewardAmount).toLocaleString() : ''} 
+              onChange={onFormChange} 
+              placeholder="결제금액을 입력하세요" 
+              required
+            />
+          </div>
+          {/* ▲▲▲ 수정 완료 ▲▲▲ */}
 
-          {/* ▼▼▼ 이미지 업로드 UI 수정 ▼▼▼ */}
           <div className="image-upload-group">
-            {/* 키워드 & 찜 인증 그룹 */}
-            {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label }) => (
+            {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label, required }) => (
               <div className="field" key={key}>
-                {/* label을 필드 정의에서 가져옵니다 */}
                 <label>{label} (최대 5장)</label>
-                {/* name을 통합된 key로 사용합니다 */}
-                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple required />
+                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple required={required} />
                 <div className="preview-container">
                   {previews[key] && previews[key].map((src, i) => <img key={i} className="thumb" src={src} alt={`${label} ${i+1}`} />)}
                 </div>
@@ -214,20 +233,35 @@ export default function WriteReview() {
 
           <div className="image-upload-group">
             <h4>2. 구매 & 증빙 인증</h4>
-            {UPLOAD_FIELDS.filter(f => f.group === 'purchase').map(({ key, label }) => (
+            {UPLOAD_FIELDS.filter(f => f.group === 'purchase').map(({ key, label, required }) => (
               <div className="field" key={key}>
                 <label>{label} (최대 5장)</label>
-                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple required />
+                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple required={required} />
                 <div className="preview-container">
                   {previews[key] && previews[key].map((src, i) => <img key={i} className="thumb" src={src} alt={`${label} ${i+1}`} />)}
                 </div>
               </div>
             ))}
           </div>
-          {/* ▲▲▲ 이미지 업로드 UI 수정 ▲▲▲ */}
 
-          <div className="field"><label><input type="checkbox" required /> 개인정보 이용에 동의합니다.</label></div>
-          <button className="submit-btn" type="submit" disabled={submitting}>{submitting ? '제출하기' : '제출 중…'}</button>
+          {/* ▼▼▼ 개인정보 동의 체크박스 및 제출 버튼 수정 ▼▼▼ */}
+          <div className="field">
+            <label>
+              <input 
+                type="checkbox" 
+                checked={isAgreed}
+                onChange={(e) => setIsAgreed(e.target.checked)}
+              /> 개인정보 이용에 동의합니다.
+            </label>
+          </div>
+          <button 
+            className="submit-btn" 
+            type="submit" 
+            disabled={!isFormValid || submitting}
+          >
+            {submitting ? '제출 중…' : '제출하기'}
+          </button>
+          {/* ▲▲▲ 수정 완료 ▲▲▲ */}
         </form>
       )}
     </div>
