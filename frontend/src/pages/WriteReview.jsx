@@ -32,7 +32,13 @@ export default function WriteReview() {
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   
   const [form, setForm] = useState({
-    participantId: '', orderNumber: '', rewardAmount: '', subAccountId: null,
+    participantId: '',
+    orderNumber: '',
+    rewardAmount: '',
+    subAccountId: null,
+    paymentType: '현영',
+    productType: '실배송',
+    reviewOption: '별점',
   });
   
   const [images, setImages] = useState({});
@@ -112,13 +118,19 @@ export default function WriteReview() {
       }
 
       const reviewData = {
-        mainAccountId: currentUser.uid, subAccountId: form.subAccountId,
-        productId: selectedProduct.id, productName: selectedProduct.productName,
-        reviewType: selectedProduct.reviewType, createdAt: serverTimestamp(),
-        status: 'submitted', 
+        mainAccountId: currentUser.uid,
+        subAccountId: form.subAccountId,
+        productId: selectedProduct.id,
+        productName: selectedProduct.productName,
+        reviewType: selectedProduct.reviewType,
+        createdAt: serverTimestamp(),
+        status: 'submitted',
         orderNumber: form.orderNumber,
         rewardAmount: form.rewardAmount, // 콤마 없는 숫자 문자열 저장
         participantId: form.participantId,
+        paymentType: form.paymentType,
+        productType: form.productType,
+        reviewOption: form.reviewOption,
         ...urlMap,
       };
 
@@ -141,10 +153,12 @@ export default function WriteReview() {
   // ▼▼▼ onFormChange 함수 수정 (금액 포맷팅 로직 대응) ▼▼▼
   const onFormChange = (e) => {
     const { name, value } = e.target;
-    // 주문번호와 금액 필드는 숫자 이외의 문자 제거
+
     if (name === 'orderNumber' || name === 'rewardAmount') {
       const numericValue = value.replace(/[^0-9]/g, '');
       setForm({ ...form, [name]: numericValue });
+    } else if (name === 'productType') {
+      setForm({ ...form, productType: value, reviewOption: '별점' });
     } else {
       setForm({ ...form, [name]: value });
     }
@@ -209,13 +223,46 @@ export default function WriteReview() {
           </div>
           <div className="field">
             <label>금액</label>
-            <input 
-              name="rewardAmount" 
-              value={form.rewardAmount ? Number(form.rewardAmount).toLocaleString() : ''} 
-              onChange={onFormChange} 
-              placeholder="결제금액을 입력하세요" 
+            <input
+              name="rewardAmount"
+              value={form.rewardAmount ? Number(form.rewardAmount).toLocaleString() : ''}
+              onChange={onFormChange}
+              placeholder="결제금액을 입력하세요"
               required
             />
+          </div>
+          <div className="field">
+            <label>결제유형</label>
+            <select name="paymentType" value={form.paymentType} onChange={onFormChange}>
+              <option value="현영">현영</option>
+              <option value="자율결제">자율결제</option>
+            </select>
+          </div>
+          <div className="field">
+            <label>상품종류</label>
+            <select name="productType" value={form.productType} onChange={onFormChange}>
+              <option value="실배송">실배송</option>
+              <option value="빈박스">빈박스</option>
+            </select>
+          </div>
+          <div className="field">
+            <label>리뷰종류</label>
+            <select name="reviewOption" value={form.reviewOption} onChange={onFormChange}>
+              {form.productType === '빈박스' ? (
+                <>
+                  <option value="별점">별점</option>
+                  <option value="텍스트">텍스트</option>
+                </>
+              ) : (
+                <>
+                  <option value="별점">별점</option>
+                  <option value="텍스트">텍스트</option>
+                  <option value="포토">포토</option>
+                  <option value="프리미엄포토">프리미엄포토</option>
+                  <option value="프리미엄영상">프리미엄영상</option>
+                </>
+              )}
+            </select>
           </div>
           {/* ▲▲▲ 수정 완료 ▲▲▲ */}
 

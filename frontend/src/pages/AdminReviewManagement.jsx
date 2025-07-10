@@ -206,6 +206,9 @@ export default function AdminReviewManagement() {
               <th onClick={() => requestSort('mainAccountName')} className="sortable">본계정<SortIndicator columnKey="mainAccountName" /></th>
               <th onClick={() => requestSort('name')} className="sortable">타계정<SortIndicator columnKey="name" /></th>
               <th onClick={() => requestSort('phoneNumber')} className="sortable">전화번호<SortIndicator columnKey="phoneNumber" /></th>
+              <th onClick={() => requestSort('paymentType')} className="sortable">결제유형<SortIndicator columnKey="paymentType" /></th>
+              <th onClick={() => requestSort('productType')} className="sortable">상품종류<SortIndicator columnKey="productType" /></th>
+              <th onClick={() => requestSort('reviewOption')} className="sortable">리뷰종류<SortIndicator columnKey="reviewOption" /></th>
               <th>리뷰 인증</th>
               <th>작업</th>
             </tr>
@@ -223,6 +226,9 @@ export default function AdminReviewManagement() {
               <th><input type="text" name="mainAccountName" value={filters.mainAccountName} onChange={handleFilterChange} /></th>
               <th><input type="text" name="name" value={filters.name} onChange={handleFilterChange} /></th>
               <th><input type="text" name="phoneNumber" value={filters.phoneNumber} onChange={handleFilterChange} /></th>
+              <th></th>
+              <th></th>
+              <th></th>
               <th>
                 <select name="reviewConfirm" value={filters.reviewConfirm} onChange={handleFilterChange}>
                   <option value="all">전체</option>
@@ -244,6 +250,9 @@ export default function AdminReviewManagement() {
                 <td>{r.mainAccountName || '-'}</td>
                 <td>{r.name || '-'}</td>
                 <td>{r.phoneNumber || '-'}</td>
+                <td>{r.paymentType || '-'}</td>
+                <td>{r.productType || '-'}</td>
+                <td>{r.reviewOption || '-'}</td>
                 <td>
                   <button className={`link-button ${r.confirmImageUrls?.length > 0 ? 'completed' : ''}`} onClick={() => openDetailModal(r)}>
                     {r.confirmImageUrls?.length > 0 ? 'O' : 'X'}
