@@ -180,14 +180,14 @@ export default function WriteReview() {
         <div className="field">
           <label>상품 선택</label>
           <select onChange={handleProductSelect} value={selectedProduct?.id || ''}>
-            <option value="" disabled>배정받은 상품을 선택하세요</option>
+            <option value="" disabled>체험단 상품을 선택해 주세요</option>
             {products.map(p => <option key={p.id} value={p.id}>{p.productName} ({p.reviewType})</option>)}
           </select>
         </div>
       )}
       {selectedProduct && (<>
           <div className="product-info-box"><h4>{selectedProduct.productName}</h4><p><strong>리뷰 종류:</strong> {selectedProduct.reviewType}</p><p><strong>진행 일자:</strong> {selectedProduct.reviewDate}</p>{selectedProduct.guide && (<div className="guide-content"><strong>가이드:</strong><p style={{whiteSpace: 'pre-line'}}>{selectedProduct.guide}</p></div>)}</div>
-          <div className="account-actions"><button type="button" onClick={handleMainButtonClick}>{isAccountSelected ? '✓ 계정 선택 완료 (변경하기)' : '구매/리뷰 진행 계정 선택'}</button></div>
+          <div className="account-actions"><button type="button" onClick={handleMainButtonClick}>{isAccountSelected ? '✓ 계정 선택 완료 (변경하기)' : '구매 폼 작성하기'}</button></div>
           {isAccountModalOpen && <AccountModal onClose={() => setIsAccountModalOpen(false)} onSelectAccount={handleSelectAccount}/>}
       </>)}
       

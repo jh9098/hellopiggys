@@ -122,4 +122,19 @@
     background: #fff;
     color: #333;
     border: 1px solid #ccc;
-  }  
+    display: block;
+    margin-left: auto;
+  }
+
+  /* 계정 선택 버튼 */
+  .page-wrap .account-actions button {
+    width: 100%;
+    background: #007bff;
+    color: #fff;
+    padding: 16px;
+    font-size: 18px;
+    border: none;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    cursor: pointer;
+  }
