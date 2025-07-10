@@ -14,9 +14,9 @@ import imageCompression from 'browser-image-compression';
 
 // 업로드 필드 정의 (handleSubmit에서 사용)
 const UPLOAD_FIELDS = [
-  { key: 'keywordAndLikeImages', label: '1. 키워드 & 찜 인증', group: 'keyword-like', required: true },
-  { key: 'orderImage', label: '구매 인증', group: 'purchase', required: true },
-  { key: 'cashcardImage', label: '현금영수증/매출전표', group: 'purchase', required: true },
+  { key: 'keywordAndLikeImages', label: '1. 키워드 & 찜 인증', group: 'keyword-like', required: false },
+  { key: 'orderImage', label: '구매 인증', group: 'purchase', required: false },
+  { key: 'cashcardImage', label: '현금영수증/매출전표', group: 'purchase', required: false },
 ];
 
 export default function WriteReview() {
@@ -163,7 +163,11 @@ export default function WriteReview() {
       };
 
       await addDoc(collection(db, 'reviews'), reviewData);
-      alert('리뷰가 성공적으로 제출되었습니다.');
+      const uploadedAllImages = UPLOAD_FIELDS.every(f => images[f.key] && images[f.key].length > 0);
+      const msg = uploadedAllImages
+        ? '리뷰가 성공적으로 제출되었습니다.'
+        : '리뷰가 성공적으로 제출되었습니다.\nhttps://hellopiggy.netlify.app/my-reviews 에서 이미지 등록을 완료해주셔야 구매인증이 완료됩니다.';
+      alert(msg);
       navigate('/my-reviews', { replace: true });
     } catch (err) {
       alert('제출 실패: ' + err.message);
@@ -212,9 +216,6 @@ export default function WriteReview() {
     form.participantId.trim() !== '' &&
     form.orderNumber.trim() !== '' &&
     form.rewardAmount.trim() !== '' &&
-    UPLOAD_FIELDS.every(field => 
-      !field.required || (images[field.key] && images[field.key].length > 0)
-    ) &&
     isAgreed;
 
   if (loading) return <p style={{textAlign: 'center', padding: '50px'}}>페이지 정보를 불러오는 중...</p>;
@@ -351,7 +352,7 @@ export default function WriteReview() {
             {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label, required }) => (
               <div className="field" key={key}>
                 <label>{label} (최대 5장)</label>
-                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple required={required} />
+                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
                 <div className="preview-container">
                   {previews[key] && previews[key].map((src, i) => <img key={i} className="thumb" src={src} alt={`${label} ${i+1}`} />)}
                 </div>
@@ -364,7 +365,7 @@ export default function WriteReview() {
             {UPLOAD_FIELDS.filter(f => f.group === 'purchase').map(({ key, label, required }) => (
               <div className="field" key={key}>
                 <label>{label} (최대 5장)</label>
-                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple required={required} />
+                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
                 <div className="preview-container">
                   {previews[key] && previews[key].map((src, i) => <img key={i} className="thumb" src={src} alt={`${label} ${i+1}`} />)}
                 </div>
