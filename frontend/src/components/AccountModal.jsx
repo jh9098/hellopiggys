@@ -10,9 +10,15 @@ const bankOptions = [
   '전북', '농협', 'SC', '아이엠뱅크', '신협', '제주', '부산', '씨티', 'HSBC'
 ];
 
-const initialSubAccountState = { 
-  id: null, name: '', phoneNumber: '', address: '',
-  bank: '', bankNumber: '', accountHolderName: '' 
+const initialSubAccountState = {
+  id: null,
+  name: '',
+  phoneNumber: '',
+  address: '',
+  addresses: [],
+  bank: '',
+  bankNumber: '',
+  accountHolderName: ''
 };
 
 export default function AccountModal({ onClose, onSelectAccount }) {
@@ -24,6 +30,7 @@ export default function AccountModal({ onClose, onSelectAccount }) {
   
   const [isEditing, setIsEditing] = useState(false);
   const [formAccount, setFormAccount] = useState(initialSubAccountState);
+  const [newAddress, setNewAddress] = useState('');
 
   // ▼▼▼ 핵심 수정 부분 ▼▼▼
   // 모달이 마운트될 때, 이미 로그인된 사용자 정보를 기반으로 서브 계정을 불러옵니다.
@@ -43,7 +50,15 @@ export default function AccountModal({ onClose, onSelectAccount }) {
     try {
       const q = query(collection(db, 'subAccounts'), where('mainAccountId', '==', uid));
       const querySnapshot = await getDocs(q);
-      const accounts = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const accounts = querySnapshot.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ...data,
+          addresses: data.addresses || (data.address ? [data.address] : []),
+          address: data.address || (data.addresses ? data.addresses[0] : '')
+        };
+      });
       setSubAccounts(accounts);
     } catch (err) {
         setError("계정 목록을 불러오는 데 실패했습니다.");
@@ -56,9 +71,21 @@ export default function AccountModal({ onClose, onSelectAccount }) {
     onClose();
   };
 
-  const handleEditClick = (subAccount) => { setIsEditing(true); setFormAccount(subAccount); };
+  const handleEditClick = (subAccount) => {
+    setIsEditing(true);
+    setFormAccount({
+      ...initialSubAccountState,
+      ...subAccount,
+      addresses: subAccount.addresses || (subAccount.address ? [subAccount.address] : []),
+      address: subAccount.address || (subAccount.addresses ? subAccount.addresses[0] : '')
+    });
+  };
   
-  const handleCancelEdit = () => { setIsEditing(false); setFormAccount(initialSubAccountState); };
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setFormAccount(initialSubAccountState);
+    setNewAddress('');
+  };
   
   const handleDeleteClick = async (subAccountId) => {
     if (!window.confirm('정말로 이 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
@@ -77,6 +104,25 @@ export default function AccountModal({ onClose, onSelectAccount }) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleAddAddress = () => {
+    const addr = newAddress.trim();
+    if (!addr) return;
+    setFormAccount(prev => ({
+      ...prev,
+      addresses: [...prev.addresses, addr],
+      address: addr
+    }));
+    setNewAddress('');
+  };
+
+  const handleRemoveAddress = (addr) => {
+    setFormAccount(prev => {
+      const list = prev.addresses.filter(a => a !== addr);
+      const current = prev.address === addr ? (list[0] || '') : prev.address;
+      return { ...prev, addresses: list, address: current };
+    });
   };
 
   const handleSubAccountFormSubmit = async (e) => {
@@ -145,7 +191,33 @@ export default function AccountModal({ onClose, onSelectAccount }) {
             <h4>{isEditing ? '계정 정보 수정' : '새 계정 추가'}</h4>
             <input type="text" placeholder="이름 (수취인)" name="name" value={formAccount.name} onChange={handleFormChange} required />
             <input type="tel" placeholder="전화번호" name="phoneNumber" value={formAccount.phoneNumber} onChange={handleFormChange} required />
-            <input type="text" placeholder="주소" name="address" value={formAccount.address} onChange={handleFormChange} required/>
+            <div className="address-group">
+              <select name="address" value={formAccount.address} onChange={handleFormChange} required>
+                <option value="" disabled>주소 선택</option>
+                {formAccount.addresses.map((addr, idx) => (
+                  <option key={idx} value={addr}>{addr}</option>
+                ))}
+              </select>
+              <div className="add-address-row">
+                <input
+                  type="text"
+                  placeholder="새 주소 입력"
+                  value={newAddress}
+                  onChange={(e) => setNewAddress(e.target.value)}
+                />
+                <button type="button" onClick={handleAddAddress}>추가</button>
+              </div>
+              {formAccount.addresses.length > 0 && (
+                <ul className="address-list">
+                  {formAccount.addresses.map((addr, idx) => (
+                    <li key={idx}>
+                      {addr}
+                      <button type="button" onClick={() => handleRemoveAddress(addr)}>삭제</button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             <select name="bank" value={formAccount.bank} onChange={handleFormChange} required>
               <option value="" disabled>은행 선택</option>
               {bankOptions.map(bank => <option key={bank} value={bank}>{bank}</option>)}
