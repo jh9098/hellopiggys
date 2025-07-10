@@ -166,9 +166,10 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
         delete subAccountData.id;
         const subAccountRef = await addDoc(collection(db, 'subAccounts'), subAccountData);
         alert('새 계정이 등록되었습니다.');
-        // 새 계정을 바로 선택할 수 있도록 id가 덮어써지지 않게 순서를 조정합니다.
-        onSelectAccount({ ...formAccount, id: subAccountRef.id }, currentMainAccountId);
-        onClose();
+        // 새로 등록된 계정을 리스트에 추가하고 폼을 초기화합니다.
+        setSubAccounts(prev => [...prev, { ...formAccount, id: subAccountRef.id }]);
+        setFormAccount(initialSubAccountState);
+        setNewAddress('');
       }
     } catch (err) {
       setError(`작업 실패: ${err.message}`);
@@ -247,7 +248,7 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
             <input type="text" placeholder="계좌번호 ('-' 없이 입력)" name="bankNumber" value={formAccount.bankNumber} onChange={handleFormChange} required/>
             <input type="text" placeholder="예금주" name="accountHolderName" value={formAccount.accountHolderName} onChange={handleFormChange} required/>
             <div className="form-actions">
-              <button type="submit" disabled={submitting}>{submitting ? '처리 중...' : (isEditing ? '수정하기' : '이 계정으로 시작하기')}</button>
+              <button type="submit" disabled={submitting}>{submitting ? '처리 중...' : (isEditing ? '수정하기' : '이 계정 추가하기')}</button>
               {isEditing && (<button type="button" onClick={handleCancelEdit} className="cancel-btn" disabled={submitting}>취소</button>)}
             </div>
             {error && <p className="error-msg">{error}</p>}
