@@ -98,8 +98,8 @@ export default function AccountModal({ onClose, onSelectAccount }) {
         delete subAccountData.id;
         const subAccountRef = await addDoc(collection(db, 'subAccounts'), subAccountData);
         alert('새 계정이 등록되었습니다.');
-        // 새 계정으로 바로 리뷰 작성을 시작합니다.
-        onSelectAccount({ id: subAccountRef.id, ...formAccount }, currentMainAccountId);
+        // 새 계정을 바로 선택할 수 있도록 id가 덮어써지지 않게 순서를 조정합니다.
+        onSelectAccount({ ...formAccount, id: subAccountRef.id }, currentMainAccountId);
         onClose();
       }
     } catch (err) {
