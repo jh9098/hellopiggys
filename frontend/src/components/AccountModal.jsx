@@ -211,7 +211,7 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
             </div>
           )}
           <form onSubmit={handleSubAccountFormSubmit} className="sub-account-form">
-            <h4>{isEditing ? '계정 정보 수정' : '새 계정 추가'}</h4>
+            <h4>{isEditing ? '계정 정보 수정' : '새 계정 추가(주소만 추가하는 것도 가능)'}</h4>
             <input type="text" placeholder="이름 (수취인)" name="name" value={formAccount.name} onChange={handleFormChange} required />
             <input type="tel" placeholder="전화번호" name="phoneNumber" value={formAccount.phoneNumber} onChange={handleFormChange} required />
             <div className="address-group">
