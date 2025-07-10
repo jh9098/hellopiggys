@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   auth, onAuthStateChanged, db,
   collection, query, where, orderBy, getDocs, doc, getDoc,
-  updateDoc, ref, uploadBytes, getDownloadURL, deleteField, getStorageInstance
+  updateDoc, ref, uploadBytes, getDownloadURL, deleteField, deleteDoc,
+  getStorageInstance
 } from '../firebaseConfig';
 import LoginModal from '../components/LoginModal';
 import './MyReviews.css';
@@ -123,6 +124,18 @@ export default function MyReviews() {
   };
   
   const handleCancelEdit = () => setIsEditing(false);
+
+  const handleDeleteReview = async (id) => {
+    if (!window.confirm('이 리뷰를 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.')) return;
+    try {
+      await deleteDoc(doc(db, 'reviews', id));
+      setRows(rows.filter((row) => row.id !== id));
+      alert('리뷰가 삭제되었습니다.');
+    } catch (err) {
+      console.error('리뷰 삭제 실패:', err);
+      alert('삭제 중 오류가 발생했습니다.');
+    }
+  };
   
   // 숫자만 입력되도록 필터링하는 로직 추가
   const handleDataChange = (e) => {
@@ -232,7 +245,11 @@ export default function MyReviews() {
             )}
             {statusInfo.reason && <div className="rejection-reason"><strong>반려 사유:</strong> {statusInfo.reason}</div>}
             <div className="price">{Number(r.rewardAmount || 0).toLocaleString()}원</div>
-            <div className="btn-wrap"><button onClick={() => openModal('detail', r)}>제출 내역 상세</button><button className="outline" onClick={() => openModal('upload', r)} disabled={r.status !== 'submitted' && r.status !== 'rejected'}>리뷰 인증하기</button></div>
+            <div className="btn-wrap">
+              <button onClick={() => openModal('detail', r)}>제출 내역 상세</button>
+              <button className="outline" onClick={() => openModal('upload', r)} disabled={r.status !== 'submitted' && r.status !== 'rejected'}>리뷰 인증하기</button>
+              <button className="delete" onClick={() => handleDeleteReview(r.id)}>삭제</button>
+            </div>
           </div>
         );
       })}
