@@ -166,9 +166,10 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
         delete subAccountData.id;
         const subAccountRef = await addDoc(collection(db, 'subAccounts'), subAccountData);
         alert('새 계정이 등록되었습니다.');
-        // 새 계정을 바로 선택할 수 있도록 id가 덮어써지지 않게 순서를 조정합니다.
-        onSelectAccount({ ...formAccount, id: subAccountRef.id }, currentMainAccountId);
-        onClose();
+        // 새로 등록된 계정을 리스트에 추가하고 폼을 초기화합니다.
+        setSubAccounts(prev => [...prev, { ...formAccount, id: subAccountRef.id }]);
+        setFormAccount(initialSubAccountState);
+        setNewAddress('');
       }
     } catch (err) {
       setError(`작업 실패: ${err.message}`);
