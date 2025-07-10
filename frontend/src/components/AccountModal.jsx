@@ -198,7 +198,7 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
           <h3>구매할 계정 선택 또는 추가</h3>
           {subAccounts.length > 0 && (
             <div className="sub-account-list">
-              <h4>등록된 계정 목록</h4>
+              <h4>등록된 계정 목록을 선택하세요</h4>
               {subAccounts.map(acc => (
                 <div key={acc.id} className="sub-account-item">
                   <span onClick={() => handleSelectSubAccount(acc)} className="account-info">{acc.name} ({acc.phoneNumber})</span>
@@ -224,7 +224,7 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
               <div className="add-address-row">
                 <input
                   type="text"
-                  placeholder="새 주소 입력"
+                  placeholder="새 주소 입력(여러개 추가 가능)"
                   value={newAddress}
                   onChange={(e) => setNewAddress(e.target.value)}
                 />
