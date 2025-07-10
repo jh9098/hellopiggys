@@ -1,6 +1,7 @@
 // src/pages/MyReviews.jsx (구매폼 작성 버튼 추가)
 
 import { useEffect, useState } from 'react';
+import imageCompression from 'browser-image-compression';
 import { useNavigate } from 'react-router-dom';
 import {
   auth, onAuthStateChanged, db,
@@ -62,6 +63,8 @@ export default function MyReviews() {
   const [isEditing, setIsEditing] = useState(false);
   const [editableData, setEditableData] = useState({});
   const [files, setFiles] = useState([]);
+  const [editImages, setEditImages] = useState({});
+  const [editPreviews, setEditPreviews] = useState({});
   const [uploading, setUploading] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -114,16 +117,18 @@ export default function MyReviews() {
   const handleLogout = () => auth.signOut();
   const handleLoginSuccess = () => setIsLoginModalOpen(false);
   const openModal = (type, review) => { setCurrentReview(review); setModalType(type); setIsEditing(false); };
-  const closeModal = () => { setModalType(null); setCurrentReview(null); setFiles([]); setUploading(false); setIsEditing(false); };
+  const closeModal = () => { setModalType(null); setCurrentReview(null); setFiles([]); setEditImages({}); setEditPreviews({}); setUploading(false); setIsEditing(false); };
   const openImagePreview = (url) => setImagePreview(url);
   const closeImagePreview = () => setImagePreview(null);
   
   const handleEdit = () => {
     setIsEditing(true);
     setEditableData({ ...currentReview });
+    setEditImages({});
+    setEditPreviews({});
   };
-  
-  const handleCancelEdit = () => setIsEditing(false);
+
+  const handleCancelEdit = () => { setIsEditing(false); setEditImages({}); setEditPreviews({}); };
 
   const handleDeleteReview = async (id) => {
     if (!window.confirm('이 리뷰를 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.')) return;
@@ -148,6 +153,25 @@ export default function MyReviews() {
   };
 
   const onFile = (e) => setFiles(Array.from(e.target.files || []));
+
+  const onEditFileChange = async (e) => {
+    const { name, files } = e.target;
+    if (!files || files.length === 0) return;
+    const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
+    const processed = [];
+    for (const file of files) {
+      try {
+        processed.push(await imageCompression(file, options));
+      } catch (err) {
+        console.warn(`이미지 압축 실패. 원본 사용: ${file.name}`, err);
+        processed.push(file);
+      }
+    }
+    const selected = processed.slice(0, 5);
+    setEditImages(prev => ({ ...prev, [name]: selected }));
+    const urls = selected.map(f => URL.createObjectURL(f));
+    setEditPreviews(prev => ({ ...prev, [name]: urls }));
+  };
   
   const handleSave = async () => {
     if (!currentReview) return;
@@ -158,10 +182,24 @@ export default function MyReviews() {
         await updateDoc(subAccountRef, { name: editableData.name, phoneNumber: editableData.phoneNumber, address: editableData.address, bank: editableData.bank, bankNumber: editableData.bankNumber, accountHolderName: editableData.accountHolderName });
       }
       const fieldsToUpdateInReview = { rewardAmount: editableData.rewardAmount, orderNumber: editableData.orderNumber, participantId: editableData.participantId };
-      await updateDoc(doc(db, 'reviews', currentReview.id), fieldsToUpdateInReview);
-      const updatedRows = rows.map(row => row.id === currentReview.id ? { ...row, ...editableData, subAccountInfo: {...row.subAccountInfo, ...editableData} } : row);
+      const imageUrlMap = {};
+      for (const { key } of initialImageFields) {
+        if (editImages[key] && editImages[key].length > 0) {
+          const urls = [];
+          for (const f of editImages[key]) {
+            const storageRef = ref(storage, `reviewImages/${Date.now()}_${f.name}`);
+            await uploadBytes(storageRef, f);
+            urls.push(await getDownloadURL(storageRef));
+          }
+          imageUrlMap[key] = [...(currentReview[key] || []), ...urls];
+        }
+      }
+      await updateDoc(doc(db, 'reviews', currentReview.id), { ...fieldsToUpdateInReview, ...imageUrlMap });
+      const updatedRows = rows.map(row => row.id === currentReview.id ? { ...row, ...editableData, ...imageUrlMap, subAccountInfo: {...row.subAccountInfo, ...editableData} } : row);
       setRows(updatedRows);
-      setCurrentReview({ ...currentReview, ...editableData, subAccountInfo: {...currentReview.subAccountInfo, ...editableData} });
+      setCurrentReview({ ...currentReview, ...editableData, ...imageUrlMap, subAccountInfo: {...currentReview.subAccountInfo, ...editableData} });
+      setEditImages({});
+      setEditPreviews({});
       alert('수정이 완료되었습니다.');
       setIsEditing(false);
     } catch (e) {
@@ -294,23 +332,35 @@ export default function MyReviews() {
                   ) : (<p>{currentReview?.bank}</p>)}
                 </div>
                 
-                {initialImageFields.map(({ key, label }) => ( currentReview?.[key] && currentReview[key].length > 0 && (
+                {initialImageFields.map(({ key, label }) => (
                   <div className="field full-width" key={key}>
                     <label>{label}</label>
-                    <div className="preview-container">
-                      {currentReview[key].map((url, i) => (
-                        <img
-                          key={i}
-                          src={url}
-                          alt={`${label} ${i + 1}`}
-                          className="thumb"
-                          onClick={() => openImagePreview(url)}
-                          style={{ cursor: 'pointer' }}
-                        />
-                      ))}
-                    </div>
+                    {isEditing && (
+                      <>
+                        <input type="file" accept="image/*" name={key} multiple onChange={onEditFileChange} />
+                        <div className="preview-container">
+                          {editPreviews[key] && editPreviews[key].map((src, i) => (
+                            <img key={i} src={src} alt={`${label} new ${i + 1}`} className="thumb" />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    {currentReview?.[key] && currentReview[key].length > 0 && (
+                      <div className="preview-container">
+                        {currentReview[key].map((url, i) => (
+                          <img
+                            key={i}
+                            src={url}
+                            alt={`${label} ${i + 1}`}
+                            className="thumb"
+                            onClick={() => openImagePreview(url)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )))}
+                ))}
                 
                 {currentReview.confirmImageUrls && currentReview.confirmImageUrls.length > 0 && (
                   <div className="field full-width">
