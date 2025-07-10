@@ -10,6 +10,24 @@ import {
 import LoginModal from '../components/LoginModal';
 import './MyReviews.css';
 
+function GuideToggle({ text }) {
+  const [expanded, setExpanded] = useState(false);
+  const lines = text.split('\n');
+  const preview = lines.slice(0, 4).join('\n');
+  const hasMore = lines.length > 4;
+  return (
+    <div className="guide-box">
+      <strong>가이드:</strong>
+      <p>{expanded || !hasMore ? text : preview}</p>
+      {hasMore && (
+        <button className="toggle-btn" onClick={() => setExpanded(!expanded)}>
+          {expanded ? '접기 ▲' : '더보기 ▼'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 const getStatusInfo = (review) => {
   const { status } = review;
   switch (status) {
@@ -199,11 +217,19 @@ export default function MyReviews() {
       {rows.length === 0 ? <p>작성한 리뷰가 없습니다.</p> : rows.map((r) => {
         const statusInfo = getStatusInfo(r);
         const participantName = r.subAccountInfo?.name || r.mainAccountInfo?.name || '알 수 없음';
-        const participantType = r.subAccountInfo ? `타계정(${participantName})` : '본계정';
+        const participantType = r.subAccountInfo ? participantName : '본계정';
         return (
           <div className={`card ${statusInfo.className}`} key={r.id}>
             <div className="card-head"><div><span className="badge">{statusInfo.text}</span><span className="badge secondary">{participantType}</span></div><span className="timestamp">{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}</span></div>
-            {r.productInfo && (<div className="product-details"><h4>{r.productInfo.productName}</h4><p><strong>리뷰 종류:</strong> {r.productInfo.reviewType}</p>{r.productInfo.guide && (<div className="guide-box"><strong>가이드:</strong><p>{r.productInfo.guide}</p></div>)}</div>)}
+            {r.productInfo && (
+              <div className="product-details">
+                <h4>{r.productInfo.productName}</h4>
+                <p>
+                  <strong>리뷰 종류:</strong> {r.productInfo.reviewType}
+                </p>
+                {r.productInfo.guide && <GuideToggle text={r.productInfo.guide} />}
+              </div>
+            )}
             {statusInfo.reason && <div className="rejection-reason"><strong>반려 사유:</strong> {statusInfo.reason}</div>}
             <div className="price">{Number(r.rewardAmount || 0).toLocaleString()}원</div>
             <div className="btn-wrap"><button onClick={() => openModal('detail', r)}>제출 내역 상세</button><button className="outline" onClick={() => openModal('upload', r)} disabled={r.status !== 'submitted' && r.status !== 'rejected'}>리뷰 인증하기</button></div>
