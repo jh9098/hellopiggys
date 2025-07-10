@@ -36,10 +36,17 @@ export default function WriteReview() {
     orderNumber: '',
     rewardAmount: '',
     subAccountId: null,
+    name: '',
+    phoneNumber: '',
+    address: '',
+    bank: '',
+    bankNumber: '',
+    accountHolderName: '',
     paymentType: '현영',
     productType: '실배송',
     reviewOption: '별점',
   });
+  const [addressOptions, setAddressOptions] = useState([]);
   
   const [images, setImages] = useState({});
   const [previews, setPreviews] = useState({});
@@ -132,6 +139,12 @@ export default function WriteReview() {
         reviewType: selectedProduct.reviewType,
         createdAt: serverTimestamp(),
         status: 'submitted',
+        name: form.name,
+        phoneNumber: form.phoneNumber,
+        address: form.address,
+        bank: form.bank,
+        bankNumber: form.bankNumber,
+        accountHolderName: form.accountHolderName,
         orderNumber: form.orderNumber,
         rewardAmount: form.rewardAmount,
         participantId: form.participantId,
@@ -155,11 +168,26 @@ export default function WriteReview() {
   const handleMainButtonClick = () => { if (currentUser) { if (selectedProduct) { setIsAccountModalOpen(true); } else { alert("먼저 참여할 상품을 선택해주세요."); } } else { setIsLoginModalOpen(true); } };
   const handleLoginSuccess = () => setIsLoginModalOpen(false);
   const handleProductSelect = (e) => { const productId = e.target.value; const product = products.find(p => p.id === productId) || null; setSelectedProduct(product); setIsAccountSelected(false); };
-  const handleSelectAccount = (subAccount) => { setForm(prev => ({ ...prev, subAccountId: subAccount.id })); setSelectedSubAccountInfo(subAccount); setIsAccountSelected(true); setIsAccountModalOpen(false); };
+  const handleSelectAccount = (subAccount) => {
+    setForm(prev => ({
+      ...prev,
+      subAccountId: subAccount.id,
+      name: subAccount.name || '',
+      phoneNumber: subAccount.phoneNumber || '',
+      address: (subAccount.addresses && subAccount.addresses[0]) || subAccount.address || '',
+      bank: subAccount.bank || '',
+      bankNumber: subAccount.bankNumber || '',
+      accountHolderName: subAccount.accountHolderName || ''
+    }));
+    setAddressOptions(subAccount.addresses || (subAccount.address ? [subAccount.address] : []));
+    setSelectedSubAccountInfo(subAccount);
+    setIsAccountSelected(true);
+    setIsAccountModalOpen(false);
+  };
 
   const onFormChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'orderNumber' || name === 'rewardAmount') {
+    if (name === 'orderNumber' || name === 'rewardAmount' || name === 'phoneNumber' || name === 'bankNumber') {
       const numericValue = value.replace(/[^0-9]/g, '');
       setForm({ ...form, [name]: numericValue });
     } else if (name === 'productType') {
@@ -214,7 +242,38 @@ export default function WriteReview() {
       
       {isAccountSelected && selectedSubAccountInfo && (
         <form onSubmit={handleSubmit}>
-          {[ { key: 'name', label: '구매자(수취인)', value: selectedSubAccountInfo.name }, { key: 'phoneNumber', label: '전화번호', value: selectedSubAccountInfo.phoneNumber }, { key: 'address', label: '주소', value: selectedSubAccountInfo.address }, { key: 'bank', label: '은행', value: selectedSubAccountInfo.bank }, { key: 'bankNumber', label: '계좌번호', value: selectedSubAccountInfo.bankNumber }, { key: 'accountHolderName', label: '예금주', value: selectedSubAccountInfo.accountHolderName }, ].map(({ key, label, value }) => (<div className="field" key={key}><label>{label}</label><input value={value || ''} readOnly style={{background: '#f0f0f0', cursor: 'not-allowed'}}/></div>))}
+          <div className="field">
+            <label>구매자(수취인)</label>
+            <input name="name" value={form.name} onChange={onFormChange} required />
+          </div>
+          <div className="field">
+            <label>전화번호</label>
+            <input name="phoneNumber" value={form.phoneNumber} onChange={onFormChange} required />
+          </div>
+          <div className="field">
+            <label>주소</label>
+            {addressOptions.length > 0 ? (
+              <select name="address" value={form.address} onChange={onFormChange} required>
+                {addressOptions.map((addr, idx) => (
+                  <option key={idx} value={addr}>{addr}</option>
+                ))}
+              </select>
+            ) : (
+              <input name="address" value={form.address} onChange={onFormChange} required />
+            )}
+          </div>
+          <div className="field">
+            <label>은행</label>
+            <input name="bank" value={form.bank} onChange={onFormChange} required />
+          </div>
+          <div className="field">
+            <label>계좌번호</label>
+            <input name="bankNumber" value={form.bankNumber} onChange={onFormChange} required />
+          </div>
+          <div className="field">
+            <label>예금주</label>
+            <input name="accountHolderName" value={form.accountHolderName} onChange={onFormChange} required />
+          </div>
           
           <div className="field">
             <label>쿠팡 ID</label>
