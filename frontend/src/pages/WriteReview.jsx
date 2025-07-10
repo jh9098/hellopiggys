@@ -47,6 +47,7 @@ export default function WriteReview() {
     reviewOption: '별점',
   });
   const [addressOptions, setAddressOptions] = useState([]);
+  const [globalAddresses, setGlobalAddresses] = useState([]);
   
   const [images, setImages] = useState({});
   const [previews, setPreviews] = useState({});
@@ -66,10 +67,17 @@ export default function WriteReview() {
         const q = query(collection(db, 'products'), where('progressStatus', '==', '진행중'), orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(q);
         setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } catch (e) { console.error("상품 목록 로딩 실패:", e); } 
+      } catch (e) { console.error("상품 목록 로딩 실패:", e); }
       finally { setLoading(false); }
     };
+    const fetchAddresses = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'addresses'));
+        setGlobalAddresses(snap.docs.map(d => d.data().value));
+      } catch (e) { console.error('주소 목록 로딩 실패:', e); }
+    };
     fetchProducts();
+    fetchAddresses();
     return () => unsubscribeAuth();
   }, []);
 
@@ -179,7 +187,9 @@ export default function WriteReview() {
       bankNumber: subAccount.bankNumber || '',
       accountHolderName: subAccount.accountHolderName || ''
     }));
-    setAddressOptions(subAccount.addresses || (subAccount.address ? [subAccount.address] : []));
+    const subAddrs = subAccount.addresses || (subAccount.address ? [subAccount.address] : []);
+    const allAddrs = Array.from(new Set([...globalAddresses, ...subAddrs]));
+    setAddressOptions(allAddrs);
     setSelectedSubAccountInfo(subAccount);
     setIsAccountSelected(true);
     setIsAccountModalOpen(false);
@@ -237,7 +247,15 @@ export default function WriteReview() {
       {selectedProduct && (<>
           <div className="product-info-box"><h4>{selectedProduct.productName}</h4><p><strong>결제 종류:</strong> {selectedProduct.reviewType}</p><p><strong>진행 일자:</strong> {selectedProduct.reviewDate}</p>{selectedProduct.guide && (<div className="guide-content"><strong>가이드:</strong><p style={{whiteSpace: 'pre-line'}}>{selectedProduct.guide}</p></div>)}</div>
           <div className="account-actions"><button type="button" onClick={handleMainButtonClick}>{isAccountSelected ? '✓ 계정 선택 완료 (변경하기)' : '구매 폼 작성하기'}</button></div>
-          {isAccountModalOpen && <AccountModal onClose={() => setIsAccountModalOpen(false)} onSelectAccount={handleSelectAccount}/>}
+          {isAccountModalOpen && (
+            <AccountModal
+              onClose={() => setIsAccountModalOpen(false)}
+              onSelectAccount={handleSelectAccount}
+              onAddressAdded={(addr) =>
+                setGlobalAddresses(prev => Array.from(new Set([...prev, addr])))
+              }
+            />
+          )}
       </>)}
       
       {isAccountSelected && selectedSubAccountInfo && (
