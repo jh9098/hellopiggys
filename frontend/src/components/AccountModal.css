@@ -152,6 +152,10 @@
 
 /* Edit Button Style */
 .account-actions .edit-btn {
+  position: static; /* override global .edit-btn absolute positioning */
+  top: auto;
+  left: auto;
+  transform: none;
   background-color: #e0e0e0;
   color: #333;
 }
