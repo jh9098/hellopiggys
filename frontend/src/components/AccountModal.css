@@ -134,6 +134,7 @@
 .account-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px; /* 버튼 사이의 간격 */
   flex-shrink: 0; /* 버튼 영역이 줄어들지 않도록 설정 */
 }
@@ -146,6 +147,7 @@
   border: none;
   cursor: pointer;
   transition: background-color 0.2s;
+  margin-left: 2px;
 }
 
 /* Edit Button Style */
