@@ -290,15 +290,18 @@ export default function WriteReview() {
           <div className="product-info-box">
             <h4>{selectedProduct.productName}</h4>
             <p><strong>결제 종류:</strong> {selectedProduct.reviewType}</p>
-            {/* ▼▼▼ 여기가 문제입니다! selected_product를 selectedProduct로 수정하세요 ▼▼▼ */}
-            <p><strong>진행 일자:</strong> {selectedProduct.reviewDate}</p>
-            {/* ▲▲▲ 오타 수정 완료 ▲▲▲ */}
-            {selectedProduct.guide && (
-              <div className="guide-content">
-                <strong>가이드:</strong>
-                <p style={{whiteSpace: 'pre-line'}}>{selectedProduct.guide}</p>
-              </div>
+            
+            {/* ▼▼▼ 이 부분을 추가했습니다 ▼▼▼ */}
+            {selectedProduct.productType && (
+              <p><strong>상품 종류:</strong> {selectedProduct.productType}</p>
             )}
+            {selectedProduct.reviewOption && (
+              <p><strong>리뷰 종류:</strong> {selectedProduct.reviewOption}</p>
+            )}
+            {/* ▲▲▲ 추가 완료 ▲▲▲ */}
+
+            <p><strong>진행 일자:</strong> {selectedProduct.reviewDate}</p>
+            {selectedProduct.guide && (<div className="guide-content"><strong>가이드:</strong><p style={{whiteSpace: 'pre-line'}}>{selectedProduct.guide}</p></div>)}
           </div>
           {/* 여기는 이전에 수정한 그대로 둡니다 */}
           <div className="account-selection-action">
