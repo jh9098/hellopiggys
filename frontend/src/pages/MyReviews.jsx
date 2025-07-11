@@ -58,6 +58,7 @@ export default function MyReviews() {
   const storage = getStorageInstance();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
+  const [products, setProducts] = useState([]); // 진행중인 상품 목록
   const [modalType, setModalType] = useState(null);
   const [currentReview, setCurrentReview] = useState(null); 
   const [isEditing, setIsEditing] = useState(false);
@@ -114,6 +115,24 @@ export default function MyReviews() {
     return () => unsubscribe();
   }, []);
 
+  // 진행중인 상품 불러오기
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const q = query(
+          collection(db, 'products'),
+          where('progressStatus', '==', '진행중'),
+          orderBy('createdAt', 'desc')
+        );
+        const snap = await getDocs(q);
+        setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (err) {
+        console.error('상품 목록 로딩 실패:', err);
+      }
+    };
+    fetchProducts();
+  }, []);
+
   const handleLogout = () => auth.signOut();
   const handleLoginSuccess = () => setIsLoginModalOpen(false);
   const openModal = (type, review) => { setCurrentReview(review); setModalType(type); setIsEditing(false); };
@@ -123,7 +142,12 @@ export default function MyReviews() {
   
   const handleEdit = () => {
     setIsEditing(true);
-    setEditableData({ ...currentReview });
+    setEditableData({
+      ...currentReview,
+      productId: currentReview.productId,
+      productName: currentReview.productInfo?.productName,
+      reviewType: currentReview.productInfo?.reviewType,
+    });
     setEditImages({});
     setEditPreviews({});
   };
@@ -150,6 +174,17 @@ export default function MyReviews() {
     } else {
       setEditableData({ ...editableData, [name]: value });
     }
+  };
+
+  const handleProductChange = (e) => {
+    const productId = e.target.value;
+    const product = products.find(p => p.id === productId);
+    setEditableData(prev => ({
+      ...prev,
+      productId,
+      productName: product?.productName || '',
+      reviewType: product?.reviewType || ''
+    }));
   };
 
   const onFile = (e) => setFiles(Array.from(e.target.files || []));
@@ -181,7 +216,14 @@ export default function MyReviews() {
         const subAccountRef = doc(db, "subAccounts", currentReview.subAccountId);
         await updateDoc(subAccountRef, { name: editableData.name, phoneNumber: editableData.phoneNumber, address: editableData.address, bank: editableData.bank, bankNumber: editableData.bankNumber, accountHolderName: editableData.accountHolderName });
       }
-      const fieldsToUpdateInReview = { rewardAmount: editableData.rewardAmount, orderNumber: editableData.orderNumber, participantId: editableData.participantId };
+      const fieldsToUpdateInReview = {
+        rewardAmount: editableData.rewardAmount,
+        orderNumber: editableData.orderNumber,
+        participantId: editableData.participantId,
+        productId: editableData.productId,
+        productName: editableData.productName,
+        reviewType: editableData.reviewType,
+      };
       const imageUrlMap = {};
       for (const { key } of initialImageFields) {
         if (editImages[key] && editImages[key].length > 0) {
@@ -195,9 +237,25 @@ export default function MyReviews() {
         }
       }
       await updateDoc(doc(db, 'reviews', currentReview.id), { ...fieldsToUpdateInReview, ...imageUrlMap });
-      const updatedRows = rows.map(row => row.id === currentReview.id ? { ...row, ...editableData, ...imageUrlMap, subAccountInfo: {...row.subAccountInfo, ...editableData} } : row);
+      const updatedRows = rows.map(row =>
+        row.id === currentReview.id
+          ? {
+              ...row,
+              ...editableData,
+              ...imageUrlMap,
+              productInfo: products.find(p => p.id === editableData.productId) || row.productInfo,
+              subAccountInfo: { ...row.subAccountInfo, ...editableData },
+            }
+          : row
+      );
       setRows(updatedRows);
-      setCurrentReview({ ...currentReview, ...editableData, ...imageUrlMap, subAccountInfo: {...currentReview.subAccountInfo, ...editableData} });
+      setCurrentReview({
+        ...currentReview,
+        ...editableData,
+        ...imageUrlMap,
+        productInfo: products.find(p => p.id === editableData.productId) || currentReview.productInfo,
+        subAccountInfo: { ...currentReview.subAccountInfo, ...editableData },
+      });
       setEditImages({});
       setEditPreviews({});
       alert('수정이 완료되었습니다.');
@@ -309,10 +367,25 @@ export default function MyReviews() {
                     {isEditing ? <input name="phoneNumber" value={editableData.phoneNumber || ''} onChange={handleDataChange} /> : <p>{currentReview?.phoneNumber}</p>}
                   </div>
                 </div>
+                <div className="field">
+                  <label>상품명</label>
+                  {isEditing ? (
+                    <select name="productId" value={editableData.productId || ''} onChange={handleProductChange}>
+                      <option value="">상품 선택</option>
+                      {products.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.productName} ({p.reviewType})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p>{currentReview?.productInfo?.productName}</p>
+                  )}
+                </div>
                 {[
-                  { key: 'orderNumber', label: '주문번호' }, 
+                  { key: 'orderNumber', label: '주문번호' },
                   { key: 'participantId', label: '쿠팡 ID'},
-                  { key: 'address', label: '주소' }, 
+                  { key: 'address', label: '주소' },
                   { key: 'bankNumber', label: '계좌번호' }, 
                   { key: 'accountHolderName', label: '예금주' }, 
                   { key: 'rewardAmount', label: '금액' }
