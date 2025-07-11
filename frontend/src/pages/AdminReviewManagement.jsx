@@ -19,7 +19,7 @@ const getStatusKeyByValue = (value) => {
 // 필터 초기 상태
 const initialFilters = {
   productName: '',
-  reviewType: '',
+  payType: '',
   mainAccountName: '',
   name: '', // 타계정 이름
   phoneNumber: '',
@@ -247,7 +247,7 @@ export default function AdminReviewManagement() {
               <th onClick={() => requestSort('createdAt')} className="sortable">등록일시<SortIndicator columnKey="createdAt" /></th>
               <th onClick={() => requestSort('status')} className="sortable">상태<SortIndicator columnKey="status" /></th>
               <th onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></th>
-              <th onClick={() => requestSort('reviewType')} className="sortable">결제 종류<SortIndicator columnKey="reviewType" /></th>
+              <th onClick={() => requestSort('payType')} className="sortable">결제 종류<SortIndicator columnKey="payType" /></th>
               <th onClick={() => requestSort('mainAccountName')} className="sortable">본계정<SortIndicator columnKey="mainAccountName" /></th>
               <th onClick={() => requestSort('name')} className="sortable">타계정<SortIndicator columnKey="name" /></th>
               <th onClick={() => requestSort('phoneNumber')} className="sortable">전화번호<SortIndicator columnKey="phoneNumber" /></th>
@@ -267,7 +267,7 @@ export default function AdminReviewManagement() {
                 </select>
               </th>
               <th><input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></th>
-              <th><input type="text" name="reviewType" value={filters.reviewType} onChange={handleFilterChange} /></th>
+              <th><input type="text" name="payType" value={filters.payType} onChange={handleFilterChange} /></th>
               <th><input type="text" name="mainAccountName" value={filters.mainAccountName} onChange={handleFilterChange} /></th>
               <th><input type="text" name="name" value={filters.name} onChange={handleFilterChange} /></th>
               <th><input type="text" name="phoneNumber" value={filters.phoneNumber} onChange={handleFilterChange} /></th>
@@ -291,7 +291,7 @@ export default function AdminReviewManagement() {
                 <td>{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}</td>
                 <td>{statusMap[r.status] || r.status}</td>
                 <td className="product-name-cell">{r.productName || '-'}</td>
-                <td>{r.reviewType || '-'}</td>
+                <td>{r.payType || '-'}</td>
                 <td>{r.mainAccountName || '-'}</td>
                 <td>{r.name || '-'}</td>
                 <td>{r.phoneNumber || '-'}</td>

@@ -1,4 +1,4 @@
-/* D:\hellopiggy\frontend\src\components\AccountModal.css */
+/* D:\hellopiggy\frontend\src\components\AccountModal.css (수정된 최종 버전) */
 
 /* General Modal Styling */
 .modal-back {
@@ -10,10 +10,14 @@
   background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
-  align-items: center;
+  
+  /* ▼▼▼ 핵심 수정 부분 ▼▼▼ */
+  /* align-items: center; 를 flex-start로 변경하여 모달이 항상 상단에 붙도록 합니다. */
+  align-items: flex-start; 
   z-index: 1000;
-  overflow-y: auto;
-  padding: 20px 0;
+  overflow-y: auto; /* 내용이 길 경우 스크롤을 허용합니다. */
+  padding: 20px 0; /* 상하 여백을 주어 모달이 화면 끝에 붙지 않게 합니다. */
+  /* ▲▲▲ 수정 완료 ▲▲▲ */
 }
 
 .account-modal {
@@ -134,9 +138,8 @@
   flex-grow: 1;
   cursor: pointer; /* 이름 부분을 클릭할 수 있음을 표시 */
   font-weight: 500;
+  line-height: 1.4; /* 이름과 번호가 두 줄로 표시될 때 줄간격 확보 */
 }
-
-/* ▼▼▼ 여기부터가 수정 및 추가된 핵심 부분입니다 ▼▼▼ */
 
 /* Container for Edit and Delete buttons */
 .account-actions {
@@ -181,9 +184,6 @@
 .account-actions .delete-btn:hover {
   background-color: #c62828; /* 호버 시 조금 더 어두운 빨간색 */
 }
-
-/* ▲▲▲ 여기까지가 수정 및 추가된 핵심 부분입니다 ▲▲▲ */
-
 
 /* Sub-account Creation Form */
 .sub-account-form {
@@ -273,4 +273,63 @@ button[type="submit"]:hover:not(:disabled) {
   border: none;
   color: #007bff;
   cursor: pointer;
-  font-size: 14px;}
+  font-size: 14px;
+}
+
+/* 주소 추가/삭제 관련 스타일 */
+.address-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.add-address-row {
+  display: flex;
+  gap: 8px;
+}
+
+.add-address-row input {
+  flex-grow: 1;
+}
+
+.add-address-row button {
+  padding: 0 15px;
+  flex-shrink: 0;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.add-address-row button:hover {
+  background-color: #218838;
+}
+
+.address-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 0;
+  text-align: left;
+}
+
+.address-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f8f9fa;
+  padding: 6px 10px;
+  border-radius: 4px;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.address-list button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
