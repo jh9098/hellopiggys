@@ -270,8 +270,20 @@ export default function WriteReview() {
         </div>
       )}
       {selectedProduct && (<>
-          <div className="product-info-box"><h4>{selectedProduct.productName}</h4><p><strong>결제 종류:</strong> {selectedProduct.reviewType}</p><p><strong>진행 일자:</strong> {selected_product.reviewDate}</p>{selectedProduct.guide && (<div className="guide-content"><strong>가이드:</strong><p style={{whiteSpace: 'pre-line'}}>{selectedProduct.guide}</p></div>)}</div>
-          {/* ▼▼▼ 여기 클래스 이름을 변경합니다 ▼▼▼ */}
+          <div className="product-info-box">
+            <h4>{selectedProduct.productName}</h4>
+            <p><strong>결제 종류:</strong> {selectedProduct.reviewType}</p>
+            {/* ▼▼▼ 여기가 문제입니다! selected_product를 selectedProduct로 수정하세요 ▼▼▼ */}
+            <p><strong>진행 일자:</strong> {selectedProduct.reviewDate}</p>
+            {/* ▲▲▲ 오타 수정 완료 ▲▲▲ */}
+            {selectedProduct.guide && (
+              <div className="guide-content">
+                <strong>가이드:</strong>
+                <p style={{whiteSpace: 'pre-line'}}>{selectedProduct.guide}</p>
+              </div>
+            )}
+          </div>
+          {/* 여기는 이전에 수정한 그대로 둡니다 */}
           <div className="account-selection-action">
             <button type="button" onClick={handleMainButtonClick}>{isAccountSelected ? '✓ 계정 선택 완료 (변경하기)' : '구매 폼 작성하기'}</button>
           </div>
