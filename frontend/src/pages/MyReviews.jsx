@@ -342,7 +342,7 @@ export default function MyReviews() {
             {statusInfo.reason && <div className="rejection-reason"><strong>반려 사유:</strong> {statusInfo.reason}</div>}
             <div className="price">{Number(r.rewardAmount || 0).toLocaleString()}원</div>
             <div className="btn-wrap">
-              <button onClick={() => openModal('detail', r)}>제출 내역 상세</button>
+              <button onClick={() => openModal('detail', r)}>제출 내역 상세(수정)</button>
               <button className="outline" onClick={() => openModal('upload', r)} disabled={r.status !== 'submitted' && r.status !== 'rejected'}>리뷰 인증하기</button>
               <button className="delete" onClick={() => handleDeleteReview(r.id)}>삭제</button>
             </div>
@@ -356,7 +356,7 @@ export default function MyReviews() {
             <button className="close" onClick={closeModal}>✖</button>
             {modalType === 'detail' && (
               <div className="detail-view">
-                <h3>제출 내역 상세</h3>
+                <h3>제출 내역 상세(수정)</h3>
                 <div className="form-grid">
                   <div className="field">
                     <label>구매자(수취인)</label>
