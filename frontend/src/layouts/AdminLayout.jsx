@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 
 export default function AdminLayout({ children }) {
   return (
@@ -18,22 +18,22 @@ export default function AdminLayout({ children }) {
               </NavLink>
             </li>
             <li className="mb-4">
-              <Link href="/admin/products" className="hover:bg-gray-700 p-2 rounded block">
+              <Link to="/admin/products" className="hover:bg-gray-700 p-2 rounded block">
                 상품 관리
               </Link>
             </li>
             <li className="mb-4">
-              <Link href="/admin/sellers" className="hover:bg-gray-700 p-2 rounded block">
+              <Link to="/admin/sellers" className="hover:bg-gray-700 p-2 rounded block">
                 판매자 관리
               </Link>
             </li>
             <li className="mb-4">
-              <Link href="/admin/schedule" className="hover:bg-gray-700 p-2 rounded block">
+              <Link to="/admin/schedule" className="hover:bg-gray-700 p-2 rounded block">
                 예약 시트 관리
               </Link>
             </li>
             <li className="mb-4">
-              <Link href="/admin/progress" className="hover:bg-gray-700 p-2 rounded block">
+              <Link to="/admin/progress" className="hover:bg-gray-700 p-2 rounded block">
                 진행현황
               </Link>
             </li>

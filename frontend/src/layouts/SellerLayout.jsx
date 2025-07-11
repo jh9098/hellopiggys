@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { useState } from 'react';
 
 export default function SellerLayout({ children }) {
@@ -55,7 +55,7 @@ export default function SellerLayout({ children }) {
               {open.traffic && (
                 <ul className="ml-4 mt-2">
                   <li className="mb-2">
-                    <Link href="/seller/traffic" className="hover:bg-gray-700 p-2 rounded block">
+                    <Link to="/seller/traffic" className="hover:bg-gray-700 p-2 rounded block">
                       트래픽
                     </Link>
                   </li>
@@ -73,7 +73,7 @@ export default function SellerLayout({ children }) {
               {open.kita && (
                 <ul className="ml-4 mt-2">
                   <li className="mb-2">
-                    <Link href="/seller/keyword" className="hover:bg-gray-700 p-2 rounded block">
+                    <Link to="/seller/keyword" className="hover:bg-gray-700 p-2 rounded block">
                       키워드분석
                     </Link>
                   </li>
