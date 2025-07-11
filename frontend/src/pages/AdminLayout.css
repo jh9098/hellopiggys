@@ -1,4 +1,4 @@
-/* src/pages/AdminLayout.css */
+/* src/pages/AdminLayout.css (수정된 최종 버전) */
 
 .admin-layout {
   display: flex;
@@ -256,7 +256,7 @@ tbody tr:hover {
   text-align: left;
 }
 
-/* 모바일 최적화 */
+/* ▼▼▼ 모바일 최적화 수정 부분 ▼▼▼ */
 @media (max-width: 768px) {
   .admin-layout {
     flex-direction: column;
@@ -264,37 +264,45 @@ tbody tr:hover {
 
   aside {
     width: 100%;
+    box-sizing: border-box; /* 패딩을 너비에 포함 */
     flex-direction: row;
     align-items: center;
+    justify-content: space-between; /* 양쪽 끝으로 정렬 */
+    flex-wrap: wrap; /* 공간 부족 시 다음 줄로 */
     border-right: none;
     border-bottom: 1px solid #e9ecef;
-    padding: 16px;
+    padding: 12px 16px;
+    gap: 16px; /* 요소 사이의 간격 */
   }
 
   aside h1 {
-    font-size: 20px;
-    margin-bottom: 0;
+    font-size: 18px; /* 모바일에서 헤더 크기 조정 */
+    margin: 0;
+    flex-shrink: 0; /* 줄어들지 않도록 */
   }
 
-  .admin-user-info {
-    margin-left: auto;
-    margin-bottom: 0;
-  }
-
+  /* 네비게이션을 별도 그룹으로 관리 */
   aside nav {
+    order: 3; /* 세 번째 순서로 배치 (줄바꿈 시 아래로) */
+    width: 100%;
     flex-direction: row;
     flex-wrap: wrap;
     gap: 8px;
-    margin-left: 16px;
+    margin: 10px 0 0 0; /* 상단 여백 추가 */
+  }
+  
+  .admin-user-info {
+    order: 2; /* 두 번째 순서로 배치 */
+    margin: 0;
   }
 
   aside nav a {
     padding: 8px 12px;
-    font-size: 14px;
+    font-size: 13px; /* 가독성을 위해 약간 키움 */
   }
 
   main {
-    padding: 16px;
+    padding: 24px 16px; /* 모바일에서 좌우 패딩 조정 */
   }
 
   .toolbar {
@@ -302,7 +310,8 @@ tbody tr:hover {
   }
 
   th, td {
-    padding: 8px 6px;
-    font-size: 12px;
+    padding: 10px 8px; /* 상하 패딩을 늘려 터치 용이성 확보 */
+    font-size: 13px; /* 가독성을 위해 약간 키움 */
   }
 }
+/* ▲▲▲ 모바일 최적화 수정 완료 ▲▲▲ */

@@ -1,7 +1,10 @@
+/* ReviewerLogin.css (수정된 최종 버전) */
+
 .login-wrap {
     max-width: 420px;
+    width: 90%; /* 화면 너비에 따라 유연하게 조절 */
     margin: 0 auto;
-    padding: 32px 24px;
+    padding: 32px 0; /* 좌우 패딩은 width로 조절하므로 제거 */
     text-align: center;
     font-family: 'Pretendard', sans-serif;
   }
@@ -27,6 +30,7 @@
   
   .input-with-icon input {
     width: 100%;
+    box-sizing: border-box; /* 패딩 포함 크기 계산 */
     padding: 12px 12px 12px 44px;
     border: none;
     border-bottom: 1px solid #000;
@@ -63,4 +67,3 @@
     font-size: 16px;
     border-radius: 4px;
   }
-  

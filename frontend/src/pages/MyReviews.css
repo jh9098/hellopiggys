@@ -1,4 +1,4 @@
-/* src/pages/MyReviews.css (모달 내부 이미지 표시 스타일 강화) */
+/* src/pages/MyReviews.css (수정된 최종 버전) */
 
 /* 기본 페이지 레이아웃 */
 .my-wrap { max-width: 480px; margin: 0 auto; padding: 16px; font-family: Pretendard, sans-serif; background-color: #f0f2f5; }
@@ -53,8 +53,23 @@
 .btn-wrap button.outline { background: #333; color: #fff; }
 .btn-wrap button.delete { background: #e53935; color: #fff; }
 
+
+/* ▼▼▼ 여기가 진짜 수정되어야 할 부분입니다 ▼▼▼ */
 /* ───── 모달 공통 스타일 ───── */
-.modal-back { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px 0; }
+.modal-back { 
+  position: fixed; 
+  inset: 0; 
+  background: rgba(0, 0, 0, 0.5); 
+  display: flex; 
+  align-items: flex-start; /* 기존 center에서 flex-start로 변경 (상단 정렬) */
+  justify-content: center; 
+  z-index: 1000; 
+  padding: 20px 0;
+  overflow-y: auto; /* 내용이 길어지면 스크롤바 생성 */
+}
+/* ▲▲▲ 수정 완료 ▲▲▲ */
+
+
 .modal { background: #fff; border-radius: 8px; padding: 24px; width: 90%; max-width: 420px; max-height: 90vh; overflow-y: auto; position: relative; }
 .modal .close { position: absolute; top: 12px; right: 12px; border: none; background: none; font-size: 24px; cursor: pointer; color: #888; }
 
@@ -71,25 +86,20 @@
 .modal-actions button.secondary { background: #e0e0e0; color: #333; }
 .modal-actions button:disabled { background: #f5f5f5; color: #bdbdbd; cursor: not-allowed; }
 
-/* ▼▼▼ 여러 이미지 표시를 위한 스타일 (핵심 수정) ▼▼▼ */
-/* 모달 내에서 그리드 전체 너비를 차지하도록 설정 */
+/* 여러 이미지 표시를 위한 스타일 */
 .detail-view .field.full-width {
   grid-column: 1 / -1;
 }
-
-/* 이미지들을 담는 컨테이너 */
 .preview-container {
   display: flex;
-  flex-wrap: wrap; /* 이미지가 많아지면 다음 줄로 넘어감 */
-  gap: 10px; /* 이미지 사이의 간격 */
+  flex-wrap: wrap; 
+  gap: 10px;
   margin-top: 4px;
 }
-
-/* 개별 이미지 썸네일 스타일 */
 .detail-view .thumb {
-  width: 80px;      /* 너비 */
-  height: 80px;     /* 높이 */
-  object-fit: cover;/* 이미지가 잘리지 않고 꽉 차게 */
+  width: 80px;      
+  height: 80px;     
+  object-fit: cover;
   border: 1px solid #eee;
   border-radius: 4px;
   background-color: #f8f8f8;
@@ -105,4 +115,11 @@
   color: #fff;
   cursor: pointer;
   margin-top: 20px;
-}/* ▲▲▲ 여러 이미지 표시를 위한 스타일 (핵심 수정) ▲▲▲ */
+}
+
+@media (max-width: 480px) {
+  /* 2단 그리드를 1단으로 변경 */
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
