@@ -1,15 +1,17 @@
-// src/pages/AdminProductForm.jsx (상품/리뷰 종류 드롭다운 추가)
+// src/pages/AdminProductForm.jsx (조건부 리뷰 옵션 추가)
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db, collection, addDoc, serverTimestamp, updateDoc, doc, getDoc } from '../firebaseConfig';
 
 const progressStatusOptions = ['진행전', '진행중', '진행완료', '일부완료', '보류'];
-// ▼▼▼ 드롭다운 메뉴 옵션 정의 ▼▼▼
 const productTypeOptions = ['실배송', '빈박스'];
-const reviewOptionOptions = ['별점', '텍스트', '포토', '프리미엄포토', '프리미엄영상'];
+const reviewTypeOptions = ['현영', '자율결제'];
 
-// ▼▼▼ 초기값에 새로운 필드 추가 ▼▼▼
+// ▼▼▼ '실배송'과 '빈박스'에 대한 리뷰 옵션을 별도로 정의합니다 ▼▼▼
+const fullReviewOptions = ['별점', '텍스트', '포토', '프리미엄포토', '프리미엄영상'];
+const limitedReviewOptions = ['별점', '텍스트'];
+
 const initialFormState = {
   productName: '',
   reviewType: '현영',
@@ -39,8 +41,8 @@ const initialFormState = {
  - 입장 후 구매일자, 구매상품을 말씀해 주시면 더 빠른 확인이 가능해요!`,
   reviewDate: '',
   progressStatus: '진행중',
-  productType: '실배송', // 상품 종류 기본값
-  reviewOption: '포토',   // 리뷰 종류 기본값
+  productType: '실배송',
+  reviewOption: '포토',
 };
 
 export default function AdminProductForm() {
@@ -69,9 +71,20 @@ export default function AdminProductForm() {
     }
   }, [isEditMode, productId, navigate]);
 
+  // ▼▼▼ 이 함수를 수정합니다 ▼▼▼
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'productType') {
+      // '상품 종류'가 변경되면 '리뷰 종류'를 '별점'으로 초기화합니다.
+      setForm(prev => ({
+        ...prev,
+        productType: value,
+        reviewOption: '별점', // 안전한 기본값으로 리셋
+      }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -101,10 +114,14 @@ export default function AdminProductForm() {
 
   if (loading) return <p>상품 정보를 불러오는 중...</p>;
 
+  // 현재 상품 종류에 맞는 리뷰 옵션 목록을 결정합니다.
+  const currentReviewOptions = form.productType === '빈박스' ? limitedReviewOptions : fullReviewOptions;
+
   return (
     <>
       <h2>{isEditMode ? '상품 수정' : '상품 생성'}</h2>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {/* 다른 필드들은 그대로 유지 */}
         <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
           <label style={{ display: 'inline-block', width: '100px' }}>진행 상태</label>
           <select name="progressStatus" value={form.progressStatus} onChange={handleChange} required style={{width: 'calc(100% - 120px)', padding: '8px'}}>
@@ -113,18 +130,18 @@ export default function AdminProductForm() {
             ))}
           </select>
         </div>
-
         <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
           <label style={{ display: 'inline-block', width: '100px' }}>상품명</label>
           <input type="text" name="productName" value={form.productName} onChange={handleChange} placeholder="예: [헬로피기] 베이컨 500g" required style={{width: 'calc(100% - 120px)', padding: '8px'}}/>
         </div>
-
         <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
           <label style={{ display: 'inline-block', width: '100px' }}>결제 종류</label>
-          <input type="text" name="reviewType" value={form.reviewType} onChange={handleChange} placeholder="예: 현영" required style={{width: 'calc(100% - 120px)', padding: '8px'}}/>
+          <select name="reviewType" value={form.reviewType} onChange={handleChange} required style={{width: 'calc(100% - 120px)', padding: '8px'}}>
+            {reviewTypeOptions.map(type => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
         </div>
-
-        {/* ▼▼▼ 상품 종류 드롭다운 추가 ▼▼▼ */}
         <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
           <label style={{ display: 'inline-block', width: '100px' }}>상품 종류</label>
           <select name="productType" value={form.productType} onChange={handleChange} required style={{width: 'calc(100% - 120px)', padding: '8px'}}>
@@ -134,15 +151,16 @@ export default function AdminProductForm() {
           </select>
         </div>
 
-        {/* ▼▼▼ 리뷰 종류 드롭다운 추가 ▼▼▼ */}
+        {/* ▼▼▼ 리뷰 종류 드롭다운을 수정합니다 ▼▼▼ */}
         <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
           <label style={{ display: 'inline-block', width: '100px' }}>리뷰 종류</label>
           <select name="reviewOption" value={form.reviewOption} onChange={handleChange} required style={{width: 'calc(100% - 120px)', padding: '8px'}}>
-            {reviewOptionOptions.map(option => (
+            {currentReviewOptions.map(option => (
               <option key={option} value={option}>{option}</option>
             ))}
           </select>
         </div>
+        {/* ▲▲▲ 수정 완료 ▲▲▲ */}
 
         <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
           <label style={{ display: 'inline-block', width: '100px' }}>진행일자</label>

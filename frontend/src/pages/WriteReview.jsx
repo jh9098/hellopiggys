@@ -206,11 +206,12 @@ export default function WriteReview() {
     setSelectedProduct(product);
     setIsAccountSelected(false);
     
-    // ▼▼▼ 이 부분을 추가하거나 수정해주세요 ▼▼▼
     if (product) {
       // 상품에 저장된 값이 있으면 그 값을 사용하고, 없으면 기존 기본값을 유지합니다.
       setForm(prev => ({
         ...prev,
+        // ▼▼▼ 여기에 paymentType 자동 선택 로직 추가 ▼▼▼
+        paymentType: product.reviewType || '현영', // 상품의 reviewType을 폼의 paymentType에 매핑
         productType: product.productType || '실배송',
         reviewOption: product.reviewOption || '별점',
       }));
