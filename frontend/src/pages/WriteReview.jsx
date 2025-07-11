@@ -207,6 +207,7 @@ export default function WriteReview() {
       subAccountId: subAccount.id,
       name: subAccount.name || '',
       phoneNumber: subAccount.phoneNumber || '',
+      participantId: subAccount.participantId || '', // <-- 이 줄을 추가하세요!
       address: (subAccount.addresses && subAccount.addresses[0]) || subAccount.address || '',
       bank: subAccount.bank || '',
       bankNumber: subAccount.bankNumber || '',

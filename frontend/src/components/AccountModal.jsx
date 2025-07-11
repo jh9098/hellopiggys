@@ -1,4 +1,4 @@
-// src/components/AccountModal.jsx (수정된 최종 버전)
+// src/components/AccountModal.jsx (쿠팡 ID 필드 추가 완료)
 
 import { useState, useEffect } from 'react';
 import { auth, db, functions, collection, doc, setDoc, getDocs, addDoc, query, where, serverTimestamp, deleteDoc } from '../firebaseConfig';
@@ -10,10 +10,12 @@ const bankOptions = [
   '전북', '농협', 'SC', '아이엠뱅크', '신협', '제주', '부산', '씨티', 'HSBC'
 ];
 
+// ▼▼▼ 여기에 participantId 추가 ▼▼▼
 const initialSubAccountState = {
   id: null,
   name: '',
   phoneNumber: '',
+  participantId: '', // 쿠팡 ID 필드 추가
   address: '',
   addresses: [],
   bank: '',
@@ -33,18 +35,13 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
   const [newAddress, setNewAddress] = useState('');
   const [globalAddresses, setGlobalAddresses] = useState([]);
 
-  // ▼▼▼ 여기에 useEffect 훅을 추가하여 배경 스크롤을 제어합니다 ▼▼▼
   useEffect(() => {
-    // 모달이 마운트될 때 배경 스크롤을 막습니다.
     document.body.style.overflow = 'hidden';
-
-    // 컴포넌트가 언마운트될 때(모달이 닫힐 때) 스크롤을 원래대로 복원합니다.
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, []); // 빈 배열을 전달하여 컴포넌트가 마운트/언마운트 될 때 한 번씩만 실행되도록 합니다.
+  }, []);
 
-  // ... (기존 useEffect는 그대로 둡니다)
   useEffect(() => {
     const user = auth.currentUser;
     if (user) {
@@ -180,7 +177,6 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
         delete subAccountData.id;
         const subAccountRef = await addDoc(collection(db, 'subAccounts'), subAccountData);
         alert('새 계정이 등록되었습니다.');
-        // 새로 등록된 계정을 리스트에 추가하고 폼을 초기화합니다.
         setSubAccounts(prev => [...prev, { ...formAccount, id: subAccountRef.id }]);
         setFormAccount(initialSubAccountState);
         setNewAddress('');
@@ -194,7 +190,6 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
   
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    // 전화번호나 계좌번호 필드는 숫자만 입력되도록 처리
     if (name === 'phoneNumber' || name === 'bankNumber') {
       setFormAccount({ ...formAccount, [name]: value.replace(/[^0-9]/g, '') });
     } else {
@@ -207,7 +202,6 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
       <div className="account-modal" onClick={(e) => e.stopPropagation()}>
         <button className="close-btn" onClick={onClose}>✖</button>
         
-        {/* 불필요한 step === 1 로직을 제거하고 바로 계정 선택/추가 화면을 보여줍니다. */}
         <div>
           <h3>구매할 계정 선택 또는 추가</h3>
           {subAccounts.length > 0 && (
@@ -245,6 +239,18 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
             <h4>{isEditing ? '계정 정보 수정' : '새 계정 추가(주소만 추가하는 것도 가능)'}</h4>
             <input type="text" placeholder="이름 (수취인)" name="name" value={formAccount.name} onChange={handleFormChange} required />
             <input type="tel" placeholder="전화번호" name="phoneNumber" value={formAccount.phoneNumber} onChange={handleFormChange} required />
+            
+            {/* ▼▼▼ 여기에 쿠팡 ID 입력 필드 추가 ▼▼▼ */}
+            <input 
+              type="text" 
+              placeholder="쿠팡 ID" 
+              name="participantId" 
+              value={formAccount.participantId} 
+              onChange={handleFormChange} 
+              required 
+            />
+            {/* ▲▲▲ 추가 완료 ▲▲▲ */}
+
             <div className="address-group">
               <select name="address" value={formAccount.address} onChange={handleFormChange} required>
                 <option value="" disabled>주소 선택</option>
