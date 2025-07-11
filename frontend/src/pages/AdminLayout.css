@@ -255,3 +255,54 @@ tbody tr:hover {
 .product-name-cell {
   text-align: left;
 }
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+  .admin-layout {
+    flex-direction: column;
+  }
+
+  aside {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    border-right: none;
+    border-bottom: 1px solid #e9ecef;
+    padding: 16px;
+  }
+
+  aside h1 {
+    font-size: 20px;
+    margin-bottom: 0;
+  }
+
+  .admin-user-info {
+    margin-left: auto;
+    margin-bottom: 0;
+  }
+
+  aside nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: 16px;
+  }
+
+  aside nav a {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  main {
+    padding: 16px;
+  }
+
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  th, td {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+}

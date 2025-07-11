@@ -148,3 +148,15 @@
   cursor: pointer;
   font-size: 14px;
 }
+
+/* 모바일 레이아웃 조정 */
+@media (max-width: 600px) {
+  .review-detail-modal {
+    width: 95%;
+    padding: 16px;
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+}
