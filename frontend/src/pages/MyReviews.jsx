@@ -1,4 +1,4 @@
-// src/pages/MyReviews.jsx (구매폼 작성 버튼 추가)
+// src/pages/MyReviews.jsx (상품/리뷰 종류 표시 추가 완료)
 
 import { useEffect, useState } from 'react';
 import imageCompression from 'browser-image-compression';
@@ -166,7 +166,6 @@ export default function MyReviews() {
     }
   };
   
-  // 숫자만 입력되도록 필터링하는 로직 추가
   const handleDataChange = (e) => {
     const { name, value } = e.target;
     if (name === 'phoneNumber' || name === 'bankNumber' || name === 'orderNumber' || name === 'rewardAmount') {
@@ -309,7 +308,6 @@ export default function MyReviews() {
   return (
     <>
     <div className="my-wrap">
-      {/* ▼▼▼ 이 부분에 버튼 추가 ▼▼▼ */}
       <div className="page-header">
         <h2>내 리뷰 목록</h2>
         <div className="header-actions">
@@ -321,7 +319,6 @@ export default function MyReviews() {
           </button>
         </div>
       </div>
-      {/* ▲▲▲ 버튼 추가 완료 ▲▲▲ */}
 
       {rows.length === 0 ? <p>작성한 리뷰가 없습니다.</p> : rows.map((r) => {
         const statusInfo = getStatusInfo(r);
@@ -336,6 +333,18 @@ export default function MyReviews() {
                 <p>
                   <strong>결제 종류:</strong> {r.productInfo.reviewType}
                 </p>
+                {/* ▼▼▼ 여기가 수정된 부분입니다 ▼▼▼ */}
+                {r.productType && (
+                  <p>
+                    <strong>상품 종류:</strong> {r.productType}
+                  </p>
+                )}
+                {r.reviewOption && (
+                  <p>
+                    <strong>리뷰 종류:</strong> {r.reviewOption}
+                  </p>
+                )}
+                {/* ▲▲▲ 수정 완료 ▲▲▲ */}
                 {r.productInfo.guide && <GuideToggle text={r.productInfo.guide} />}
               </div>
             )}
