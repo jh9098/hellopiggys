@@ -1,4 +1,4 @@
-/* D:\hellopiggy\frontend\src\components\AccountModal.css (모든 레이아웃 문제 해결 최종 버전) */
+/* D:\hellopiggy\frontend\src\components\AccountModal.css (레이아웃 최종 수정본) */
 
 /* 모달 배경 */
 .modal-back {
@@ -38,7 +38,7 @@
 
 /* 닫기 버튼 */
 .close-btn {
-  position: absolute; /* .account-modal 기준으로 위치 */
+  position: absolute;
   top: 15px;
   right: 15px;
   background: none;
@@ -57,7 +57,7 @@
   text-align: center;
 }
 
-/* ▼▼▼ 계정 목록 아이템 및 버튼 레이아웃 수정 ▼▼▼ */
+/* ▼▼▼ 여기가 모든 문제를 해결하는 최종 코드입니다 ▼▼▼ */
 
 /* 각 계정 아이템 (이름 + 버튼 그룹) */
 .sub-account-item {
@@ -65,13 +65,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 5px;
-  border-bottom: 1px solid #f0f0f0; /* 구분선 추가 */
-  gap: 15px; /* 이름과 버튼 사이 최소 간격 */
+  border-bottom: 1px solid #f0f0f0;
+  gap: 15px;
 }
 
 /* 계정 정보 (이름, 번호) */
 .sub-account-item .account-info {
-  flex-grow: 1; /* 남는 공간 모두 차지 */
+  flex-grow: 1;
   cursor: pointer;
   font-weight: 500;
 }
@@ -79,57 +79,54 @@
 /* 수정/삭제 버튼을 담는 컨테이너 */
 .account-actions {
   display: flex;
-  gap: 8px; /* 버튼 사이 간격 */
-  flex-shrink: 0; /* 버튼 영역이 찌그러지지 않게 함 */
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-/* 수정/삭제 버튼 개별 스타일 */
+/* 수정, 삭제 버튼 공통 스타일 */
 .account-actions button {
-  padding: 6px 12px; /* 버튼 크기 조정 */
-  font-size: 13px; /* 폰트 크기 조정 */
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  color: white;
+  padding: 6px 12px !important;
+  font-size: 13px !important;
+  border: none !important;
+  border-radius: 5px !important;
+  cursor: pointer !important;
+  color: white !important;
+  visibility: visible !important; /* 강제로 보이게 함 */
+  display: inline-block !important; /* 강제로 보이게 함 */
 }
 
+/* 수정 버튼 스타일 (강제 적용) */
 .account-actions .edit-btn {
-  background-color: #007bff; /* 파란색 */
+  background-color: #007bff !important; /* 파란색 */
 }
 
+/* 삭제 버튼 스타일 (강제 적용) */
 .account-actions .delete-btn {
-  background-color: #dc3545; /* 빨간색 */
+  background-color: #dc3545 !important; /* 빨간색 */
 }
 
 /* ▲▲▲ 계정 목록 레이아웃 수정 완료 ▲▲▲ */
 
 
-/* ▼▼▼ 폼(Form) 버튼이 상단으로 이동하지 않도록 수정 ▼▼▼ */
-
-/* 폼 제출/취소 버튼 컨테이너 */
+/* ▼▼▼ 폼(Form) 버튼 스타일 초기화 ▼▼▼ */
 .form-actions {
-  display: flex; /* 버튼을 나란히 배치 */
+  display: flex;
   gap: 10px;
-  margin-top: 20px; /* 폼 요소들과의 간격 */
-  /* position, top, left 등 위치 관련 속성 모두 제거하여 정상적인 흐름 유지 */
+  margin-top: 20px;
 }
 
 .form-actions button {
-  flex: 1; /* 버튼들이 공간을 균등하게 차지 */
-  width: auto; /* width: 100% 같은 속성 제거 */
+  flex: 1;
   padding: 14px;
   font-size: 1rem;
   font-weight: bold;
   border-radius: 8px;
   border: none;
 }
-
 /* ▲▲▲ 폼 버튼 위치 수정 완료 ▲▲▲ */
 
 
-/* 이하 스타일은 가독성을 위해 정리 */
-
-/* 섹션 타이틀 */
+/* 나머지 스타일 */
 .sub-account-list h4, .sub-account-form h4 {
   margin: 25px 0 15px;
   padding-bottom: 10px;
@@ -138,16 +135,8 @@
   font-weight: 600;
   text-align: center;
 }
-
-/* 폼 기본 스타일 */
-.sub-account-form {
-  margin-top: 30px;
-}
-.account-modal form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+.sub-account-form { margin-top: 30px; }
+.account-modal form { display: flex; flex-direction: column; gap: 12px; }
 .account-modal input, .account-modal select {
   width: 100%;
   padding: 12px;
@@ -156,23 +145,9 @@
   box-sizing: border-box;
   font-size: 1rem;
 }
-
-/* '이 계정 추가하기' 버튼 */
-button[type="submit"] {
-  background-color: #007bff;
-  color: white;
-}
-button[type="submit"]:disabled {
-  background-color: #a0c8f0;
-}
-
-/* 취소 버튼 */
-.form-actions .cancel-btn {
-  background-color: #6c757d;
-  color: white;
-}
-
-/* 주소 추가/삭제 관련 스타일 */
+button[type="submit"] { background-color: #007bff; color: white; }
+button[type="submit"]:disabled { background-color: #a0c8f0; }
+.form-actions .cancel-btn { background-color: #6c757d; color: white; }
 .address-group { display: flex; flex-direction: column; gap: 8px; }
 .add-address-row { display: flex; gap: 8px; }
 .add-address-row input { flex-grow: 1; }
