@@ -156,6 +156,28 @@
     padding: 16px;
   }
 
+  .review-detail-modal h3 {
+    font-size: 20px;
+  }
+
+  .close-btn {
+    font-size: 20px;
+  }
+
+  .modal-section h4 {
+    font-size: 14px;
+  }
+
+  .info-grid p {
+    font-size: 13px;
+  }
+
+  .edit-btn,
+  .edit-actions .save-btn,
+  .edit-actions .cancel-btn {
+    font-size: 12px;
+  }
+
   .info-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }

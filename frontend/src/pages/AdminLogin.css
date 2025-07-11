@@ -17,6 +17,17 @@
 @media (max-width: 480px) {
   .admin-login-wrap {
     margin: 40px 16px;
+    font-size: 14px;
+  }
+  .admin-login-wrap h2 {
+    font-size: 20px;
+  }
+  .admin-login-wrap input,
+  .admin-login-wrap button {
+    font-size: 14px;
+  }
+  .err {
+    font-size: 12px;
   }
 }
   
