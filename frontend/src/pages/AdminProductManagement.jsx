@@ -1,4 +1,4 @@
-// src/pages/AdminProductManagement.jsx (진행 상태 컬럼 및 상태 변경 기능 추가)
+// src/pages/AdminProductManagement.jsx (상품/리뷰 종류 컬럼 추가)
 
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
@@ -16,6 +16,8 @@ export default function AdminProductManagement() {
     reviewType: '',
     reviewDate: '',
     progressStatus: 'all',
+    productType: '', // 필터 상태 추가
+    reviewOption: '', // 필터 상태 추가
   });
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
 
@@ -73,12 +75,16 @@ export default function AdminProductManagement() {
     reviewType: '',
     reviewDate: '',
     progressStatus: 'all',
+    productType: '',
+    reviewOption: '',
   });
 
   const downloadCsv = () => {
     const csvData = processedProducts.map(p => ({
       '상품명': p.productName || '-',
       '결제 종류': p.reviewType || '-',
+      '상품 종류': p.productType || '-', // 엑셀 다운로드에 추가
+      '리뷰 종류': p.reviewOption || '-', // 엑셀 다운로드에 추가
       '진행일자': p.reviewDate || '-',
       '진행 상태': p.progressStatus || '-',
       '등록날짜': formatDate(p.createdAt),
@@ -93,22 +99,17 @@ export default function AdminProductManagement() {
     URL.revokeObjectURL(url);
   };
 
-  // 진행 상태 변경 핸들러
   const handleStatusChange = async (id, newStatus) => {
     try {
       const productRef = doc(db, 'products', id);
       await updateDoc(productRef, { progressStatus: newStatus });
-      
-      // 화면 상태 즉시 업데이트
       setProducts(prevProducts =>
         prevProducts.map(p => (p.id === id ? { ...p, progressStatus: newStatus } : p))
       );
-      // alert('상태가 변경되었습니다.'); // 너무 잦은 알림 방지를 위해 주석 처리
     } catch (error) {
       alert('상태 변경 중 오류가 발생했습니다: ' + error.message);
     }
   };
-
 
   if (loading) return <p>상품 목록을 불러오는 중...</p>;
 
@@ -130,21 +131,25 @@ export default function AdminProductManagement() {
         <button onClick={downloadCsv}>엑셀 다운로드</button>
       </div>
 
-      {/* 테이블 레이아웃을 div로 감싸서 반응형 스크롤을 지원합니다. */}
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ minWidth: '800px' }}> {/* 최소 너비 지정 */}
+        <table style={{ minWidth: '1000px' }}>
           <thead>
             <tr>
+              {/* ▼▼▼ 컬럼 너비 조정 및 추가 ▼▼▼ */}
               <th onClick={() => requestSort('productName')} className="sortable" style={{width: '20%'}}>상품명<SortIndicator columnKey="productName" /></th>
-              <th onClick={() => requestSort('reviewType')} className="sortable" style={{width: '15%'}}>결제 종류<SortIndicator columnKey="reviewType" /></th>
-              <th onClick={() => requestSort('reviewDate')} className="sortable" style={{width: '15%'}}>진행일자<SortIndicator columnKey="reviewDate" /></th>
-              <th onClick={() => requestSort('progressStatus')} className="sortable" style={{width: '15%'}}>진행 상태<SortIndicator columnKey="progressStatus" /></th>
-              <th onClick={() => requestSort('createdAt')} className="sortable" style={{width: '15%'}}>등록날짜<SortIndicator columnKey="createdAt" /></th>
-              <th style={{width: '20%'}}>관리</th>
+              <th onClick={() => requestSort('reviewType')} className="sortable" style={{width: '10%'}}>결제 종류<SortIndicator columnKey="reviewType" /></th>
+              <th onClick={() => requestSort('productType')} className="sortable" style={{width: '10%'}}>상품 종류<SortIndicator columnKey="productType" /></th>
+              <th onClick={() => requestSort('reviewOption')} className="sortable" style={{width: '10%'}}>리뷰 종류<SortIndicator columnKey="reviewOption" /></th>
+              <th onClick={() => requestSort('reviewDate')} className="sortable" style={{width: '10%'}}>진행일자<SortIndicator columnKey="reviewDate" /></th>
+              <th onClick={() => requestSort('progressStatus')} className="sortable" style={{width: '10%'}}>진행 상태<SortIndicator columnKey="progressStatus" /></th>
+              <th onClick={() => requestSort('createdAt')} className="sortable" style={{width: '10%'}}>등록날짜<SortIndicator columnKey="createdAt" /></th>
+              <th style={{width: '10%'}}>관리</th>
             </tr>
             <tr className="filter-row">
               <th><input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></th>
               <th><input type="text" name="reviewType" value={filters.reviewType} onChange={handleFilterChange} /></th>
+              <th><input type="text" name="productType" value={filters.productType} onChange={handleFilterChange} /></th>
+              <th><input type="text" name="reviewOption" value={filters.reviewOption} onChange={handleFilterChange} /></th>
               <th><input type="text" name="reviewDate" value={filters.reviewDate} onChange={handleFilterChange} /></th>
               <th>
                 <select name="progressStatus" value={filters.progressStatus} onChange={handleFilterChange}>
@@ -154,6 +159,7 @@ export default function AdminProductManagement() {
               </th>
               <th></th>
               <th></th>
+              {/* ▲▲▲ 필터 컬럼 추가 ▲▲▲ */}
             </tr>
           </thead>
           <tbody>
@@ -161,6 +167,9 @@ export default function AdminProductManagement() {
               <tr key={product.id}>
                 <td style={{textAlign: 'left'}}>{product.productName}</td>
                 <td>{product.reviewType}</td>
+                {/* ▼▼▼ 데이터 표시 컬럼 추가 ▼▼▼ */}
+                <td>{product.productType || '-'}</td>
+                <td>{product.reviewOption || '-'}</td>
                 <td>{product.reviewDate}</td>
                 <td>
                   <select 
@@ -185,7 +194,7 @@ export default function AdminProductManagement() {
               </tr>
             )) : (
               <tr>
-                <td colSpan="6" style={{ padding: '50px', textAlign: 'center' }}>
+                <td colSpan="8" style={{ padding: '50px', textAlign: 'center' }}>
                   생성된 상품이 없습니다.
                 </td>
               </tr>

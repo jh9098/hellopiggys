@@ -200,7 +200,22 @@ export default function WriteReview() {
 
   const handleMainButtonClick = () => { if (currentUser) { if (selectedProduct) { setIsAccountModalOpen(true); } else { alert("먼저 참여할 상품을 선택해주세요."); } } else { setIsLoginModalOpen(true); } };
   const handleLoginSuccess = () => setIsLoginModalOpen(false);
-  const handleProductSelect = (e) => { const productId = e.target.value; const product = products.find(p => p.id === productId) || null; setSelectedProduct(product); setIsAccountSelected(false); };
+  const handleProductSelect = (e) => {
+    const productId = e.target.value;
+    const product = products.find(p => p.id === productId) || null;
+    setSelectedProduct(product);
+    setIsAccountSelected(false);
+    
+    // ▼▼▼ 이 부분을 추가하거나 수정해주세요 ▼▼▼
+    if (product) {
+      // 상품에 저장된 값이 있으면 그 값을 사용하고, 없으면 기존 기본값을 유지합니다.
+      setForm(prev => ({
+        ...prev,
+        productType: product.productType || '실배송',
+        reviewOption: product.reviewOption || '별점',
+      }));
+    }
+  };
   const handleSelectAccount = (subAccount) => {
     setForm(prev => ({
       ...prev,

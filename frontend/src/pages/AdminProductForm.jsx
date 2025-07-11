@@ -1,15 +1,18 @@
-// src/pages/AdminProductForm.jsx (기본값 추가)
+// src/pages/AdminProductForm.jsx (상품/리뷰 종류 드롭다운 추가)
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db, collection, addDoc, serverTimestamp, updateDoc, doc, getDoc } from '../firebaseConfig';
 
 const progressStatusOptions = ['진행전', '진행중', '진행완료', '일부완료', '보류'];
+// ▼▼▼ 드롭다운 메뉴 옵션 정의 ▼▼▼
+const productTypeOptions = ['실배송', '빈박스'];
+const reviewOptionOptions = ['별점', '텍스트', '포토', '프리미엄포토', '프리미엄영상'];
 
-// ▼▼▼ 이 부분의 초기값을 수정합니다. ▼▼▼
+// ▼▼▼ 초기값에 새로운 필드 추가 ▼▼▼
 const initialFormState = {
   productName: '',
-  reviewType: '현영', // '결제 종류' 기본값 설정
+  reviewType: '현영',
   guide: `현영(지출증빙): 736-28-00836, 7362800836
 🚫상품명 검색 금지🚫
 🚫타계 동일 연락처, 동일 주소 중복 불가🚫
@@ -33,11 +36,12 @@ const initialFormState = {
  - 페이백 확인이 안될 경우 개인톡❌
  - 1:1 문의방으로 문의해 주세요
   → https://open.kakao.com/o/sscJn3wh
- - 입장 후 구매일자, 구매상품을 말씀해 주시면 더 빠른 확인이 가능해요!`, // '가이드' 기본값 설정
+ - 입장 후 구매일자, 구매상품을 말씀해 주시면 더 빠른 확인이 가능해요!`,
   reviewDate: '',
   progressStatus: '진행중',
+  productType: '실배송', // 상품 종류 기본값
+  reviewOption: '포토',   // 리뷰 종류 기본값
 };
-// ▲▲▲ 이 부분의 초기값을 수정합니다. ▲▲▲
 
 export default function AdminProductForm() {
   const { productId } = useParams();
@@ -49,7 +53,6 @@ export default function AdminProductForm() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // 수정 모드일 때는 DB에서 불러온 값으로 덮어쓰므로, 생성 모드에서만 초기값이 적용됩니다.
     if (isEditMode) {
       const fetchProductData = async () => {
         const docRef = doc(db, 'products', productId);
@@ -118,7 +121,27 @@ export default function AdminProductForm() {
 
         <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
           <label style={{ display: 'inline-block', width: '100px' }}>결제 종류</label>
-          <input type="text" name="reviewType" value={form.reviewType} onChange={handleChange} placeholder="예: 구매리뷰(영수증)" required style={{width: 'calc(100% - 120px)', padding: '8px'}}/>
+          <input type="text" name="reviewType" value={form.reviewType} onChange={handleChange} placeholder="예: 현영" required style={{width: 'calc(100% - 120px)', padding: '8px'}}/>
+        </div>
+
+        {/* ▼▼▼ 상품 종류 드롭다운 추가 ▼▼▼ */}
+        <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+          <label style={{ display: 'inline-block', width: '100px' }}>상품 종류</label>
+          <select name="productType" value={form.productType} onChange={handleChange} required style={{width: 'calc(100% - 120px)', padding: '8px'}}>
+            {productTypeOptions.map(type => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* ▼▼▼ 리뷰 종류 드롭다운 추가 ▼▼▼ */}
+        <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+          <label style={{ display: 'inline-block', width: '100px' }}>리뷰 종류</label>
+          <select name="reviewOption" value={form.reviewOption} onChange={handleChange} required style={{width: 'calc(100% - 120px)', padding: '8px'}}>
+            {reviewOptionOptions.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
         </div>
 
         <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
@@ -137,4 +160,5 @@ export default function AdminProductForm() {
         </div>
       </form>
     </>
-  );}
+  );
+}
