@@ -1,13 +1,26 @@
-// src/pages/MyReviews.jsx (상품/리뷰 종류 표시 추가 완료)
+// src/pages/MyReviews.jsx (Firebase 연동 오류를 완벽하게 수정한 최종본)
 
 import { useEffect, useState } from 'react';
 import imageCompression from 'browser-image-compression';
 import { useNavigate } from 'react-router-dom';
 import {
-  auth, onAuthStateChanged, db,
-  collection, query, where, orderBy, getDocs, doc, getDoc,
-  updateDoc, ref, uploadBytes, getDownloadURL, deleteField, deleteDoc,
-  getStorageInstance
+  auth,
+  onAuthStateChanged,
+  db,
+  storage, // getStorageInstance -> storage 로 변경
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteField,
+  deleteDoc,
 } from '../firebaseConfig';
 import LoginModal from '../components/LoginModal';
 import './MyReviews.css';
@@ -55,7 +68,6 @@ const initialImageFields = [
 
 export default function MyReviews() {
   const navigate = useNavigate();
-  const storage = getStorageInstance();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [products, setProducts] = useState([]); // 진행중인 상품 목록

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'; // useEffect를 import 했는지 확인
 import { useNavigate } from 'react-router-dom';
 import { 
-  auth, onAuthStateChanged, db, getStorageInstance, 
+  auth, onAuthStateChanged, db, storage, 
   ref, uploadBytes, getDownloadURL, addDoc, collection, 
   serverTimestamp, getDocs, query, orderBy, where 
 } from '../firebaseConfig';
@@ -22,7 +22,6 @@ const UPLOAD_FIELDS = [
 
 export default function WriteReview() {
   const navigate = useNavigate();
-  const storage = getStorageInstance();
 
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
