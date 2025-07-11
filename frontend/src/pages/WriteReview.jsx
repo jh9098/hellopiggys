@@ -1,6 +1,6 @@
-// src/pages/WriteReview.jsx
+// src/pages/WriteReview.jsx (수정된 최종 버전)
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'; // useEffect를 import 했는지 확인
 import { useNavigate } from 'react-router-dom';
 import { 
   auth, onAuthStateChanged, db, getStorageInstance, 
@@ -12,12 +12,13 @@ import AccountModal from '../components/AccountModal';
 import './WriteReview.css';
 import imageCompression from 'browser-image-compression';
 
-// 업로드 필드 정의 (handleSubmit에서 사용)
+// ... (기존 UPLOAD_FIELDS 등 다른 코드는 그대로 둡니다) ...
 const UPLOAD_FIELDS = [
   { key: 'keywordAndLikeImages', label: '1. 키워드 & 찜 인증', group: 'keyword-like', required: false },
   { key: 'orderImage', label: '구매 인증', group: 'purchase', required: false },
   { key: 'cashcardImage', label: '현금영수증/매출전표', group: 'purchase', required: false },
 ];
+
 
 export default function WriteReview() {
   const navigate = useNavigate();
@@ -57,6 +58,23 @@ export default function WriteReview() {
   const [selectedSubAccountInfo, setSelectedSubAccountInfo] = useState(null);
   const [isAgreed, setIsAgreed] = useState(false);
 
+  // ▼▼▼ 여기에 useEffect 훅을 추가하여 스크롤을 제어합니다 ▼▼▼
+  useEffect(() => {
+    // isAccountModalOpen 또는 isLoginModalOpen 상태가 true이면 배경 스크롤을 막습니다.
+    if (isAccountModalOpen || isLoginModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset'; // 모달이 닫히면 스크롤을 원래대로 복원합니다.
+    }
+
+    // 컴포넌트가 언마운트될 때(페이지를 벗어날 때) 스크롤을 복원하는 정리(cleanup) 함수
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isAccountModalOpen, isLoginModalOpen]); // 이 상태들이 변경될 때마다 useEffect가 실행됩니다.
+  // ▲▲▲ 스크롤 제어 로직 추가 완료 ▲▲▲
+
+
   const fetchAddresses = async (uid) => {
     if (!uid) return;
     try {
@@ -90,7 +108,6 @@ export default function WriteReview() {
     return () => unsubscribeAuth();
   }, []);
 
-  // ▼▼▼ onFileChange 함수 수정 (압축 실패 시 원본 파일 사용) ▼▼▼
   const onFileChange = async (e) => {
     const { name, files } = e.target;
     if (!files || files.length === 0) return;
@@ -101,29 +118,24 @@ export default function WriteReview() {
       useWebWorker: true,
     };
   
-    // 압축된 파일 또는 원본 파일을 담을 배열
     const processedFiles = [];
   
     for (const file of files) {
       try {
-        // 1. 이미지 압축 시도
         const compressedFile = await imageCompression(file, options);
         processedFiles.push(compressedFile);
       } catch (error) {
-        // 2. 압축 실패 시, 콘솔에 경고를 남기고 원본 파일을 그대로 사용
         console.warn(`이미지 압축 실패. 원본 파일을 사용합니다: ${file.name}`, error);
         processedFiles.push(file);
       }
     }
     
-    // 처리된 파일들로 상태 업데이트 (압축 성공/실패 여부와 관계없이 진행)
     const selectedFiles = processedFiles.slice(0, 5);
     setImages(prev => ({ ...prev, [name]: selectedFiles }));
     
     const previewUrls = selectedFiles.map(file => URL.createObjectURL(file));
     setPreviews(prev => ({ ...prev, [name]: previewUrls }));
   };
-  // ▲▲▲ 수정 완료 ▲▲▲
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -229,6 +241,7 @@ export default function WriteReview() {
 
   if (loading) return <p style={{textAlign: 'center', padding: '50px'}}>페이지 정보를 불러오는 중...</p>;
 
+  // ... (나머지 return JSX 부분은 그대로 둡니다) ...
   return (
     <div className="page-wrap">
       <h2 className="title">구매 폼 작성</h2>
