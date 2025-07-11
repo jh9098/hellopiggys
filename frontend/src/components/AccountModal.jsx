@@ -33,8 +33,18 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
   const [newAddress, setNewAddress] = useState('');
   const [globalAddresses, setGlobalAddresses] = useState([]);
 
-  // ▼▼▼ 핵심 수정 부분 ▼▼▼
-  // 모달이 마운트될 때, 이미 로그인된 사용자 정보를 기반으로 서브 계정을 불러옵니다.
+  // ▼▼▼ 여기에 useEffect 훅을 추가하여 배경 스크롤을 제어합니다 ▼▼▼
+  useEffect(() => {
+    // 모달이 마운트될 때 배경 스크롤을 막습니다.
+    document.body.style.overflow = 'hidden';
+
+    // 컴포넌트가 언마운트될 때(모달이 닫힐 때) 스크롤을 원래대로 복원합니다.
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []); // 빈 배열을 전달하여 컴포넌트가 마운트/언마운트 될 때 한 번씩만 실행되도록 합니다.
+
+  // ... (기존 useEffect는 그대로 둡니다)
   useEffect(() => {
     const user = auth.currentUser;
     if (user) {
@@ -42,11 +52,10 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
       fetchSubAccounts(user.uid);
       fetchGlobalAddresses(user.uid);
     } else {
-      // 이 경우는 발생하면 안 되지만, 안전장치로 에러 처리
       setError("로그인 정보가 유효하지 않습니다. 다시 시도해주세요.");
-      setTimeout(onClose, 2000); // 2초 후 모달 닫기
+      setTimeout(onClose, 2000);
     }
-  }, []); // 의존성 배열을 비워 최초 1회만 실행되도록 합니다.
+  }, []);
 
   const fetchSubAccounts = async (uid) => {
     try {

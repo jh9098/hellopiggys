@@ -1,8 +1,8 @@
-/* D:\hellopiggy\frontend\src\components\AccountModal.css (크기 축소 최종 버전) */
+/* D:\hellopiggy\frontend\src\components\AccountModal.css (스크롤 문제 해결 최종 버전) */
 
-/* General Modal Styling */
+/* 모달 배경: 화면 전체를 덮고 스크롤을 막는 역할 */
 .modal-back {
-  position: fixed;
+  position: fixed; /* 화면에 고정 */
   top: 0;
   left: 0;
   width: 100%;
@@ -10,206 +10,150 @@
   background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
-  align-items: flex-start; 
+  align-items: center; /* 모달을 중앙에 위치 */
   z-index: 1000;
-  overflow-y: auto;
-  padding: 15px 0; /* 상하 여백 축소 */
 }
 
-/* ▼▼▼ 모달 크기 및 패딩 대폭 축소 ▼▼▼ */
+/* 모달 창: 내용이 길어지면 자체적으로 스크롤 */
 .account-modal {
   background: white;
-  padding: 20px; /* 내부 패딩 축소 */
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  width: 95%;
-  max-width: 420px; /* 최대 너비 축소 */
+  padding: 25px 30px;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 480px;
   position: relative;
   z-index: 1001;
-  text-align: center;
   box-sizing: border-box;
+
+  /* ▼▼▼ 핵심 수정 부분 ▼▼▼ */
+  max-height: 90vh; /* 화면 높이의 90%를 넘지 않도록 제한 */
+  overflow-y: auto; /* 내용이 max-height를 넘으면 이 안에서 스크롤바 생성 */
+}
+
+@media (max-width: 480px) {
+  .account-modal {
+    width: 95%;
+    padding: 20px;
+  }
 }
 
 /* Close Button */
 .close-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
+  position: sticky; /* 스크롤 되어도 상단에 고정 */
+  top: -10px;
+  float: right; /* 오른쪽으로 붙임 */
   background: none;
   border: none;
-  font-size: 1.5rem; /* 버튼 크기 축소 */
+  font-size: 1.8rem;
   cursor: pointer;
   color: #aaa;
-  line-height: 1;
+  z-index: 10; /* 다른 요소 위에 오도록 */
+  margin: -10px -15px 0 0;
 }
+.close-btn:hover { color: #000; }
 
 /* Headers and Paragraphs */
 .account-modal h3 {
   margin-top: 0;
-  margin-bottom: 20px; /* 간격 축소 */
+  margin-bottom: 25px;
   color: #333;
-  font-size: 1.25rem; /* 헤더 폰트 크기 축소 */
+  font-size: 1.5rem;
 }
 
 /* General Forms and Inputs */
-.account-modal form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px; /* 요소 간 간격 축소 */
-}
-
-.account-modal input,
-.account-modal select {
+.account-modal form { display: flex; flex-direction: column; gap: 12px; }
+.account-modal input, .account-modal select {
   width: 100%;
-  padding: 10px; /* 입력창 패딩 축소 */
+  padding: 12px;
   border: 1px solid #ddd;
   border-radius: 5px;
   box-sizing: border-box;
-  font-size: 0.9rem; /* 입력창 폰트 크기 축소 */
+  font-size: 1rem;
 }
 
-/* Section Titles (e.g., 등록된 계정 목록, 새 계정 추가) */
-.sub-account-list h4,
-.sub-account-form h4 {
+/* Section Titles */
+.sub-account-list h4, .sub-account-form h4 {
   margin-top: 0;
-  margin-bottom: 15px; /* 간격 축소 */
+  margin-bottom: 25px;
   color: #555;
-  font-size: 1rem; /* 폰트 크기 축소 */
+  font-size: 1.1rem;
   font-weight: 600;
   position: relative;
-  padding-bottom: 10px;
+  padding-bottom: 15px;
 }
-.sub-account-list h4::after,
-.sub-account-form h4::after {
+.sub-account-list h4::after, .sub-account-form h4::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 30px; /* 밑줄 길이 축소 */
+  width: 40px;
   height: 2px;
   background-color: #e0e0e0;
 }
 
-/* Sub-account List Container */
+/* Sub-account List */
 .sub-account-list {
-  margin-top: 20px;
-  margin-bottom: 20px;
+  margin-top: 25px;
+  margin-bottom: 24px;
   border-top: 1px solid #eee;
-  padding-top: 20px;
+  padding-top: 25px;
 }
 
-/* Each Item in the Sub-account List */
+/* ▼▼▼ 버튼 위치 복원 및 정렬 ▼▼▼ */
 .sub-account-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 5px; /* 내부 패딩 축소 */
+  padding: 12px 8px;
   border-radius: 6px;
   transition: background-color 0.2s;
   text-align: left;
+  gap: 10px; /* 정보와 버튼 사이 간격 추가 */
 }
-
+.sub-account-item:hover { background-color: #f5f5f5; }
 .sub-account-item .account-info {
   flex-grow: 1;
   cursor: pointer;
   font-weight: 500;
-  font-size: 0.9rem; /* 폰트 크기 축소 */
-  line-height: 1.3;
+  line-height: 1.4;
 }
-
-/* Container for Edit and Delete buttons */
 .account-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px; /* 버튼 간격 축소 */
-  flex-shrink: 0;
+  gap: 8px;
+  flex-shrink: 0; /* 버튼 영역이 줄어들지 않도록 함 */
 }
-
-/* Common style for small buttons */
 .account-actions button {
-  padding: 3px 8px; /* 버튼 패딩 축소 */
+  padding: 4px 10px;
   border-radius: 4px;
-  font-size: 11px; /* 버튼 폰트 크기 축소 */
+  font-size: 12px;
   border: none;
   cursor: pointer;
   transition: background-color 0.2s;
-  margin-left: 2px;
 }
-
-/* Edit/Delete Button Styles */
 .account-actions .edit-btn { background-color: #e0e0e0; color: #333; }
-.account-actions .edit-btn:hover { background-color: #d1d1d1; }
 .account-actions .delete-btn { background-color: #e53935; color: white; }
+.account-actions .edit-btn:hover { background-color: #d1d1d1; }
 .account-actions .delete-btn:hover { background-color: #c62828; }
 
-/* Sub-account Creation Form */
-.sub-account-form {
-  margin-top: 20px;
-  border-top: 1px solid #eee;
-  padding-top: 20px;
-}
-
-/* Form Actions (Submit, Cancel Buttons) */
-.form-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.form-actions button {
-  flex: 1;
-  padding: 12px; /* 버튼 패딩 축소 */
-  border-radius: 6px;
-  font-size: 0.95rem; /* 폰트 크기 축소 */
-  font-weight: bold;
-}
-
-/* 주소 추가/삭제 관련 스타일 */
+/* 이하 나머지 스타일은 원래대로 유지 */
+.sub-account-form { margin-top: 30px; border-top: 1px solid #eee; padding-top: 25px; }
+.form-actions { display: flex; gap: 10px; margin-top: 10px; }
+.form-actions button { flex: 1; padding: 14px; border-radius: 8px; font-size: 1rem; font-weight: bold; }
+.form-actions .cancel-btn { background-color: #6c757d; color: white; }
+.form-actions .cancel-btn:hover { background-color: #5a6268; }
+button[type="submit"] { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color 0.2s; }
+button[type="submit"]:disabled { background-color: #a0c8f0; cursor: not-allowed; }
+button[type="submit"]:hover:not(:disabled) { background-color: #0056b3; }
+.error-msg { color: #e53935; font-size: 14px; font-weight: bold; margin-top: 15px; }
 .address-group { display: flex; flex-direction: column; gap: 8px; }
 .add-address-row { display: flex; gap: 8px; }
 .add-address-row input { flex-grow: 1; }
-.add-address-row button {
-  padding: 0 12px; /* 버튼 패딩 축소 */
-  font-size: 0.85rem; /* 버튼 폰트 크기 축소 */
-  flex-shrink: 0;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
+.add-address-row button { padding: 0 15px; flex-shrink: 0; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+.add-address-row button:hover { background-color: #218838; }
 .address-list { list-style: none; padding: 0; margin: 8px 0 0 0; text-align: left; }
-.address-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #f8f9fa;
-  padding: 5px 8px; /* 리스트 패딩 축소 */
-  border-radius: 4px;
-  margin-bottom: 4px;
-  font-size: 13px; /* 폰트 크기 축소 */
-}
-.address-list button { padding: 1px 5px; font-size: 11px; }
-
-/* Main Submit Button */
-button[type="submit"] {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-button[type="submit"]:disabled { background-color: #a0c8f0; cursor: not-allowed; }
-button[type="submit"]:hover:not(:disabled) { background-color: #0056b3; }
-.form-actions .cancel-btn { background-color: #6c757d; color: white; }
-.form-actions .cancel-btn:hover { background-color: #5a6268; }
-
-/* Error Message */
-.error-msg {
-  color: #e53935;
-  font-size: 13px; /* 폰트 크기 축소 */
-  font-weight: bold;
-  margin-top: 10px;
-}
+.address-list li { display: flex; justify-content: space-between; align-items: center; background-color: #f8f9fa; padding: 6px 10px; border-radius: 4px; margin-bottom: 5px; font-size: 14px; }
+.address-list button { background-color: #dc3545; color: white; border: none; border-radius: 3px; padding: 2px 6px; font-size: 12px; cursor: pointer; }
