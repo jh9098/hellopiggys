@@ -26,6 +26,14 @@
   position: relative;
   z-index: 1001;
   text-align: center;
+  box-sizing: border-box; /* 모바일에서 패딩 포함 크기 계산 */
+}
+
+@media (max-width: 480px) {
+  .account-modal {
+    width: 95%;
+    padding: 20px;
+  }
 }
 
 /* Close Button */
