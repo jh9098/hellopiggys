@@ -40,7 +40,7 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
     if (user) {
       setCurrentMainAccountId(user.uid);
       fetchSubAccounts(user.uid);
-      fetchGlobalAddresses();
+      fetchGlobalAddresses(user.uid);
     } else {
       // 이 경우는 발생하면 안 되지만, 안전장치로 에러 처리
       setError("로그인 정보가 유효하지 않습니다. 다시 시도해주세요.");
@@ -68,9 +68,10 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
     }
   };
 
-  const fetchGlobalAddresses = async () => {
+  const fetchGlobalAddresses = async (uid) => {
     try {
-      const snap = await getDocs(collection(db, 'addresses'));
+      const q = query(collection(db, 'addresses'), where('mainAccountId', '==', uid));
+      const snap = await getDocs(q);
       setGlobalAddresses(snap.docs.map(d => d.data().value));
     } catch (err) {
       console.error('주소 목록을 불러오는 데 실패했습니다.', err);
@@ -128,7 +129,11 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
     setNewAddress('');
     if (!globalAddresses.includes(addr)) {
       try {
-        await addDoc(collection(db, 'addresses'), { value: addr, createdAt: serverTimestamp() });
+        await addDoc(collection(db, 'addresses'), {
+          value: addr,
+          mainAccountId: currentMainAccountId,
+          createdAt: serverTimestamp(),
+        });
         setGlobalAddresses(prev => [...prev, addr]);
         if (onAddressAdded) onAddressAdded(addr);
       } catch (err) {
