@@ -127,7 +127,7 @@
   }
 
   /* 계정 선택 버튼 */
-  .page-wrap .account-actions button {
+  .page-wrap .account-selection-action button {
     width: 100%;
     background: #007bff;
     color: #fff;
