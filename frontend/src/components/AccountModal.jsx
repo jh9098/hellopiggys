@@ -206,10 +206,27 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
               <h4>등록된 계정 목록을 선택하세요</h4>
               {subAccounts.map(acc => (
                 <div key={acc.id} className="sub-account-item">
-                  <span onClick={() => handleSelectSubAccount(acc)} className="account-info">{acc.name} ({acc.phoneNumber})</span>
+                  <span
+                    onClick={() => handleSelectSubAccount(acc)}
+                    className="account-info"
+                  >
+                    {acc.name} ({acc.phoneNumber})
+                  </span>
                   <div className="account-actions">
-                    <button onClick={() => handleEditClick(acc)} className="edit-btn">수정</button>
-                    <button onClick={() => handleDeleteClick(acc.id)} className="delete-btn">삭제</button>
+                    <button
+                      type="button"
+                      onClick={() => handleEditClick(acc)}
+                      className="edit-btn"
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteClick(acc.id)}
+                      className="delete-btn"
+                    >
+                      삭제
+                    </button>
                   </div>
                 </div>
               ))}
