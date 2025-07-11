@@ -57,10 +57,25 @@ export default function WriteReview() {
   const [selectedSubAccountInfo, setSelectedSubAccountInfo] = useState(null);
   const [isAgreed, setIsAgreed] = useState(false);
 
+  const fetchAddresses = async (uid) => {
+    if (!uid) return;
+    try {
+      const q = query(collection(db, 'addresses'), where('mainAccountId', '==', uid));
+      const snap = await getDocs(q);
+      setGlobalAddresses(snap.docs.map(d => d.data().value));
+    } catch (e) { console.error('주소 목록 로딩 실패:', e); }
+  };
+
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
-      if (!user) { setSelectedProduct(null); setIsAccountSelected(false); }
+      if (user) {
+        fetchAddresses(user.uid);
+      } else {
+        setSelectedProduct(null);
+        setIsAccountSelected(false);
+        setGlobalAddresses([]);
+      }
     });
     const fetchProducts = async () => {
       try {
@@ -70,14 +85,8 @@ export default function WriteReview() {
       } catch (e) { console.error("상품 목록 로딩 실패:", e); }
       finally { setLoading(false); }
     };
-    const fetchAddresses = async () => {
-      try {
-        const snap = await getDocs(collection(db, 'addresses'));
-        setGlobalAddresses(snap.docs.map(d => d.data().value));
-      } catch (e) { console.error('주소 목록 로딩 실패:', e); }
-    };
     fetchProducts();
-    fetchAddresses();
+    // 주소는 로그인 후 fetchAddresses에서 불러옵니다
     return () => unsubscribeAuth();
   }, []);
 
