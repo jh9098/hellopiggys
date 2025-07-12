@@ -49,12 +49,12 @@ function App() {
       <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/seller-login" element={<SellerLoginPage />} />
       <Route path="/seller-signup" element={<SellerSignupPage />} />
+      <Route path="/link" element={<WriteReview />} />
       
       {/* ───── 2. 인증이 필요한 페이지 그룹 ───── */}
       <Route element={<PrivateRoute />}>
         {/* 리뷰어 */}
         <Route path="/my-reviews" element={<MyReviews />} />
-        <Route path="/link" element={<WriteReview />} />
 
         {/* 판매자 */}
         <Route path="/seller" element={<SellerLayout />}>
