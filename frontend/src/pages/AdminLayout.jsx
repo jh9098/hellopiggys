@@ -1,8 +1,8 @@
-// src/pages/AdminLayout.jsx
+// src/pages/AdminLayout.jsx (기존 hellopiggy 스타일 적용 최종본)
 
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { auth, signOut } from '../firebaseConfig';
-import './AdminLayout.css'; // 공통 레이아웃 CSS
+import './AdminLayout.css'; // [추가] AdminLayout 전용 CSS를 임포트합니다.
 
 export default function AdminLayout() {
   const navigate = useNavigate();
