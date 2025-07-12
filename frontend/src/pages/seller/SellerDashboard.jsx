@@ -1,8 +1,8 @@
-// src/pages/seller/SellerDashboard.jsx (Vite 환경에 맞게 수정된 최종본)
+// src/pages/seller/SellerDashboard.jsx (레이아웃 수정 및 UI 개선 최종본)
 
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, onSnapshot } from '../../firebaseConfig';
-import { Link } from 'react-router-dom'; // [수정] react-router-dom의 Link 사용
+import { Link } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from "@fullcalendar/interaction";
@@ -118,7 +118,7 @@ export default function SellerDashboardPage() {
                 <div className="flex flex-col items-center justify-center flex-grow pb-2">
                     <div className="text-xs text-gray-500">잔여</div>
                     {remaining > 0 && capacity > 0 ? (
-                        <Link to={`/seller/reservation?date=${dateStr}`}> {/* [수정] legacyBehavior 제거 및 to 속성 사용 */}
+                        <Link to={`/seller/reservation?date=${dateStr}`}>
                             <span className={`font-bold ${remainingTextSize} ${remainingColor} cursor-pointer hover:underline`}>
                                 {remaining}
                             </span>
@@ -139,7 +139,7 @@ export default function SellerDashboardPage() {
                     plugins={[dayGridPlugin, interactionPlugin]}
                     initialView="dayGridMonth"
                     headerToolbar={{ left: 'prev,next today', center: 'title', right: '' }}
-                    buttonText={{ today: 'today' }}
+                    buttonText={{ today: '오늘' }}
                     events={events}
                     dayCellContent={renderSellerDayCell}
                     dayCellClassNames="relative h-28" 
