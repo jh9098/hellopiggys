@@ -5,7 +5,7 @@ import './ReviewDetailModal.css'; // 기존 모달 CSS 재사용
 
 const formatDate = (timestamp) => {
     if (!timestamp) return 'N/A';
-    return new Date(timestamp.seconds * 1000).toLocaleString();
+    return new Date(timestamp.seconds * 1000).toLocaleString('ko-KR');
 }
 
 export default function MemberDetailModal({ member, onClose }) {

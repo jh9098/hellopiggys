@@ -152,7 +152,7 @@ export default function AdminProductManagementPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === filteredCampaigns.length && filteredCampaigns.length > 0} /></th>
-                <th className={thClass}>등록일시</th>
+                <th className={thClass}>상품 등록일시</th>
                 <th className={thClass}>상태</th>
                 <th className={thClass}>상품명</th>
                 <th className={thClass}>결제 종류</th>
@@ -167,7 +167,7 @@ export default function AdminProductManagementPage() {
                 {filteredCampaigns.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50">
                     <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleString() : 'N/A'}</td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleString('ko-KR') : 'N/A'}</td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.status === '리뷰완료' ? 'bg-blue-100 text-blue-800' : c.status === '예약 확정' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{c.status}</span></td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.productName}</td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
