@@ -43,7 +43,7 @@ export default function AdminReviewList() {
               <td>{r.phoneNumber}</td>
               <td>{r.title}</td>
               <td>{r.createdAt?.seconds
-                     ? new Date(r.createdAt.seconds*1000).toLocaleString()
+                     ? new Date(r.createdAt.seconds*1000).toLocaleString('ko-KR')
                      : ''}</td>
             </tr>
           ))}
