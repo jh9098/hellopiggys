@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { db, auth, onAuthStateChanged, collection, query, where, onSnapshot } from '../../firebaseConfig';
-import SellerLayout from '../../layouts/SellerLayout';
 
 export default function SellerProgressPage() {
   const [user, setUser] = useState(null);
@@ -68,7 +67,6 @@ export default function SellerProgressPage() {
   }
 
   return (
-    <SellerLayout>
     <>
       <div className="flex items-center mb-4 space-x-2">
         <select value={year} onChange={e => setYear(Number(e.target.value))} className="border p-2 rounded-md">
@@ -119,6 +117,5 @@ export default function SellerProgressPage() {
         </table>
       </div>
     </>
-    </SellerLayout>
   );
 }
