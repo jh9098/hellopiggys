@@ -1,4 +1,4 @@
-// src/pages/AdminReviewManagement.jsx
+// src/pages/AdminReviewManagement.jsx (Tailwind CSS 클래스 제거 최종본)
 
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, getDoc, deleteDoc } from '../firebaseConfig';
@@ -136,15 +136,14 @@ export default function AdminReviewManagementPage() {
   const closeDetailModal = () => { setIsModalOpen(false); setSelectedReview(null); };
 
   if (loading) return <p>리뷰 정보를 불러오는 중...</p>;
-
   const SortIndicator = ({ columnKey }) => sortConfig.key !== columnKey ? null : (sortConfig.direction === 'asc' ? ' ▲' : ' ▼');
 
   return (
     <>
       <h2>리뷰 관리 ({processedRows.length})</h2>
       <div className="toolbar">
-        <button onClick={handleVerify} disabled={selected.size === 0} className="verify-button-toolbar">선택 항목 리뷰 인증</button>
-        <button onClick={handleDelete} disabled={selected.size === 0} className="delete-button-toolbar">선택 항목 삭제</button>
+        <button onClick={handleVerify} disabled={selected.size === 0}>선택 항목 리뷰 인증</button>
+        <button onClick={handleDelete} disabled={selected.size === 0}>선택 항목 삭제</button>
         <button onClick={resetFilters}>필터 초기화</button>
         <button onClick={downloadCsv}>엑셀 다운로드</button>
       </div>

@@ -74,7 +74,6 @@ export default function AdminProductFormPage() {
   };
 
   if (loading) return <p>상품 정보를 불러오는 중...</p>;
-
   const currentReviewOptions = form.productType === '빈박스' ? limitedReviewOptions : fullReviewOptions;
 
   return (

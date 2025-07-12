@@ -1,11 +1,13 @@
-// src/pages/AdminSettlement.jsx
+// src/pages/AdminSettlement.jsx (Tailwind CSS 제거 최종본)
 
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, deleteDoc, getDoc } from '../firebaseConfig';
 import ReviewDetailModal from '../components/ReviewDetailModal';
 import Papa from 'papaparse';
 
-const initialFilters = { productName: '', orderNumber: '', mainAccountName: '', subAccountName: '', phoneNumber: '', reviewConfirm: 'all' };
+const initialFilters = {
+  productName: '', orderNumber: '', mainAccountName: '', subAccountName: '', phoneNumber: '', reviewConfirm: 'all',
+};
 
 export default function AdminSettlementPage() {
   const [rows, setRows] = useState([]);
@@ -20,7 +22,6 @@ export default function AdminSettlementPage() {
     setLoading(true);
     const q = query(collection(db, 'reviews'), where('status', '==', 'verified'), orderBy('verifiedAt', 'desc'));
     const snap = await getDocs(q);
-
     const settlementData = await Promise.all(snap.docs.map(async (d) => {
       const review = { id: d.id, ...d.data() };
       if (review.productId) {
@@ -90,7 +91,6 @@ export default function AdminSettlementPage() {
     setSelected(newSelected);
   };
   const toggleSelectAll = (e) => setSelected(e.target.checked ? new Set(processedRows.map(r => r.id)) : new Set());
-
   const handleDelete = async () => {
     if (selected.size === 0) return;
     if (!window.confirm(`${selected.size}개의 항목을 삭제하시겠습니까?`)) return;
@@ -99,7 +99,6 @@ export default function AdminSettlementPage() {
     fetchSettlementList();
     setSelected(new Set());
   };
-
   const handleSettle = async () => {
     if (selected.size === 0) return;
     if (!window.confirm(`${selected.size}개의 항목을 정산 완료 처리하시겠습니까?`)) return;
@@ -108,18 +107,14 @@ export default function AdminSettlementPage() {
     fetchSettlementList();
     setSelected(new Set());
   };
-
   const downloadCsvForInfo = () => {
     if (processedRows.length === 0) return alert('다운로드할 정산 내역이 없습니다.');
-    const toText = (v, excelText = false) => {
-      const str = (v ?? '').toString();
-      return excelText ? `="${str}"` : str;
-    };
+    const toText = (v, excelText = false) => `="${(v ?? '').toString()}"`;
     const csvData = processedRows.map(r => ({
-      '상품명': toText(r.productInfo?.productName || r.productName || '-'), '진행일자': toText(r.productInfo?.reviewDate || '-'), '주문번호': toText(r.orderNumber || '-'),
-      '본계정 이름': toText(r.mainAccountName || '-'), '타계정 이름(수취인)': toText(r.subAccountName || '-'), '전화번호': toText(r.phoneNumber || '-', true),
-      '주소': toText(r.address || '-'), '은행': toText(r.bank || '-'), '계좌번호': toText(r.bankNumber || '', true), '예금주': toText(r.accountHolderName || '-'),
-      '금액': toText(r.rewardAmount || '0'),
+      '상품명': toText(r.productInfo?.productName || r.productName || '-'), '진행일자': toText(r.productInfo?.reviewDate || '-'),
+      '주문번호': toText(r.orderNumber || '-'), '본계정 이름': toText(r.mainAccountName || '-'), '타계정 이름(수취인)': toText(r.subAccountName || '-'),
+      '전화번호': toText(r.phoneNumber || '-', true), '주소': toText(r.address || '-'), '은행': toText(r.bank || '-'),
+      '계좌번호': toText(r.bankNumber || '', true), '예금주': toText(r.accountHolderName || '-'), '금액': toText(r.rewardAmount || '0'),
     }));
     const csv = Papa.unparse(csvData, { header: true });
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
@@ -130,22 +125,20 @@ export default function AdminSettlementPage() {
     a.click();
     URL.revokeObjectURL(url);
   };
-
   const openDetailModal = (review) => { setSelectedReview(review); setIsModalOpen(true); };
   const closeDetailModal = () => { setIsModalOpen(false); setSelectedReview(null); };
 
   if (loading) return <p>정산 내역을 불러오는 중...</p>;
-
   const SortIndicator = ({ columnKey }) => sortConfig.key !== columnKey ? null : (sortConfig.direction === 'asc' ? ' ▲' : ' ▼');
 
   return (
     <>
       <h2>정산 내역 ({processedRows.length})</h2>
       <div className="toolbar">
-        <button onClick={handleDelete} disabled={selected.size === 0} className="delete-button-toolbar">선택삭제</button>
+        <button onClick={handleDelete} disabled={selected.size === 0}>선택삭제</button>
         <button onClick={handleSettle} disabled={selected.size === 0}>정산완료</button>
         <button onClick={resetFilters}>필터 초기화</button>
-        <button onClick={downloadCsvForInfo} disabled={processedRows.length === 0} style={{backgroundColor: '#007bff', color: 'white'}}>정보 파일 다운로드</button>
+        <button onClick={downloadCsvForInfo} disabled={processedRows.length === 0}>정보 파일 다운로드</button>
       </div>
       <div className="table-container">
         <table>

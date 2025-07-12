@@ -1,4 +1,4 @@
-// src/pages/AdminSettlementComplete.jsx
+// src/pages/AdminSettlementComplete.jsx (Tailwind CSS 제거 최종본)
 
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, where, doc, getDoc, deleteDoc } from '../firebaseConfig';
@@ -100,14 +100,13 @@ export default function AdminSettlementCompletePage() {
   };
 
   if (loading) return <p>정산 완료 목록을 불러오는 중...</p>;
-
   const SortIndicator = ({ columnKey }) => sortConfig.key !== columnKey ? null : (sortConfig.direction === 'asc' ? ' ▲' : ' ▼');
 
   return (
     <>
       <h2>정산 완료 ({processedRows.length})</h2>
       <div className="toolbar">
-        <button onClick={handleDelete} disabled={selected.size === 0} className="delete-button-toolbar">선택삭제</button>
+        <button onClick={handleDelete} disabled={selected.size === 0}>선택삭제</button>
         <button onClick={resetFilters}>필터 초기화</button>
       </div>
       <div className="table-container">

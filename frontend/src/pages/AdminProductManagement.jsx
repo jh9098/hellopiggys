@@ -1,4 +1,4 @@
-// src/pages/AdminProductManagement.jsx
+// src/pages/AdminProductManagement.jsx (기존 CSS 적용 최종본)
 
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';

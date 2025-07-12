@@ -1,8 +1,8 @@
-// src/pages/AdminLayout.jsx (기존 hellopiggy 스타일 적용 최종본)
+// src/pages/AdminLayout.jsx (기존 CSS 스타일로 완전 복원)
 
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { auth, signOut } from '../firebaseConfig';
-import './AdminLayout.css'; // [추가] AdminLayout 전용 CSS를 임포트합니다.
+import './AdminLayout.css'; // [중요] 기존 레이아웃 CSS를 임포트합니다.
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -25,16 +25,24 @@ export default function AdminLayout() {
           <span className="logout-icon">→</span>
         </div>
         <nav>
-          {/* NavLink는 활성 링크에 active 클래스를 자동으로 추가해 줍니다. */}
-          <NavLink to="/admin/members">회원관리</NavLink>
-          <NavLink to="/admin/products">상품관리</NavLink>
-          <NavLink to="/admin/reviews">리뷰관리</NavLink>
-          <NavLink to="/admin/settlement">정산내역</NavLink>
-          <NavLink to="/admin/settlement-complete">정산완료</NavLink>
+          {/* 리뷰어 관리 */}
+          <h3 className="menu-section-title">리뷰어 관리</h3>
+          <NavLink to="/admin/reviewer/reviews">리뷰 접수 관리</NavLink>
+          <NavLink to="/admin/reviewer/members">회원 관리</NavLink>
+          <NavLink to="/admin/reviewer/products">리뷰 상품 관리</NavLink>
+          <NavLink to="/admin/reviewer/settlement">정산 관리</NavLink>
+          <NavLink to="/admin/reviewer/settlement-complete">정산 완료 내역</NavLink>
+          
+          {/* 판매자/캠페인 관리 */}
+          <h3 className="menu-section-title">판매자/캠페인 관리</h3>
+          <NavLink to="/admin/selleradmin/dashboard">대시보드</NavLink>
+          <NavLink to="/admin/selleradmin/products">캠페인 관리</NavLink>
+          <NavLink to="/admin/selleradmin/sellers">판매자 목록</NavLink>
+          <NavLink to="/admin/selleradmin/schedule">예약 시트 관리</NavLink>
+          <NavLink to="/admin/selleradmin/progress">진행현황</NavLink>
         </nav>
       </aside>
       <main>
-        {/* 자식 라우트의 컴포넌트가 이 자리에 렌더링됩니다. */}
         <Outlet />
       </main>
     </div>
