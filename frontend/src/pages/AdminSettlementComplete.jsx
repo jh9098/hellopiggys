@@ -110,7 +110,7 @@ export default function AdminSettlementCompletePage() {
         <button onClick={resetFilters}>필터 초기화</button>
       </div>
       <div className="table-container">
-        <table>
+        <table className="admin-table">
           <thead>
             <tr>
               <th><input type="checkbox" onChange={toggleSelectAll} checked={selected.size === processedRows.length && processedRows.length > 0} /></th>
