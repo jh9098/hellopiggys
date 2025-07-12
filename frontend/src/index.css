@@ -1,0 +1,13 @@
+/* src/index.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 나머지 기존 CSS 코드 (있다면 그대로 둡니다) */
+body {
+  font-family: "Pretendard", "Noto Sans KR", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
+    "Helvetica Neue", sans-serif;
+  background-color: #f3f4f6; /* 전체 배경색을 연한 회색으로 설정 */
+}

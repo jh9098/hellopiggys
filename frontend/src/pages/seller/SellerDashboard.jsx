@@ -1,4 +1,4 @@
-// src/pages/seller/SellerDashboard.jsx (원본: index.js)
+// src/pages/seller/SellerDashboard.jsx (UI 스타일링 최종 적용)
 
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, onSnapshot } from '../../firebaseConfig';
@@ -15,7 +15,7 @@ const formatDate = (date) => {
     return `${year}-${month}-${day}`;
 };
 
-export default function SellerDashboardPage() { // 컴포넌트 이름 변경
+export default function SellerDashboardPage() {
     const [campaigns, setCampaigns] = useState([]);
     const [sellers, setSellers] = useState({});
     const [capacities, setCapacities] = useState({});
@@ -85,9 +85,9 @@ export default function SellerDashboardPage() { // 컴포넌트 이름 변경
         const remainingTextSize = 'text-xl'; 
 
         return (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full justify-between">
                 <div className="text-right text-sm text-gray-500 pr-1 pt-1">{dayCellInfo.dayNumberText}</div>
-                <div className="flex flex-col items-center justify-center flex-grow pb-2">
+                <div className="flex flex-col items-center justify-center flex-grow">
                     <div className="text-xs text-gray-500">잔여</div>
                     {remaining > 0 && capacity > 0 ? (
                         <Link to={`/seller/reservation?date=${dateStr}`}>
@@ -112,7 +112,7 @@ export default function SellerDashboardPage() { // 컴포넌트 이름 변경
                     buttonText={{ today: '오늘' }}
                     events={events}
                     dayCellContent={renderSellerDayCell}
-                    dayCellClassNames="relative h-28" 
+                    dayCellClassNames="relative h-32" 
                     locale="ko"
                     height="auto"
                     timeZone='local'
