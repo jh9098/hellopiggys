@@ -1,7 +1,7 @@
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, Outlet } from 'react-router-dom';
 import { useState } from 'react';
 
-export default function SellerLayout({ children }) {
+export default function SellerLayout() {
   const [open, setOpen] = useState({ experience: false, traffic: false, kita: false });
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -32,7 +32,7 @@ export default function SellerLayout({ children }) {
                     </NavLink>
                   </li>
                   <li className="mb-2">
-                    <NavLink to="/dashboard/products" className={({ isActive }) => `p-2 rounded block ${isActive ? 'bg-gray-900' : 'hover:bg-gray-700'}`  }>
+                    <NavLink to="/seller/reservation" className={({ isActive }) => `p-2 rounded block ${isActive ? 'bg-gray-900' : 'hover:bg-gray-700'}`  }>
                       예약하기
                     </NavLink>
                   </li>
@@ -90,7 +90,9 @@ export default function SellerLayout({ children }) {
         >
           ☰
         </button>
-        <main className="flex-1 p-8 bg-gray-100">{children}</main>
+        <main className="flex-1 p-8 bg-gray-100">
+          <Outlet />
+        </main>
       </div>
     </div>
   );
