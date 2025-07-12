@@ -110,7 +110,7 @@ export default function AdminProductManagementPage() {
         <button onClick={downloadCsv}>엑셀 다운로드</button>
       </div>
       <div className="table-container">
-        <table>
+        <table className="admin-table">
           <thead>
             <tr>
               <th onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></th>

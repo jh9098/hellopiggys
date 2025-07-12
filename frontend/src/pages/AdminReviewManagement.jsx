@@ -148,7 +148,7 @@ export default function AdminReviewManagementPage() {
         <button onClick={downloadCsv}>엑셀 다운로드</button>
       </div>
       <div className="table-container">
-        <table>
+        <table className="admin-table">
           <thead>
             <tr>
               <th><input type="checkbox" checked={selected.size === processedRows.length && processedRows.length > 0} onChange={toggleSelectAll} /></th>

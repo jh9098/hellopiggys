@@ -101,27 +101,30 @@ main h2 {
   cursor: pointer;
 }
 
-table {
+/* 공통 테이블 스타일은 별도 클래스에 적용하여
+   페이지별 테이블 스타일과 충돌하지 않도록 한다 */
+.admin-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
   border: 1px solid #dee2e6;
 }
 
-th, td {
+.admin-table th,
+.admin-table td {
   border-bottom: 1px solid #dee2e6;
   padding: 12px 10px;
   text-align: center;
   vertical-align: middle;
 }
 
-th {
+.admin-table th {
   background-color: #f8f9fa;
   font-weight: 600;
   color: #495057;
 }
 
-tbody tr:hover {
+.admin-table tbody tr:hover {
   background-color: #f1f3f5;
 }
 
