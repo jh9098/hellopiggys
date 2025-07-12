@@ -56,7 +56,7 @@ export default function MemberDetailModal({ member, onClose }) {
                   {/* 상품 정보 */}
                   <div className="info-grid half">
                     <div><label>상품명</label><p>{review.productName || '-'}</p></div>
-                    <div><label>리뷰 종류</label><p>{review.reviewType || '-'}</p></div>
+                    <div><label>리뷰 종류</label><p>{review.payType || '-'}</p></div>
                   </div>
 
                   {/* 리뷰 참여 계정 (타계정) 정보 */}

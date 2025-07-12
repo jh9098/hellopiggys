@@ -1,12 +1,10 @@
-// src/layouts/AdminLayout.jsx (리뷰어/판매자 관리 메뉴 통합 최종본)
+// src/layouts/AdminLayout.jsx (통합 경로 최종 수정본)
 
 import { NavLink, Outlet } from 'react-router-dom';
 
 export default function AdminLayout() {
   const activeClassName = "bg-gray-900 text-white p-2 rounded block";
   const inactiveClassName = "hover:bg-gray-700 p-2 rounded block";
-
-  // 메뉴 그룹핑을 위한 스타일
   const sectionTitleClass = "mt-8 mb-2 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider";
 
   return (
@@ -18,59 +16,39 @@ export default function AdminLayout() {
           <h3 className={sectionTitleClass}>리뷰어 관리</h3>
           <ul>
             <li className="mb-2">
-              <NavLink to="/admin/reviews" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>
-                리뷰 접수 관리
-              </NavLink>
+              <NavLink to="/admin/reviewer/reviews" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>리뷰 접수 관리</NavLink>
             </li>
             <li className="mb-2">
-              <NavLink to="/admin/members" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>
-                회원 관리
-              </NavLink>
+              <NavLink to="/admin/reviewer/members" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>회원 관리</NavLink>
             </li>
             <li className="mb-2">
-              <NavLink to="/admin/products" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>
-                리뷰 상품 관리
-              </NavLink>
+              <NavLink to="/admin/reviewer/products" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>리뷰 상품 관리</NavLink>
             </li>
             <li className="mb-2">
-              <NavLink to="/admin/settlement" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>
-                정산 관리
-              </NavLink>
+              <NavLink to="/admin/reviewer/settlement" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>정산 관리</NavLink>
             </li>
             <li className="mb-2">
-              <NavLink to="/admin/settlement-complete" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>
-                정산 완료 내역
-              </NavLink>
+              <NavLink to="/admin/reviewer/settlement-complete" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>정산 완료 내역</NavLink>
             </li>
           </ul>
 
           {/* ─── 2. 신규 판매자 관리 메뉴 ─── */}
-          <h3 className={sectionTitleClass}>판매자 관리</h3>
+          <h3 className={sectionTitleClass}>판매자/캠페인 관리</h3>
           <ul>
             <li className="mb-2">
-              <NavLink to="/admin/selleradmin/dashboard" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>
-                대시보드
-              </NavLink>
+              <NavLink to="/admin/selleradmin/dashboard" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>대시보드</NavLink>
             </li>
             <li className="mb-2">
-              <NavLink to="/admin/selleradmin/products" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>
-                캠페인 관리
-              </NavLink>
+              <NavLink to="/admin/selleradmin/products" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>캠페인 관리</NavLink>
             </li>
             <li className="mb-2">
-              <NavLink to="/admin/selleradmin/sellers" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>
-                판매자 목록
-              </NavLink>
+              <NavLink to="/admin/selleradmin/sellers" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>판매자 목록</NavLink>
             </li>
             <li className="mb-2">
-              <NavLink to="/admin/selleradmin/schedule" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>
-                예약 시트 관리
-              </NavLink>
+              <NavLink to="/admin/selleradmin/schedule" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>예약 시트 관리</NavLink>
             </li>
             <li className="mb-2">
-              <NavLink to="/admin/selleradmin/progress" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>
-                진행현황
-              </NavLink>
+              <NavLink to="/admin/selleradmin/progress" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>진행현황</NavLink>
             </li>
           </ul>
         </nav>
