@@ -5,7 +5,7 @@
   command = "yarn && yarn build"
   publish = "dist"
   # 함수 코드가 있는 디렉토리
-  functions = "functions"
+  functions = "frontend/functions"
 
 [functions]
   # Node.js 런타임 버전 명시
