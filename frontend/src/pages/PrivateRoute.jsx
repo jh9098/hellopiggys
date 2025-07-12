@@ -1,20 +1,15 @@
-// src/pages/PrivateRoute.jsx (역할 기반 접근 제어 최종본)
+// src/pages/PrivateRoute.jsx (비동기 상태 관리 개선 최종본)
 
 import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { onAuthStateChanged, auth, db, doc, getDoc } from '../firebaseConfig';
 
-// 역할에 따라 허용된 경로의 시작 부분을 정의
-const rolePermissions = {
-  admin: ['/admin/reviewer', '/admin/selleradmin'],
-  seller: ['/seller', '/dashboard/payment'],
-  reviewer: ['/my-reviews'], // 리뷰어는 my-reviews 페이지만 접근 가능
-};
-
 export default function PrivateRoute() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [authState, setAuthState] = useState({
+    loading: true, // 처음에는 항상 로딩 상태
+    user: null,
+    role: null,
+  });
   const location = useLocation();
 
   useEffect(() => {
@@ -22,61 +17,47 @@ export default function PrivateRoute() {
       if (authUser) {
         let userRole = 'reviewer'; // 기본 역할
         
-        // 1. admins 컬렉션에서 역할 확인
-        const adminDocRef = doc(db, 'admins', authUser.uid);
-        const adminDocSnap = await getDoc(adminDocRef);
-        if (adminDocSnap.exists() && adminDocSnap.data().role === 'admin') {
+        const adminDoc = await getDoc(doc(db, 'admins', authUser.uid));
+        if (adminDoc.exists() && adminDoc.data().role === 'admin') {
           userRole = 'admin';
         } else {
-          // 2. sellers 컬렉션에서 역할 확인
-          const sellerDocRef = doc(db, 'sellers', authUser.uid);
-          const sellerSnap = await getDoc(sellerDocRef);
-          if (sellerSnap.exists() && sellerSnap.data().role === 'seller') {
+          const sellerDoc = await getDoc(doc(db, 'sellers', authUser.uid));
+          if (sellerDoc.exists() && sellerDoc.data().role === 'seller') {
             userRole = 'seller';
           }
         }
         
-        setUser({ ...authUser, role: userRole });
-
+        setAuthState({ loading: false, user: authUser, role: userRole });
       } else {
-        setUser(null);
+        setAuthState({ loading: false, user: null, role: null });
       }
-      setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (loading) return;
-
-    if (!user) {
-      setIsAuthorized(false);
-      return;
-    }
-
-    const allowedPaths = rolePermissions[user.role] || [];
-    const isPathAllowed = allowedPaths.some(path => location.pathname.startsWith(path));
-    
-    setIsAuthorized(isPathAllowed);
-
-  }, [user, location.pathname, loading]);
-
-  if (loading) {
-    return <div>권한 확인 중...</div>;
+  if (authState.loading) {
+    return <div style={{ textAlign: 'center', padding: '50px' }}>권한 확인 중...</div>;
   }
-  
-  // 권한이 있으면 자식 라우트를 보여주고, 없으면 역할에 맞는 로그인 페이지로 리디렉션
-  if (user && isAuthorized) {
-    return <Outlet />;
-  } else {
+
+  // 사용자가 없는 경우(로그아웃 상태)
+  if (!authState.user) {
     // 접근하려던 경로에 따라 적절한 로그인 페이지로 안내
-    if (location.pathname.startsWith('/admin')) {
-      return <Navigate to="/admin-login" replace />;
-    }
-    if (location.pathname.startsWith('/seller')) {
-      return <Navigate to="/seller-login" replace />;
-    }
-    // 기본적으로는 리뷰어 로그인 페이지로
+    if (location.pathname.startsWith('/admin')) return <Navigate to="/admin-login" replace />;
+    if (location.pathname.startsWith('/seller')) return <Navigate to="/seller-login" replace />;
     return <Navigate to="/reviewer-login" replace />;
   }
+
+  // 사용자가 있지만, 현재 경로에 접근 권한이 없는 경우
+  const path = location.pathname;
+  if (path.startsWith('/admin') && authState.role !== 'admin') {
+    return <Navigate to="/admin-login" replace />;
+  }
+  if (path.startsWith('/seller') && authState.role !== 'seller') {
+    // 관리자는 판매자 페이지에도 접근 가능하게 하려면 아래 조건 추가
+    // if (path.startsWith('/seller') && !['seller', 'admin'].includes(authState.role)) {
+    return <Navigate to="/seller-login" replace />;
+  }
+
+  // 모든 검사를 통과한 경우, 요청한 페이지를 보여줌
+  return <Outlet />;
 }
