@@ -9,6 +9,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from "@fullcalendar/interaction";
+import SellerLayout from '../../layouts/SellerLayout';
 
 const getBasePrice = (deliveryType, reviewType) => {
     if (deliveryType === '실배송') {
@@ -235,6 +236,7 @@ export default function SellerReservationPage() {
     const inputClass = "w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500";
 
     return (
+        <SellerLayout>
         <>
             <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
@@ -299,5 +301,6 @@ export default function SellerReservationPage() {
             {confirmCampaign && (<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setConfirmCampaign(null)}><div className="bg-white p-6 rounded shadow" onClick={(e) => e.stopPropagation()}><p className="mb-4">예약확정하겠습니까?</p><div className="flex justify-center space-x-4"><button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={handleConfirmReservation}>예</button><button className="px-4 py-2 bg-gray-300 rounded" onClick={() => setConfirmCampaign(null)}>아니오</button></div></div></div>)}
             {showDepositPopup && (<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowDepositPopup(false)}><div className="bg-white p-6 rounded shadow" onClick={(e) => e.stopPropagation()}><p className="font-semibold text-lg mb-2">채종문(아이언마운틴컴퍼니)</p><p className="font-semibold text-lg">국민은행 834702-04-290385</p><button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setShowDepositPopup(false)}>확인</button></div></div>)}
         </>
+        </SellerLayout>
     );
 }

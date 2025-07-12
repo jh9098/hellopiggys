@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom'; // [수정] react-router-dom의 Link �
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from "@fullcalendar/interaction";
+import SellerLayout from '../../layouts/SellerLayout';
 
 const formatDate = (date) => {
     if (!date || !(date instanceof Date)) return '';
@@ -132,6 +133,7 @@ export default function SellerDashboardPage() {
     };
 
     return (
+        <SellerLayout>
         <>
             <h2 className="text-2xl font-bold mb-4">체험단 예약 현황 (잔여 수량 클릭 시 예약 가능)</h2>
             <div className="bg-white p-4 rounded-lg shadow-md">
@@ -151,5 +153,6 @@ export default function SellerDashboardPage() {
                 />
             </div>
         </>
+        </SellerLayout>
     );
 }

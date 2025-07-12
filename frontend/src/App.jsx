@@ -4,7 +4,6 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 
 // --- 레이아웃 컴포넌트 ---
 import AdminLayout from './layouts/AdminLayout';
-import SellerLayout from './layouts/SellerLayout';
 
 // --- 인증 및 공용 페이지 ---
 import PrivateRoute from './pages/PrivateRoute'; // HOC 대신 사용하는 인증 보호 라우트
@@ -76,14 +75,14 @@ function App() {
         </Route>
 
         {/* --- 판매자 페이지 그룹 --- */}
-        <Route path="/seller" element={<SellerLayout />}>
-          <Route index element={<Navigate to="/seller/dashboard" replace />} /> 
+        <Route path="/seller">
+          <Route index element={<Navigate to="/seller/dashboard" replace />} />
           <Route path="dashboard" element={<SellerDashboardPage />} />
           <Route path="reservation" element={<SellerReservationPage />} />
           <Route path="progress" element={<SellerProgressPage />} />
           <Route path="traffic" element={<SellerTrafficPage />} />
           <Route path="keyword" element={<SellerKeywordPage />} />
-          
+
           <Route path="*" element={<InvalidAccessPage />} />
         </Route>
       </Route>
