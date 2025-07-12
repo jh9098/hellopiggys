@@ -1,33 +1,36 @@
 // src/pages/PrivateRoute.jsx  (또는 src/components/PrivateRoute.jsx)
 
 import { useEffect, useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { auth, onAuthStateChanged, db, doc, getDoc } from '../firebaseConfig';
 
-const checkAdminStatus = async (user) => {
-  if (!user) return false;
-  const adminDocRef = doc(db, 'admins', user.uid);
-  const adminDocSnap = await getDoc(adminDocRef);
-  return adminDocSnap.exists() && adminDocSnap.data().role === 'admin';
+const checkUserRole = async (user) => {
+  if (!user) return null;
+
+  const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+  if (adminDoc.exists() && adminDoc.data().role === 'admin') {
+    return 'admin';
+  }
+
+  const sellerDoc = await getDoc(doc(db, 'sellers', user.uid));
+  if (sellerDoc.exists() && sellerDoc.data().role === 'seller') {
+    return 'seller';
+  }
+
+  return null;
 };
 
 export default function PrivateRoute() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
     // onAuthStateChanged는 인증 상태 변경을 감지하는 리스너입니다.
     // 컴포넌트가 언마운트될 때 리스너를 정리하기 위해 unsubscribe 함수를 반환합니다.
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const isAdminUser = await checkAdminStatus(user);
-        setIsAuthenticated(true);
-        setIsAdmin(isAdminUser);
-      } else {
-        setIsAuthenticated(false);
-        setIsAdmin(false);
-      }
+      const userRole = await checkUserRole(user);
+      setRole(userRole);
       setLoading(false); // 인증 상태 확인 완료
     });
 
@@ -38,11 +41,21 @@ export default function PrivateRoute() {
     return <p style={{ textAlign: 'center', padding: '50px' }}>권한 확인 중...</p>;
   }
 
-  // 인증되었고, 관리자일 경우에만 자식 라우트(Outlet)를 렌더링
-  if (isAuthenticated && isAdmin) {
-    return <Outlet />;
+  if (!role) {
+    // 로그인되지 않았거나 권한이 없을 때 경로에 따라 로그인 페이지로 이동
+    if (location.pathname.startsWith('/admin')) {
+      return <Navigate to="/admin-login" replace />;
+    }
+    return <Navigate to="/seller-login" replace />;
   }
-  
-  // 그 외의 모든 경우는 로그인 페이지로 리다이렉트
-  return <Navigate to="/admin-login" replace />;
+
+  if (location.pathname.startsWith('/admin') && role !== 'admin') {
+    return <Navigate to="/admin-login" replace />;
+  }
+
+  if (location.pathname.startsWith('/seller') && role !== 'seller' && role !== 'admin') {
+    return <Navigate to="/seller-login" replace />;
+  }
+
+  return <Outlet />;
 }
