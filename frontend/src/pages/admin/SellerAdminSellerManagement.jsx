@@ -1,9 +1,9 @@
-// src/pages/admin/AdminSellerManagement.jsx
+// src/pages/admin/SellerAdminSellerManagement.jsx
 
 import { useState, useEffect } from 'react';
 import { db, collection, onSnapshot, doc, query, where, getDocs, writeBatch } from '../../firebaseConfig';
 
-export default function AdminSellerManagementPage() {
+export default function SellerAdminSellerManagementPage() {
   const [sellers, setSellers] = useState([]);
   const [loading, setLoading] = useState(true);
 

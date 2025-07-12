@@ -1,4 +1,4 @@
-// src/pages/admin/AdminSchedule.jsx
+// src/pages/admin/SellerAdminSchedule.jsx
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { db, collection, onSnapshot, doc, setDoc } from '../../firebaseConfig';
@@ -29,7 +29,7 @@ const CapacityInput = ({ dateStr, initialValue }) => {
     return <input type="number" value={value} onChange={handleChange} onBlur={handleBlur} onClick={(e) => e.stopPropagation()} className="w-full text-center border rounded-sm p-0.5" placeholder="총량" />;
 };
 
-export default function AdminSchedulePage() {
+export default function SellerAdminSchedulePage() {
     const [campaigns, setCampaigns] = useState([]);
     const [sellers, setSellers] = useState({});
     const [capacities, setCapacities] = useState({});

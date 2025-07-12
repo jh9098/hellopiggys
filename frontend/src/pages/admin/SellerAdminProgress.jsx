@@ -11,16 +11,12 @@ export default function AdminProgressPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'campaigns'),
-      where('status', '==', '예약 확정')
-    );
+    const q = query(collection(db, 'campaigns'), where('status', '==', '예약 확정'));
     const unsubscribe = onSnapshot(q, (snap) => {
       setCampaigns(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
     }, (error) => {
-      console.error("데이터 로딩 실패:", error);
-      setLoading(false);
+      console.error("데이터 로딩 실패:", error); setLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -31,32 +27,22 @@ export default function AdminProgressPage() {
       return d.getFullYear() === year && d.getMonth() + 1 === month;
     })
     .sort((a, b) => {
-      const getTime = (obj, field) => {
-        const val = obj[field];
-        if (!val) return 0;
-        return val.seconds ? val.seconds : new Date(val).getTime() / 1000;
-      };
+      const getTime = (obj, field) => obj[field]?.seconds || new Date(obj[field]).getTime() / 1000 || 0;
       const aTime = getTime(a, 'confirmedAt') || getTime(a, 'createdAt');
       const bTime = getTime(b, 'confirmedAt') || getTime(b, 'createdAt');
       return (aTime - bTime) || (getTime(a, 'date') - getTime(b, 'date'));
     });
 
-  const years = Array.from(new Set(campaigns.map(c => new Date(c.date?.seconds * 1000 || c.date).getFullYear()))).sort((a,b) => b-a);
+  const years = Array.from(new Set(campaigns.map(c => new Date(c.date?.seconds * 1000 || c.date).getFullYear()))).sort((a, b) => b - a);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const expandedCampaigns = filteredCampaigns.flatMap(c => Array.from({ length: Number(c.quantity) || 1 }, () => c));
 
   const updatePaymentType = async (id, value) => {
-    try {
-      await updateDoc(doc(db, 'campaigns', id), { paymentType: value });
-    } catch (err) {
-      console.error('결제유형 업데이트 오류:', err);
-      alert('결제유형 업데이트에 실패했습니다.');
-    }
+    try { await updateDoc(doc(db, 'campaigns', id), { paymentType: value }); } 
+    catch (err) { console.error('결제유형 업데이트 오류:', err); alert('결제유형 업데이트에 실패했습니다.'); }
   };
 
-  if (loading) {
-    return <p>진행 현황을 불러오는 중...</p>;
-  }
+  if (loading) return <p>진행 현황을 불러오는 중...</p>;
 
   return (
     <>
@@ -79,7 +65,7 @@ export default function AdminProgressPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {expandedCampaigns.length > 0 ? expandedCampaigns.map((c, idx) => {
+            {expandedCampaigns.map((c, idx) => {
               const d = c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date);
               return (
                 <tr key={`${c.id}-${idx}`} className="text-sm hover:bg-gray-50">
@@ -87,14 +73,8 @@ export default function AdminProgressPage() {
                   <td className="px-2 py-2">{d.toLocaleDateString()}</td>
                   <td className="px-2 py-2">{c.deliveryType}</td>
                   <td className="px-2 py-2">
-                    <select
-                      value={c.paymentType || ''}
-                      onChange={e => updatePaymentType(c.id, e.target.value)}
-                      className="border p-1 rounded w-full"
-                    >
-                      <option value="">선택</option>
-                      <option value="현영">현영</option>
-                      <option value="자율결제">자율결제</option>
+                    <select value={c.paymentType || ''} onChange={e => updatePaymentType(c.id, e.target.value)} className="border p-1 rounded w-full">
+                      <option value="">선택</option><option value="현영">현영</option><option value="자율결제">자율결제</option>
                     </select>
                   </td>
                   <td className="px-2 py-2">{c.reviewType}</td>
@@ -102,9 +82,7 @@ export default function AdminProgressPage() {
                   <td className="px-2 py-2">{c.productName}</td>
                   <td className="px-2 py-2">{c.productOption}</td>
                   <td className="px-2 py-2">{Number(c.productPrice).toLocaleString()}</td>
-                  <td className="px-2 py-2 break-all">
-                    {c.productUrl && <a href={c.productUrl} className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">바로가기</a>}
-                  </td>
+                  <td className="px-2 py-2 break-all">{c.productUrl && <a href={c.productUrl} className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">바로가기</a>}</td>
                   <td className="px-2 py-2">{c.keywords}</td>
                   <td className="px-2 py-2 text-gray-500">-</td>
                   <td className="px-2 py-2 text-gray-500">-</td>
@@ -114,7 +92,8 @@ export default function AdminProgressPage() {
                   <td className="px-2 py-2 text-gray-500">-</td>
                 </tr>
               );
-            }) : (
+            })}
+            {filteredCampaigns.length === 0 && (
               <tr><td colSpan="17" className="text-center py-4 text-gray-500">해당 월에 예약 확정된 캠페인이 없습니다.</td></tr>
             )}
           </tbody>

@@ -1,20 +1,25 @@
-// src/pages/admin/AdminProductManagement.jsx
+// src/pages/admin/AdminProductManagement.jsx (UI/UX 최종 수정본)
 
 import { useState, useEffect } from 'react';
 import { db, collection, query, onSnapshot, doc, updateDoc, orderBy, writeBatch, increment } from '../../firebaseConfig';
 import Papa from 'papaparse';
 
 export default function AdminProductManagementPage() {
-  const [campaigns, setCampaigns] =  useState([]);
+  const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sellersMap, setSellersMap] = useState({});
   const [selectedCampaign, setSelectedCampaign] = useState(null);
+  
+  // [추가] 필터링 및 검색을 위한 상태
+  const [statusFilter, setStatusFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
     setLoading(true);
     const q = query(collection(db, "campaigns"), orderBy("createdAt", "desc"));
-    const unsubscribeCampaigns = onSnapshot(q, (querySnapshot) => {
-      setCampaigns(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const unsubscribeCampaigns = onSnapshot(q, (snapshot) => {
+      setCampaigns(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
     });
 
@@ -27,6 +32,25 @@ export default function AdminProductManagementPage() {
     return () => { unsubscribeCampaigns(); unsubSellers(); };
   }, []);
 
+  // [추가] 필터링된 캠페인 목록
+  const filteredCampaigns = campaigns.filter(c => {
+    const statusMatch = statusFilter ? c.status === statusFilter : true;
+    const searchMatch = searchTerm ? JSON.stringify(c).toLowerCase().includes(searchTerm.toLowerCase()) : true;
+    return statusMatch && searchMatch;
+  });
+  
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(filteredCampaigns.map(c => c.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]);
+  };
+  
   const handleUpdateStatus = async (id, newStatus) => {
     try {
       await updateDoc(doc(db, 'campaigns', id), { status: newStatus });
@@ -79,42 +103,85 @@ export default function AdminProductManagementPage() {
   };
 
   const handleDownloadExcel = () => {
-    if (campaigns.length === 0) return alert("다운로드할 데이터가 없습니다.");
-    const dataForExcel = campaigns.map((c, index) => ({
+    if (filteredCampaigns.length === 0) return alert("다운로드할 데이터가 없습니다.");
+    const dataForExcel = filteredCampaigns.map((c, index) => ({
       '순번': index + 1, '진행일자': c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString() : '',
-      '구분': c.deliveryType || '', '리뷰종류': c.reviewType || '', '작업개수': c.quantity || 0,
-      '상품명': c.productName || '', '옵션': c.productOption || '', '상품가': c.productPrice || 0,
-      '상품URL': c.productUrl || '', '키워드': c.keywords || '', '리뷰가이드': c.reviewGuide || '',
-      '비고': c.remarks || '', '체험단견적': c.itemTotal || 0, '결제상태': c.status || '',
-      '판매자UID': c.sellerUid || ''
+      '상품명': c.productName || '', '옵션': c.productOption || '',
+      '판매자': sellersMap[c.sellerUid] || 'N/A',
+      '상태': c.status || 'N/A',
+      // ... 필요한 다른 데이터 추가 ...
     }));
-
     const csv = Papa.unparse(dataForExcel);
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
+    link.setAttribute("href", URL.createObjectURL(blob));
     link.setAttribute("download", `캠페인_목록_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
+  
+  const thClass = "px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider";
 
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold">전체 상품(캠페인) 관리</h2>
-        <button onClick={handleDownloadExcel} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">엑셀로 다운로드</button>
+        <h2 className="text-2xl font-bold">리뷰 관리 ({filteredCampaigns.length})</h2>
+        <div className="flex items-center space-x-2">
+            <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">선택 항목 인증</button>
+            <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">삭제</button>
+            <button onClick={handleDownloadExcel} className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700">엑셀 다운로드</button>
+        </div>
       </div>
-      <div className="bg-white p-4 md:p-6 rounded-lg shadow-md overflow-x-auto">
-        {loading ? <p>캠페인 목록을 불러오는 중...</p> : campaigns.length === 0 ? <p>등록된 캠페인이 없습니다.</p> : (
+
+      <div className="bg-white p-4 rounded-lg shadow-md overflow-x-auto">
+        <div className="flex items-center space-x-4 mb-4">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="p-2 border border-gray-300 rounded-md">
+                <option value="">전체 상태</option>
+                <option value="미확정">미확정</option>
+                <option value="예약 확정">예약 확정</option>
+                <option value="구매완료">구매완료</option>
+                <option value="리뷰완료">리뷰완료</option>
+                <option value="판매자귀책취소">판매자귀책취소</option>
+            </select>
+            <input type="text" placeholder="검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="p-2 border border-gray-300 rounded-md w-64"/>
+        </div>
+
+        {loading ? <p>캠페인 목록을 불러오는 중입니다...</p> : (
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50"><tr>{['진행일자', '닉네임', '상품명', '구분', '리뷰종류', '개수', '견적', '결제상태', '상태변경'].map(h => (<th key={h} className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>))}</tr></thead>
-            <tbody className="bg-white divide-y divide-gray-200">{campaigns.map((c) => (<tr key={c.id}><td className="px-3 py-4 whitespace-nowrap text-sm">{c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString() : '날짜 없음'}</td><td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500" title={c.sellerUid}>{sellersMap[c.sellerUid] || '닉네임 없음'}</td><td className="px-3 py-4 whitespace-nowrap text-sm font-semibold"><button className="text-blue-600 underline" onClick={() => setSelectedCampaign(c)}>{c.productName || '상품명 없음'}</button></td><td className="px-3 py-4 whitespace-nowrap text-sm">{c.deliveryType || '-'}</td><td className="px-3 py-4 whitespace-nowrap text-sm">{c.reviewType || '-'}</td><td className="px-3 py-4 whitespace-nowrap text-sm">{c.quantity || '-'}</td><td className="px-3 py-4 whitespace-nowrap text-sm">{typeof c.itemTotal === 'number' ? c.itemTotal.toLocaleString() + '원' : '견적 없음'}</td><td className="px-3 py-4 whitespace-nowrap text-sm"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.status === '리뷰완료' ? 'bg-blue-100 text-blue-800' : c.status === '구매완료' ? 'bg-green-200 text-green-800' : c.status === '예약 확정' ? 'bg-green-100 text-green-800' : c.status === '판매자귀책취소' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{c.status || '상태 없음'}</span></td><td className="px-3 py-4 whitespace-nowrap text-sm space-x-2">{c.status !== '예약 확정' && <button onClick={() => handleUpdateStatus(c.id, '예약 확정')} className="text-indigo-600 hover:text-indigo-900">확정</button>}{c.status !== '미확정' && <button onClick={() => handleUpdateStatus(c.id, '미확정')} className="text-gray-500 hover:text-gray-700">미확정</button>}{c.status !== '구매완료' && <button onClick={() => handleUpdateStatus(c.id, '구매완료')} className="text-green-600 hover:text-green-800">구매완료</button>}{c.status !== '리뷰완료' && <button onClick={() => handleUpdateStatus(c.id, '리뷰완료')} className="text-blue-600 hover:text-blue-800">리뷰완료</button>}{(c.status === '예약 확정' || c.status === '구매완료') && (<button onClick={() => handleCancelBySellerFault(c)} className="text-red-600 hover:text-red-800 font-semibold">귀책 취소</button>)}</td></tr>))}</tbody>
+            <thead className="bg-gray-50">
+              <tr>
+                <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === filteredCampaigns.length && filteredCampaigns.length > 0} /></th>
+                <th className={thClass}>등록일시</th>
+                <th className={thClass}>상태</th>
+                <th className={thClass}>상품명</th>
+                <th className={thClass}>결제 종류</th>
+                <th className={thClass}>본계정</th>
+                <th className={thClass}>타계정</th>
+                <th className={thClass}>전화번호</th>
+                <th className={thClass}>결제유형/상품종류/리뷰종류/리뷰인증</th>
+                <th className={thClass}>작업</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+                {filteredCampaigns.map((c) => (
+                  <tr key={c.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleString() : 'N/A'}</td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.status === '리뷰완료' ? 'bg-blue-100 text-blue-800' : c.status === '예약 확정' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{c.status}</span></td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.productName}</td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[c.sellerUid]}</td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm">자율결제/실배송/별점/X</td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
+                  </tr>
+                ))}
+            </tbody>
           </table>
         )}
       </div>
-      {selectedCampaign && (<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setSelectedCampaign(null)}><div className="bg-white p-6 rounded-lg shadow max-w-lg w-full overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}><h3 className="text-xl font-bold mb-4">상세 정보</h3><table className="w-full text-sm"><tbody><tr><td className="font-semibold pr-2">닉네임</td><td>{sellersMap[selectedCampaign.sellerUid] || '닉네임 없음'}</td></tr><tr><td className="font-semibold pr-2">진행일자</td><td>{selectedCampaign.date?.seconds ? new Date(selectedCampaign.date.seconds * 1000).toLocaleDateString() : '-'}</td></tr><tr><td className="font-semibold pr-2">구분</td><td>{selectedCampaign.deliveryType}</td></tr><tr><td className="font-semibold pr-2">리뷰종류</td><td>{selectedCampaign.reviewType}</td></tr><tr><td className="font-semibold pr-2">체험단 개수</td><td>{selectedCampaign.quantity}</td></tr><tr><td className="font-semibold pr-2">상품명</td><td>{selectedCampaign.productName}</td></tr><tr><td className="font-semibold pr-2">옵션</td><td>{selectedCampaign.productOption}</td></tr><tr><td className="font-semibold pr-2">상품가</td><td>{selectedCampaign.productPrice}</td></tr><tr><td className="font-semibold pr-2">상품URL</td><td><a href={selectedCampaign.productUrl} className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">{selectedCampaign.productUrl}</a></td></tr><tr><td className="font-semibold pr-2">키워드</td><td>{selectedCampaign.keywords}</td></tr><tr><td className="font-semibold pr-2">리뷰가이드</td><td>{selectedCampaign.reviewGuide}</td></tr><tr><td className="font-semibold pr-2">비고</td><td>{selectedCampaign.remarks}</td></tr><tr><td className="font-semibold pr-2">체험단견적</td><td>{selectedCampaign.itemTotal?.toLocaleString()}원</td></tr><tr><td className="font-semibold pr-2">결제상태</td><td>{selectedCampaign.status}</td></tr></tbody></table><div className="text-center mt-4"><button onClick={() => setSelectedCampaign(null)} className="px-4 py-2 bg-gray-700 text-white rounded">닫기</button></div></div></div>)}
     </>
   );
 }
