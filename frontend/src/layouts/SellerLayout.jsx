@@ -1,7 +1,7 @@
 import { NavLink, Link, Outlet } from 'react-router-dom';
 import { useState } from 'react';
 
-export default function SellerLayout() {
+export default function SellerLayout({ children }) {
   const [open, setOpen] = useState({ experience: false, traffic: false, kita: false });
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -91,7 +91,7 @@ export default function SellerLayout() {
           ☰
         </button>
         <main className="flex-1 p-8 bg-gray-100">
-          <Outlet />
+          {children || <Outlet />}
         </main>
       </div>
     </div>
