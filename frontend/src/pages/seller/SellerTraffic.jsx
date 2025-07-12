@@ -6,6 +6,7 @@ import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css"; // [추가] DatePicker CSS 임포트
 import { ko } from 'date-fns/locale';
+import SellerLayout from '../../layouts/SellerLayout';
 
 const initialTrafficProducts = [
   { category: '베이직 트래픽', name: '피에스타', description: '', retailPrice: 60000, discountRate: 1 - 33900 / 60000 },
@@ -188,6 +189,7 @@ export default function SellerTrafficPage() {
   if (isLoading) return <p>로딩 중...</p>;
 
   return (
+    <SellerLayout>
     <>
       <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">트래픽 요청서</h1>
@@ -381,5 +383,6 @@ export default function SellerTrafficPage() {
             </div>
         )}
     </>
+    </SellerLayout>
   );
 }
