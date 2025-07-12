@@ -1,4 +1,4 @@
-// src/pages/seller/SellerProgress.jsx (레이아웃 수정 및 UI 개선 최종본)
+// src/pages/seller/SellerProgress.jsx
 
 import { useEffect, useState } from 'react';
 import { db, auth, onAuthStateChanged, collection, query, where, onSnapshot } from '../../firebaseConfig';
@@ -24,19 +24,16 @@ export default function SellerProgressPage() {
       setCampaigns([]);
       return;
     }
-    
     const q = query(
       collection(db, 'campaigns'),
       where('sellerUid', '==', user.uid),
       where('status', '==', '예약 확정')
     );
     const unsubscribeFirestore = onSnapshot(q, (snap) => {
-      const fetchedCampaigns = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setCampaigns(fetchedCampaigns);
+      setCampaigns(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, (error) => {
       console.error("캠페인 데이터 로딩 실패:", error);
     });
-
     return () => unsubscribeFirestore();
   }, [user]);
 
@@ -49,22 +46,18 @@ export default function SellerProgressPage() {
       const getTime = (obj, field) => {
         const val = obj[field];
         if (!val) return 0;
-        if (val.seconds) return val.seconds;
-        return new Date(val).getTime() / 1000;
+        return val.seconds ? val.seconds : new Date(val).getTime() / 1000;
       };
-      const aConfirm = getTime(a, 'confirmedAt') || getTime(a, 'createdAt');
-      const bConfirm = getTime(b, 'confirmedAt') || getTime(b, 'createdAt');
-      return (aConfirm - bConfirm) || (getTime(a, 'date') - getTime(b, 'date'));
+      const aTime = getTime(a, 'confirmedAt') || getTime(a, 'createdAt');
+      const bTime = getTime(b, 'confirmedAt') || getTime(b, 'createdAt');
+      return (aTime - bTime) || (getTime(a, 'date') - getTime(b, 'date'));
     });
 
-  const years = Array.from(new Set(campaigns.map(c => new Date(c.date?.seconds * 1000 || c.date).getFullYear()))).sort((a, b) => b - a);
+  const years = Array.from(new Set(campaigns.map(c => new Date(c.date?.seconds * 1000 || c.date).getFullYear()))).sort((a,b) => b-a);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
-  
   const expandedCampaigns = filteredCampaigns.flatMap(c => Array.from({ length: Number(c.quantity) || 1 }, () => c));
 
-  if (isLoading) {
-    return <p>로딩 중...</p>;
-  }
+  if (isLoading) return <p>로딩 중...</p>;
 
   return (
     <>
@@ -111,7 +104,7 @@ export default function SellerProgressPage() {
                 </tr>
               );
             }) : (
-              <tr><td colSpan="17" className="text-center py-10 text-gray-500">해당 월에 진행 예정인 캠페인이 없습니다.</td></tr>
+              <tr><td colSpan="17" className="text-center py-10 text-gray-500">등록된 캠페인이 없습니다.</td></tr>
             )}
           </tbody>
         </table>

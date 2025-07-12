@@ -1,4 +1,4 @@
-// src/pages/seller/SellerDashboard.jsx (레이아웃 수정 및 UI 개선 최종본)
+// src/pages/seller/SellerDashboard.jsx (원본: index.js)
 
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, onSnapshot } from '../../firebaseConfig';
@@ -15,7 +15,7 @@ const formatDate = (date) => {
     return `${year}-${month}-${day}`;
 };
 
-export default function SellerDashboardPage() {
+export default function SellerDashboardPage() { // 컴포넌트 이름 변경
     const [campaigns, setCampaigns] = useState([]);
     const [sellers, setSellers] = useState({});
     const [capacities, setCapacities] = useState({});
@@ -25,31 +25,22 @@ export default function SellerDashboardPage() {
             const fetchedSellers = {};
             snap.forEach(doc => {
                 const data = doc.data();
-                if (data.uid) {
-                    fetchedSellers[data.uid] = data.nickname || '이름없음';
-                }
+                if (data.uid) fetchedSellers[data.uid] = data.nickname || '이름없음';
             });
             setSellers(fetchedSellers);
         });
 
         const campaignUnsubscribe = onSnapshot(collection(db, 'campaigns'), (snap) => {
-            const fetchedCampaigns = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            setCampaigns(fetchedCampaigns);
+            setCampaigns(snap.docs.map(d => ({ id: d.id, ...d.data() })));
         });
         
         const capacityUnsubscribe = onSnapshot(collection(db, 'capacities'), (snap) => {
             const fetchedCaps = {};
-            snap.forEach(doc => { 
-                fetchedCaps[doc.id] = doc.data().capacity || 0; 
-            });
+            snap.forEach(doc => { fetchedCaps[doc.id] = doc.data().capacity || 0; });
             setCapacities(fetchedCaps);
         });
 
-        return () => { 
-            sellerUnsubscribe();
-            campaignUnsubscribe(); 
-            capacityUnsubscribe(); 
-        };
+        return () => { sellerUnsubscribe(); campaignUnsubscribe(); capacityUnsubscribe(); };
     }, []);
 
     const events = useMemo(() => {
@@ -59,16 +50,11 @@ export default function SellerDashboardPage() {
         const dailyAggregates = {};
 
         confirmed.forEach(campaign => {
-            const eventDate = campaign.date?.seconds
-                ? new Date(campaign.date.seconds * 1000)
-                : new Date(campaign.date);
-            
+            const eventDate = campaign.date?.seconds ? new Date(campaign.date.seconds * 1000) : new Date(campaign.date);
             const dateStr = formatDate(eventDate);
             if (!dateStr) return;
-
             const nickname = sellers[campaign.sellerUid] || '판매자 없음';
             const quantity = Number(campaign.quantity) || 0;
-
             if (!dailyAggregates[dateStr]) dailyAggregates[dateStr] = {};
             if (!dailyAggregates[dateStr][nickname]) dailyAggregates[dateStr][nickname] = 0;
             dailyAggregates[dateStr][nickname] += quantity;
@@ -76,52 +62,36 @@ export default function SellerDashboardPage() {
 
         const aggregatedEvents = [];
         for (const dateStr in dailyAggregates) {
-            const nicknamesForDay = dailyAggregates[dateStr];
-            for (const nickname in nicknamesForDay) {
-                const totalQuantity = nicknamesForDay[nickname];
+            for (const nickname in dailyAggregates[dateStr]) {
+                const totalQuantity = dailyAggregates[dateStr][nickname];
                 if (totalQuantity > 0) {
                     aggregatedEvents.push({
-                        id: `${dateStr}-${nickname}`,
-                        title: `${nickname} (${totalQuantity}개)`,
-                        start: dateStr,
-                        allDay: true,
-                        extendedProps: { quantity: totalQuantity }
+                        id: `${dateStr}-${nickname}`, title: `${nickname} (${totalQuantity}개)`,
+                        start: dateStr, allDay: true, extendedProps: { quantity: totalQuantity }
                     });
                 }
             }
         }
-        
         return aggregatedEvents;
     }, [campaigns, sellers]);
   
     const renderSellerDayCell = (dayCellInfo) => {
         const dateStr = formatDate(dayCellInfo.date);
         const capacity = capacities[dateStr] || 0;
-        
-        const dailyEvents = events.filter(event => 
-            formatDate(new Date(event.start)) === dateStr
-        );
-        
-        const totalQuantity = dailyEvents.reduce((sum, event) => {
-            return sum + Number(event.extendedProps?.quantity || 0);
-        }, 0);
-        
+        const dailyEvents = events.filter(event => formatDate(new Date(event.start)) === dateStr);
+        const totalQuantity = dailyEvents.reduce((sum, event) => sum + Number(event.extendedProps?.quantity || 0), 0);
         const remaining = capacity - totalQuantity;
         const remainingColor = remaining > 0 ? 'text-blue-600' : 'text-red-500';
         const remainingTextSize = 'text-xl'; 
 
         return (
             <div className="flex flex-col h-full">
-                <div className="text-right text-sm text-gray-500 pr-1 pt-1">
-                    {dayCellInfo.dayNumberText}일
-                </div>
+                <div className="text-right text-sm text-gray-500 pr-1 pt-1">{dayCellInfo.dayNumberText}</div>
                 <div className="flex flex-col items-center justify-center flex-grow pb-2">
                     <div className="text-xs text-gray-500">잔여</div>
                     {remaining > 0 && capacity > 0 ? (
                         <Link to={`/seller/reservation?date=${dateStr}`}>
-                            <span className={`font-bold ${remainingTextSize} ${remainingColor} cursor-pointer hover:underline`}>
-                                {remaining}
-                            </span>
+                            <span className={`font-bold ${remainingTextSize} ${remainingColor} cursor-pointer hover:underline`}>{remaining}</span>
                         </Link>
                     ) : (
                         <span className={`font-bold ${remainingTextSize} ${remainingColor}`}>{remaining}</span>
