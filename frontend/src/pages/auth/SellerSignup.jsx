@@ -48,7 +48,7 @@ export default function SellerSignupPage() {
       if (!(await getDocs(nicknameQuery)).empty) throw new Error('이미 사용 중인 닉네임입니다.');
 
       // --- 국세청 API 직접 호출 (수정된 부분) ---
-      const serviceKey = import.meta.env.NTS_API_SERVICE_KEY;
+      const serviceKey = import.meta.env.VITE_NTS_API_SERVICE_KEY;
       if (!serviceKey) {
         throw new Error("API 키가 설정되지 않았습니다. Netlify 환경 변수를 확인하세요.");
       }
