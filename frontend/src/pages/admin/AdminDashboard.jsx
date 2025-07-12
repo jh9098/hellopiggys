@@ -1,4 +1,4 @@
-// src/pages/admin/AdminDashboard.jsx (Vite 환경에 맞게 수정된 최종본)
+// src/pages/admin/AdminDashboard.jsx
 
 export default function AdminDashboardPage() {
   return (

@@ -1,4 +1,4 @@
-// src/pages/admin/AdminSchedule.jsx (Vite 환경에 맞게 수정된 최종본)
+// src/pages/admin/AdminSchedule.jsx
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { db, collection, onSnapshot, doc, setDoc } from '../../firebaseConfig';
@@ -15,22 +15,17 @@ const formatDate = (date) => {
 
 const CapacityInput = ({ dateStr, initialValue }) => {
     const [value, setValue] = useState(initialValue);
-
     const updateFirestore = useCallback(async (numericValue) => {
         try { await setDoc(doc(db, 'capacities', dateStr), { capacity: numericValue }); } 
         catch (error) { console.error("Capacity 업데이트 오류:", error); }
     }, [dateStr]);
-
     const handleChange = (e) => { setValue(e.target.value); };
-    
     const handleBlur = () => {
         const numericValue = Number(String(value).replace(/[^0-9]/g, '')) || 0;
         setValue(numericValue);
         updateFirestore(numericValue);
     };
-
     useEffect(() => { setValue(initialValue); }, [initialValue]);
-
     return <input type="number" value={value} onChange={handleChange} onBlur={handleBlur} onClick={(e) => e.stopPropagation()} className="w-full text-center border rounded-sm p-0.5" placeholder="총량" />;
 };
 

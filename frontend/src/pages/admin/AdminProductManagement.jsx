@@ -1,10 +1,10 @@
-// src/pages/admin/AdminCampaignManagement.jsx (Vite 환경에 맞게 수정된 최종본)
+// src/pages/admin/AdminProductManagement.jsx
 
 import { useState, useEffect } from 'react';
 import { db, collection, query, onSnapshot, doc, updateDoc, orderBy, writeBatch, increment } from '../../firebaseConfig';
 import Papa from 'papaparse';
 
-export default function AdminCampaignManagementPage() {
+export default function AdminProductManagementPage() {
   const [campaigns, setCampaigns] =  useState([]);
   const [loading, setLoading] = useState(true);
   const [sellersMap, setSellersMap] = useState({});
@@ -103,7 +103,7 @@ export default function AdminCampaignManagementPage() {
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold">전체 캠페인 관리</h2>
+        <h2 className="text-3xl font-bold">전체 상품(캠페인) 관리</h2>
         <button onClick={handleDownloadExcel} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">엑셀로 다운로드</button>
       </div>
       <div className="bg-white p-4 md:p-6 rounded-lg shadow-md overflow-x-auto">

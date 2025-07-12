@@ -1,4 +1,4 @@
-// src/pages/admin/AdminProgress.jsx (Vite 환경에 맞게 수정된 최종본)
+// src/pages/admin/AdminProgress.jsx
 
 import { useEffect, useState } from 'react';
 import { db, collection, query, where, onSnapshot, updateDoc, doc } from '../../firebaseConfig';
@@ -34,28 +34,16 @@ export default function AdminProgressPage() {
       const getTime = (obj, field) => {
         const val = obj[field];
         if (!val) return 0;
-        if (val.seconds) return val.seconds;
-        return new Date(val).getTime() / 1000;
+        return val.seconds ? val.seconds : new Date(val).getTime() / 1000;
       };
-      const aConfirm = getTime(a, 'confirmedAt') || getTime(a, 'createdAt');
-      const bConfirm = getTime(b, 'confirmedAt') || getTime(b, 'createdAt');
-      if (aConfirm !== bConfirm) return aConfirm - bConfirm;
-      const aDate = getTime(a, 'date');
-      const bDate = getTime(b, 'date');
-      return aDate - bDate;
+      const aTime = getTime(a, 'confirmedAt') || getTime(a, 'createdAt');
+      const bTime = getTime(b, 'confirmedAt') || getTime(b, 'createdAt');
+      return (aTime - bTime) || (getTime(a, 'date') - getTime(b, 'date'));
     });
 
-  const years = Array.from(new Set(campaigns.map(c => {
-    const d = c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date);
-    return d.getFullYear();
-  }))).sort((a, b) => b - a);
-
-  const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-
-  const expandedCampaigns = filteredCampaigns.flatMap(c => {
-    const qty = Number(c.quantity) || 1;
-    return Array.from({ length: qty }, () => c);
-  });
+  const years = Array.from(new Set(campaigns.map(c => new Date(c.date?.seconds * 1000 || c.date).getFullYear()))).sort((a,b) => b-a);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const expandedCampaigns = filteredCampaigns.flatMap(c => Array.from({ length: Number(c.quantity) || 1 }, () => c));
 
   const updatePaymentType = async (id, value) => {
     try {
@@ -73,11 +61,11 @@ export default function AdminProgressPage() {
   return (
     <>
       <div className="flex items-center mb-4 space-x-2">
-        <select value={year} onChange={e => setYear(Number(e.target.value))} className="border p-1 rounded">
-          {years.length === 0 ? <option>{year}</option> : years.map(y => <option key={y} value={y}>{y}</option>)}
+        <select value={year} onChange={e => setYear(Number(e.target.value))} className="border p-2 rounded-md">
+          {years.length === 0 ? <option>{year}</option> : years.map(y => <option key={y} value={y}>{y}년</option>)}
         </select>
-        <select value={month} onChange={e => setMonth(Number(e.target.value))} className="border p-1 rounded">
-          {months.map(m => <option key={m} value={m}>{m}</option>)}
+        <select value={month} onChange={e => setMonth(Number(e.target.value))} className="border p-2 rounded-md">
+          {months.map(m => <option key={m} value={m}>{m}월</option>)}
         </select>
         <h2 className="text-2xl font-bold ml-4">진행현황</h2>
       </div>
@@ -86,12 +74,12 @@ export default function AdminProgressPage() {
           <thead className="bg-gray-100">
             <tr>
               {['순번', '진행일자', '구분', '결제유형', '리뷰종류', '상품순', '상품명', '옵션', '상품가', '상품URL', '키워드', '리뷰어', '연락처', '주소', '주문번호', '택배사', '송장번호'].map(h => (
-                <th key={h} className="px-2 py-2 text-left whitespace-nowrap">{h}</th>
+                <th key={h} className="px-2 py-2 text-left whitespace-nowrap font-semibold text-gray-600">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y">
-            {expandedCampaigns.map((c, idx) => {
+            {expandedCampaigns.length > 0 ? expandedCampaigns.map((c, idx) => {
               const d = c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date);
               return (
                 <tr key={`${c.id}-${idx}`} className="text-sm hover:bg-gray-50">
@@ -118,16 +106,15 @@ export default function AdminProgressPage() {
                     {c.productUrl && <a href={c.productUrl} className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">바로가기</a>}
                   </td>
                   <td className="px-2 py-2">{c.keywords}</td>
-                  <td className="px-2 py-2">-</td>
-                  <td className="px-2 py-2">-</td>
-                  <td className="px-2 py-2">-</td>
-                  <td className="px-2 py-2">-</td>
-                  <td className="px-2 py-2">-</td>
-                  <td className="px-2 py-2">-</td>
+                  <td className="px-2 py-2 text-gray-500">-</td>
+                  <td className="px-2 py-2 text-gray-500">-</td>
+                  <td className="px-2 py-2 text-gray-500">-</td>
+                  <td className="px-2 py-2 text-gray-500">-</td>
+                  <td className="px-2 py-2 text-gray-500">-</td>
+                  <td className="px-2 py-2 text-gray-500">-</td>
                 </tr>
               );
-            })}
-            {filteredCampaigns.length === 0 && (
+            }) : (
               <tr><td colSpan="17" className="text-center py-4 text-gray-500">해당 월에 예약 확정된 캠페인이 없습니다.</td></tr>
             )}
           </tbody>

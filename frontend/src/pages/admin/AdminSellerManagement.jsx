@@ -1,4 +1,4 @@
-// src/pages/admin/AdminSellerManagement.jsx (Vite 환경에 맞게 수정된 최종본)
+// src/pages/admin/AdminSellerManagement.jsx
 
 import { useState, useEffect } from 'react';
 import { db, collection, onSnapshot, doc, query, where, getDocs, writeBatch } from '../../firebaseConfig';
