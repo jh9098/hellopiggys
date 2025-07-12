@@ -115,7 +115,7 @@ export default function AdminMemberManagementPage() {
                 <input type="text" placeholder="전화번호 검색" value={searchPhone} onChange={(e) => setSearchPhone(e.target.value)} />
             </div>
             <div className="table-container">
-                <table>
+                <table className="admin-table">
                     <thead>
                         <tr>
                             <th onClick={() => requestSort('mainAccountName')} className="sortable">본계정 이름<SortIndicator columnKey="mainAccountName" /></th>
