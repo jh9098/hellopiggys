@@ -1,10 +1,11 @@
-// src/pages/AdminProductManagement.jsx (기존 CSS 적용 최종본)
+// src/pages/AdminProductManagement.jsx (버튼 클래스명 수정 최종본)
 
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { db, collection, getDocs, query, orderBy, deleteDoc, doc, updateDoc } from '../firebaseConfig';
 import Papa from 'papaparse';
 
+// ... (파일 상단 코드는 동일)
 const formatDate = (date) => date ? new Date(date.seconds * 1000).toLocaleDateString() : 'N/A';
 const progressStatusOptions = ['진행전', '진행중', '진행완료', '일부완료', '보류'];
 
@@ -18,6 +19,7 @@ export default function AdminProductManagementPage() {
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
   const navigate = useNavigate();
 
+  // ... (fetchProducts, useEffect, useMemo, handleDelete 등 다른 함수는 모두 동일)
   const fetchProducts = async () => {
     setLoading(true);
     const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
@@ -96,6 +98,7 @@ export default function AdminProductManagementPage() {
     }
   };
 
+
   if (loading) return <p>상품 목록을 불러오는 중...</p>;
 
   const SortIndicator = ({ columnKey }) => sortConfig.key !== columnKey ? null : (sortConfig.direction === 'asc' ? ' ▲' : ' ▼');
@@ -112,6 +115,7 @@ export default function AdminProductManagementPage() {
       </div>
       <div className="table-container">
         <table className="admin-table">
+          {/* ... thead 부분은 동일 ... */}
           <thead>
             <tr>
               <th onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></th>
@@ -144,8 +148,10 @@ export default function AdminProductManagementPage() {
                 <td><select value={p.progressStatus || '진행전'} onChange={(e) => handleStatusChange(p.id, e.target.value)}><option value="">선택</option>{progressStatusOptions.map(s => (<option key={s} value={s}>{s}</option>))}</select></td>
                 <td>{formatDate(p.createdAt)}</td>
                 <td className="actions-cell">
-                  <button className="edit-btn" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>수정</button>
-                  <button onClick={() => handleDelete(p.id)} className="delete-btn">삭제</button>
+                  {/* ▼▼▼ 여기 클래스 이름을 수정했습니다 ▼▼▼ */}
+                  <button className="table-edit-btn" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>수정</button>
+                  <button onClick={() => handleDelete(p.id)} className="table-delete-btn">삭제</button>
+                  {/* ▲▲▲ 수정 완료 ▲▲▲ */}
                 </td>
               </tr>
             )) : (

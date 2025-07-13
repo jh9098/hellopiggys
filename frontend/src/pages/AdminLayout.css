@@ -335,3 +335,21 @@ main h2 {
 .actions-cell .edit-btn { background-color: #007bff; }
 .actions-cell .delete-btn { background-color: #dc3545; }
 /* ▲▲▲ 모바일 최적화 수정 완료 ▲▲▲ */
+.table-edit-btn,
+.table-delete-btn {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  font-size: 13px;
+  /* position 속성을 아예 사용하지 않아 기본값(static)을 유지합니다. */
+}
+
+.table-edit-btn {
+  background-color: #007bff; /* 파란색 */
+}
+
+.table-delete-btn {
+  background-color: #dc3545; /* 빨간색 */
+}
