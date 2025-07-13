@@ -1,4 +1,4 @@
-// src/pages/PrivateRoute.jsx (admin 권한 강화 최종본)
+// src/pages/PrivateRoute.jsx (세분화된 권한 제어 최종본)
 
 import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
@@ -39,30 +39,39 @@ export default function PrivateRoute() {
     return <div style={{ textAlign: 'center', padding: '50px' }}>권한 확인 중...</div>;
   }
 
-  // 사용자가 없는 경우(로그아웃 상태)
+  // --- 1. 로그아웃 상태일 때: 무조건 로그인 페이지로 ---
   if (!authState.user) {
+    // 접근하려던 경로에 따라 적절한 로그인 페이지로 안내
     if (location.pathname.startsWith('/admin')) return <Navigate to="/admin-login" replace />;
     if (location.pathname.startsWith('/seller')) return <Navigate to="/seller-login" replace />;
+    // 그 외 모든 경로는 기본 로그인 페이지로
     return <Navigate to="/reviewer-login" replace />;
   }
   
-  // ▼▼▼ 여기에 admin 역할이면 모든 검사를 통과시키는 로직 추가 ▼▼▼
-  // 사용자의 역할이 'admin'이면, 더 이상 다른 조건을 검사할 필요 없이 즉시 접근을 허용합니다.
-  if (authState.role === 'admin') {
-    return <Outlet />;
-  }
-  // ▲▲▲ admin 프리패스 로직 추가 완료 ▲▲▲
-
-  // 사용자가 있지만, 현재 경로에 접근 권한이 없는 경우
-  // (이 로직은 admin이 아닌 사용자에게만 적용됩니다)
+  // --- 2. 로그인 상태일 때: 경로와 역할에 따른 권한 검사 ---
+  const { role } = authState;
   const path = location.pathname;
-  if (path.startsWith('/admin') && authState.role !== 'admin') { // 이 조건은 사실상 위에서 걸러져서 불필요하지만, 명시적으로 둡니다.
-    return <Navigate to="/admin-login" replace />;
+
+  // 2-1. '/admin' 경로에 대한 규칙
+  if (path.startsWith('/admin')) {
+    if (role === 'admin') {
+      return <Outlet />; // admin이면 통과
+    }
+    // admin이 아니면 관리자 로그인 페이지로 리디렉션
+    return <Navigate to="/admin-login" replace />; 
   }
-  if (path.startsWith('/seller') && authState.role !== 'seller') {
+
+  // 2-2. '/seller' 경로에 대한 규칙
+  if (path.startsWith('/seller')) {
+    if (role === 'admin' || role === 'seller') {
+      return <Outlet />; // admin 또는 seller이면 통과
+    }
+    // 둘 다 아니면 판매자 로그인 페이지로 리디렉션
     return <Navigate to="/seller-login" replace />;
   }
 
-  // 모든 검사를 통과한 경우, 요청한 페이지를 보여줌
+  // 2-3. '/link' 경로 및 그 외 모든 경로에 대한 규칙
+  // 이 코드가 실행된다는 것은, 경로가 '/admin'도 '/seller'도 아니라는 의미입니다.
+  // 로그인만 되어 있다면 누구나 접근 가능하므로, 바로 통과시킵니다.
   return <Outlet />;
 }
