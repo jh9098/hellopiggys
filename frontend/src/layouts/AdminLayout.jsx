@@ -22,7 +22,7 @@ export default function AdminLayout() {
               <NavLink to="/admin/reviewer/members" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>회원 관리</NavLink>
             </li>
             <li className="mb-2">
-              <NavLink to="/admin/reviewer/products" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>리뷰 상품 관리</NavLink>
+              <NavLink to="/admin/products" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>리뷰 상품 관리</NavLink>
             </li>
             <li className="mb-2">
               <NavLink to="/admin/reviewer/settlement" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>정산 관리</NavLink>

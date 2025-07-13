@@ -33,7 +33,7 @@ export default function AdminProductFormPage() {
           setForm({ ...initialFormState, ...docSnap.data() });
         } else {
           alert('해당 상품 정보를 찾을 수 없습니다.');
-          navigate('/admin/reviewer/products');
+          navigate('/admin/products');
         }
         setLoading(false);
       };
@@ -65,7 +65,7 @@ export default function AdminProductFormPage() {
         await addDoc(collection(db, 'products'), { ...form, createdAt: serverTimestamp() });
         alert('상품이 성공적으로 생성되었습니다.');
       }
-      navigate('/admin/reviewer/products');
+      navigate('/admin/products');
     } catch (error) {
       alert(`오류가 발생했습니다: ${error.message}`);
     } finally {
@@ -89,7 +89,7 @@ export default function AdminProductFormPage() {
         <div><label style={{ display: 'block', marginBottom: '8px' }}>가이드</label><textarea name="guide" value={form.guide} onChange={handleChange} placeholder="리뷰 작성 시 필요한 상세 안내 내용을 입력하세요." style={{ width: '100%', minHeight: '300px' }}></textarea></div>
         <div className="form-actions">
             <button type="submit" disabled={isSubmitting}>{isSubmitting ? '저장 중...' : (isEditMode ? '수정 완료' : '상품 등록')}</button>
-            <button type="button" onClick={() => navigate('/admin/reviewer/products')} disabled={isSubmitting}>닫기</button>
+            <button type="button" onClick={() => navigate('/admin/products')} disabled={isSubmitting}>닫기</button>
         </div>
       </form>
     </>

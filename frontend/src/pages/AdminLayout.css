@@ -316,4 +316,22 @@ main h2 {
     font-size: 13px; /* 가독성을 위해 약간 키움 */
   }
 }
+
+/* 공통 관리 버튼 스타일 */
+.actions-cell {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.actions-cell .edit-btn,
+.actions-cell .delete-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+}
+.actions-cell .edit-btn { background-color: #007bff; }
+.actions-cell .delete-btn { background-color: #dc3545; }
 /* ▲▲▲ 모바일 최적화 수정 완료 ▲▲▲ */
