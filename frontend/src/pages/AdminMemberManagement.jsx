@@ -65,6 +65,7 @@ export default function AdminMemberManagementPage() {
                         review.subAccountInfo = subDoc.exists() ? subDoc.data() : { name: '삭제된 계정' };
                     }
                 }
+                member.reviewCount = member.reviews.length;
             }
             
             memberList.sort((a, b) => b.lastSubmissionDate.seconds - a.lastSubmissionDate.seconds);
@@ -80,8 +81,14 @@ export default function AdminMemberManagementPage() {
         if (searchPhone) data = data.filter(m => m.mainAccountPhone?.includes(searchPhone));
         if (sortConfig.key) {
             data.sort((a, b) => {
-                const valA = a[sortConfig.key] || '';
-                const valB = b[sortConfig.key] || '';
+                let valA, valB;
+                if (sortConfig.key === 'reviewCount') {
+                    valA = a.reviews.length;
+                    valB = b.reviews.length;
+                } else {
+                    valA = a[sortConfig.key] || '';
+                    valB = b[sortConfig.key] || '';
+                }
                 if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
                 if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
@@ -120,7 +127,7 @@ export default function AdminMemberManagementPage() {
                         <tr>
                             <th onClick={() => requestSort('mainAccountName')} className="sortable">본계정 이름<SortIndicator columnKey="mainAccountName" /></th>
                             <th onClick={() => requestSort('mainAccountPhone')} className="sortable">본계정 전화번호<SortIndicator columnKey="mainAccountPhone" /></th>
-                            <th>총 참여횟수</th>
+                            <th onClick={() => requestSort('reviewCount')} className="sortable">총 참여횟수<SortIndicator columnKey="reviewCount" /></th>
                             <th>최근 참여일</th>
                             <th>정보 보기</th>
                         </tr>
