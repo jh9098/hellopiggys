@@ -1,6 +1,6 @@
-// src/pages/WriteReview.jsx (수정된 최종 버전)
+// src/pages/WriteReview.jsx (최종 수정 버전: 미리보기 제거, 파일 이름 목록 표시)
 
-import { useState, useEffect } from 'react'; // useEffect를 import 했는지 확인
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   auth, onAuthStateChanged, db, storage, 
@@ -12,13 +12,11 @@ import AccountModal from '../components/AccountModal';
 import './WriteReview.css';
 import imageCompression from 'browser-image-compression';
 
-// ... (기존 UPLOAD_FIELDS 등 다른 코드는 그대로 둡니다) ...
 const UPLOAD_FIELDS = [
   { key: 'keywordAndLikeImages', label: '1. 키워드 & 찜 인증', group: 'keyword-like', required: false },
   { key: 'orderImage', label: '구매 인증', group: 'purchase', required: false },
   { key: 'cashcardImage', label: '현금영수증/매출전표', group: 'purchase', required: false },
 ];
-
 
 export default function WriteReview() {
   const navigate = useNavigate();
@@ -49,30 +47,25 @@ export default function WriteReview() {
   const [addressOptions, setAddressOptions] = useState([]);
   const [globalAddresses, setGlobalAddresses] = useState([]);
   
+  // images state는 유지하고, previews state는 제거합니다.
   const [images, setImages] = useState({});
-  const [previews, setPreviews] = useState({});
 
   const [submitting, setSubmitting] = useState(false);
   const [isAccountSelected, setIsAccountSelected] = useState(false);
   const [selectedSubAccountInfo, setSelectedSubAccountInfo] = useState(null);
   const [isAgreed, setIsAgreed] = useState(false);
 
-  // ▼▼▼ 여기에 useEffect 훅을 추가하여 스크롤을 제어합니다 ▼▼▼
+  // 모달창 스크롤 제어용 useEffect
   useEffect(() => {
-    // isAccountModalOpen 또는 isLoginModalOpen 상태가 true이면 배경 스크롤을 막습니다.
     if (isAccountModalOpen || isLoginModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = 'unset'; // 모달이 닫히면 스크롤을 원래대로 복원합니다.
+      document.body.style.overflow = 'unset';
     }
-
-    // 컴포넌트가 언마운트될 때(페이지를 벗어날 때) 스크롤을 복원하는 정리(cleanup) 함수
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isAccountModalOpen, isLoginModalOpen]); // 이 상태들이 변경될 때마다 useEffect가 실행됩니다.
-  // ▲▲▲ 스크롤 제어 로직 추가 완료 ▲▲▲
-
+  }, [isAccountModalOpen, isLoginModalOpen]);
 
   const fetchAddresses = async (uid) => {
     if (!uid) return;
@@ -103,10 +96,10 @@ export default function WriteReview() {
       finally { setLoading(false); }
     };
     fetchProducts();
-    // 주소는 로그인 후 fetchAddresses에서 불러옵니다
     return () => unsubscribeAuth();
   }, []);
 
+  // 미리보기 생성 로직을 제거하여 안정성을 높인 onFileChange 함수
   const onFileChange = async (e) => {
     const { name, files } = e.target;
     if (!files || files.length === 0) return;
@@ -118,7 +111,6 @@ export default function WriteReview() {
     };
   
     const processedFiles = [];
-  
     for (const file of files) {
       try {
         const compressedFile = await imageCompression(file, options);
@@ -129,11 +121,9 @@ export default function WriteReview() {
       }
     }
     
-    const selectedFiles = processedFiles.slice(0, 5);
+    // FileList를 배열로 변환하여 slice 사용
+    const selectedFiles = Array.from(processedFiles).slice(0, 5);
     setImages(prev => ({ ...prev, [name]: selectedFiles }));
-    
-    const previewUrls = selectedFiles.map(file => URL.createObjectURL(file));
-    setPreviews(prev => ({ ...prev, [name]: previewUrls }));
   };
   
   const handleSubmit = async (e) => {
@@ -206,11 +196,9 @@ export default function WriteReview() {
     setIsAccountSelected(false);
     
     if (product) {
-      // 상품에 저장된 값이 있으면 그 값을 사용하고, 없으면 기존 기본값을 유지합니다.
       setForm(prev => ({
         ...prev,
-        // ▼▼▼ 여기에 paymentType 자동 선택 로직 추가 ▼▼▼
-        paymentType: product.reviewType || '현영', // 상품의 reviewType을 폼의 paymentType에 매핑
+        paymentType: product.reviewType || '현영',
         productType: product.productType || '실배송',
         reviewOption: product.reviewOption || '별점',
       }));
@@ -222,7 +210,7 @@ export default function WriteReview() {
       subAccountId: subAccount.id,
       name: subAccount.name || '',
       phoneNumber: subAccount.phoneNumber || '',
-      participantId: subAccount.participantId || '', // <-- 이 줄을 추가하세요!
+      participantId: subAccount.participantId || '',
       address: (subAccount.addresses && subAccount.addresses[0]) || subAccount.address || '',
       bank: subAccount.bank || '',
       bankNumber: subAccount.bankNumber || '',
@@ -257,7 +245,6 @@ export default function WriteReview() {
 
   if (loading) return <p style={{textAlign: 'center', padding: '50px'}}>페이지 정보를 불러오는 중...</p>;
 
-  // ... (나머지 return JSX 부분은 그대로 둡니다) ...
   return (
     <div className="page-wrap">
       <h2 className="title">구매 폼 작성</h2>
@@ -289,20 +276,11 @@ export default function WriteReview() {
           <div className="product-info-box">
             <h4>{selectedProduct.productName}</h4>
             <p><strong>결제 종류:</strong> {selectedProduct.reviewType}</p>
-            
-            {/* ▼▼▼ 이 부분을 추가했습니다 ▼▼▼ */}
-            {selectedProduct.productType && (
-              <p><strong>상품 종류:</strong> {selectedProduct.productType}</p>
-            )}
-            {selectedProduct.reviewOption && (
-              <p><strong>리뷰 종류:</strong> {selectedProduct.reviewOption}</p>
-            )}
-            {/* ▲▲▲ 추가 완료 ▲▲▲ */}
-
+            {selectedProduct.productType && (<p><strong>상품 종류:</strong> {selectedProduct.productType}</p>)}
+            {selectedProduct.reviewOption && (<p><strong>리뷰 종류:</strong> {selectedProduct.reviewOption}</p>)}
             <p><strong>진행 일자:</strong> {selectedProduct.reviewDate}</p>
             {selectedProduct.guide && (<div className="guide-content"><strong>가이드:</strong><p style={{whiteSpace: 'pre-line'}}>{selectedProduct.guide}</p></div>)}
           </div>
-          {/* 여기는 이전에 수정한 그대로 둡니다 */}
           <div className="account-selection-action">
             <button type="button" onClick={handleMainButtonClick}>{isAccountSelected ? '✓ 계정 선택 완료 (변경하기)' : '구매 폼 작성하기'}</button>
           </div>
@@ -319,6 +297,7 @@ export default function WriteReview() {
       
       {isAccountSelected && selectedSubAccountInfo && (
         <form onSubmit={handleSubmit}>
+          {/* ... 폼 필드 (구매자, 전화번호 등) ... */}
           <div className="field">
             <label>구매자(수취인)</label>
             <input name="name" value={form.name} onChange={onFormChange} required />
@@ -405,26 +384,42 @@ export default function WriteReview() {
           </div>
           
           <div className="image-upload-group">
-            {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label, required }) => (
+            {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label }) => (
               <div className="field" key={key}>
                 <label>{label} (최대 5장)</label>
                 <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
-                <div className="preview-container">
-                  {previews[key] && previews[key].map((src, i) => <img key={i} className="thumb" src={src} alt={`${label} ${i+1}`} />)}
+                {/* ▼▼▼ 미리보기 대신 파일 이름 목록 표시 ▼▼▼ */}
+                <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
+                  {images[key] && images[key].length > 0 ? (
+                    images[key].map((file, i) => (
+                      <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
+                    ))
+                  ) : (
+                    <div style={{ color: '#999' }}>선택된 파일 없음</div>
+                  )}
                 </div>
+                {/* ▲▲▲ 변경 완료 ▲▲▲ */}
               </div>
             ))}
           </div>
 
           <div className="image-upload-group">
             <h4>2. 구매 & 증빙 인증</h4>
-            {UPLOAD_FIELDS.filter(f => f.group === 'purchase').map(({ key, label, required }) => (
+            {UPLOAD_FIELDS.filter(f => f.group === 'purchase').map(({ key, label }) => (
               <div className="field" key={key}>
                 <label>{label} (최대 5장)</label>
                 <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
-                <div className="preview-container">
-                  {previews[key] && previews[key].map((src, i) => <img key={i} className="thumb" src={src} alt={`${label} ${i+1}`} />)}
+                {/* ▼▼▼ 여기도 동일하게 파일 이름 목록 표시 ▼▼▼ */}
+                <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
+                  {images[key] && images[key].length > 0 ? (
+                    images[key].map((file, i) => (
+                      <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
+                    ))
+                  ) : (
+                    <div style={{ color: '#999' }}>선택된 파일 없음</div>
+                  )}
                 </div>
+                {/* ▲▲▲ 변경 완료 ▲▲▲ */}
               </div>
             ))}
           </div>
