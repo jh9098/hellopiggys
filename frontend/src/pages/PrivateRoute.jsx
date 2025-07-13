@@ -1,4 +1,4 @@
-// src/pages/PrivateRoute.jsx (비동기 상태 관리 개선 최종본)
+// src/pages/PrivateRoute.jsx (admin 권한 강화 최종본)
 
 import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
@@ -41,20 +41,25 @@ export default function PrivateRoute() {
 
   // 사용자가 없는 경우(로그아웃 상태)
   if (!authState.user) {
-    // 접근하려던 경로에 따라 적절한 로그인 페이지로 안내
     if (location.pathname.startsWith('/admin')) return <Navigate to="/admin-login" replace />;
     if (location.pathname.startsWith('/seller')) return <Navigate to="/seller-login" replace />;
     return <Navigate to="/reviewer-login" replace />;
   }
+  
+  // ▼▼▼ 여기에 admin 역할이면 모든 검사를 통과시키는 로직 추가 ▼▼▼
+  // 사용자의 역할이 'admin'이면, 더 이상 다른 조건을 검사할 필요 없이 즉시 접근을 허용합니다.
+  if (authState.role === 'admin') {
+    return <Outlet />;
+  }
+  // ▲▲▲ admin 프리패스 로직 추가 완료 ▲▲▲
 
   // 사용자가 있지만, 현재 경로에 접근 권한이 없는 경우
+  // (이 로직은 admin이 아닌 사용자에게만 적용됩니다)
   const path = location.pathname;
-  if (path.startsWith('/admin') && authState.role !== 'admin') {
+  if (path.startsWith('/admin') && authState.role !== 'admin') { // 이 조건은 사실상 위에서 걸러져서 불필요하지만, 명시적으로 둡니다.
     return <Navigate to="/admin-login" replace />;
   }
   if (path.startsWith('/seller') && authState.role !== 'seller') {
-    // 관리자는 판매자 페이지에도 접근 가능하게 하려면 아래 조건 추가
-    // if (path.startsWith('/seller') && !['seller', 'admin'].includes(authState.role)) {
     return <Navigate to="/seller-login" replace />;
   }
 
