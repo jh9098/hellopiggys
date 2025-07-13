@@ -52,9 +52,7 @@ export default function PrivateRoute() {
   if (path.startsWith('/admin') && authState.role !== 'admin') {
     return <Navigate to="/admin-login" replace />;
   }
-  if (path.startsWith('/seller') && authState.role !== 'seller') {
-    // 관리자는 판매자 페이지에도 접근 가능하게 하려면 아래 조건 추가
-    // if (path.startsWith('/seller') && !['seller', 'admin'].includes(authState.role)) {
+  if (path.startsWith('/seller') && !['seller', 'admin'].includes(authState.role)) {
     return <Navigate to="/seller-login" replace />;
   }
 
