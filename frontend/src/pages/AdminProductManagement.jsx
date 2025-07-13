@@ -1,7 +1,7 @@
 // src/pages/AdminProductManagement.jsx (기존 CSS 적용 최종본)
 
 import { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { db, collection, getDocs, query, orderBy, deleteDoc, doc, updateDoc } from '../firebaseConfig';
 import Papa from 'papaparse';
 
@@ -16,6 +16,7 @@ export default function AdminProductManagementPage() {
     productType: '', reviewOption: '',
   });
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
+  const navigate = useNavigate();
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -103,7 +104,7 @@ export default function AdminProductManagementPage() {
     <>
       <div className="toolbar" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>상품 관리 ({processedProducts.length})</h2>
-        <Link to="/admin/reviewer/products/new" className="action-button">상품 생성</Link>
+        <Link to="/admin/products/new" className="action-button">상품 생성</Link>
       </div>
       <div className="toolbar">
         <button onClick={resetFilters}>필터 초기화</button>
@@ -142,7 +143,10 @@ export default function AdminProductManagementPage() {
                 <td>{p.reviewDate}</td>
                 <td><select value={p.progressStatus || '진행전'} onChange={(e) => handleStatusChange(p.id, e.target.value)}><option value="">선택</option>{progressStatusOptions.map(s => (<option key={s} value={s}>{s}</option>))}</select></td>
                 <td>{formatDate(p.createdAt)}</td>
-                <td className="actions-cell"><Link to={`/admin/reviewer/products/edit/${p.id}`} className="edit-btn">수정</Link><button onClick={() => handleDelete(p.id)} className="delete-btn">삭제</button></td>
+                <td className="actions-cell">
+                  <button className="edit-btn" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>수정</button>
+                  <button onClick={() => handleDelete(p.id)} className="delete-btn">삭제</button>
+                </td>
               </tr>
             )) : (
               <tr><td colSpan="8" style={{ padding: '50px', textAlign: 'center' }}>생성된 상품이 없습니다.</td></tr>
