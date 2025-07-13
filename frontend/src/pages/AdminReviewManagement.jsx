@@ -83,7 +83,7 @@ export default function AdminReviewManagementPage() {
   const downloadCsv = () => {
     if (processedRows.length === 0) return alert("다운로드할 데이터가 없습니다.");
     const csvData = processedRows.map(r => ({
-      '등록일시': r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString('ko-KR') : '', '상태': statusMap[r.status] || r.status, '상품명': r.productName, '결제 종류': r.reviewType,
+      '구매폼 등록일시': r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString('ko-KR') : '', '상태': statusMap[r.status] || r.status, '상품명': r.productName, '결제 종류': r.reviewType,
       '본계정': r.mainAccountName, '타계정': r.name, '전화번호': r.phoneNumber, '주소': r.address, '쿠팡ID': r.participantId, '주문번호': r.orderNumber, '금액': r.rewardAmount,
       '결제유형': r.paymentType, '상품종류': r.productType, '리뷰종류': r.reviewOption, '은행': r.bank, '계좌번호': r.bankNumber, '예금주': r.accountHolderName,
       '리뷰인증': r.confirmImageUrls?.length > 0 ? 'O' : 'X', '반려사유': r.rejectionReason || ''
@@ -152,7 +152,7 @@ export default function AdminReviewManagementPage() {
           <thead>
             <tr>
               <th><input type="checkbox" checked={selected.size === processedRows.length && processedRows.length > 0} onChange={toggleSelectAll} /></th>
-              <th onClick={() => requestSort('createdAt')} className="sortable">등록일시<SortIndicator columnKey="createdAt" /></th>
+              <th onClick={() => requestSort('createdAt')} className="sortable">구매폼 등록일시<SortIndicator columnKey="createdAt" /></th>
               <th onClick={() => requestSort('status')} className="sortable">상태<SortIndicator columnKey="status" /></th>
               <th onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></th>
               <th onClick={() => requestSort('payType')} className="sortable">결제 종류<SortIndicator columnKey="payType" /></th>
@@ -182,7 +182,7 @@ export default function AdminReviewManagementPage() {
             {processedRows.map((r) => (
               <tr key={r.id}>
                 <td><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></td>
-                <td>{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}</td>
+                <td>{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString('ko-KR') : ''}</td>
                 <td>{statusMap[r.status] || r.status}</td>
                 <td className="product-name-cell">{r.productName || '-'}</td>
                 <td>{r.payType || '-'}</td>
