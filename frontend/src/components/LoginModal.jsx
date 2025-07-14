@@ -128,9 +128,12 @@ export default function LoginModal({ onClose, onLoginSuccess }) {
           {error && <p className="error-msg">{error}</p>}
         </form>
 
-        <div className="view-toggle">
+        <div className="view-toggle mt-6">
           {isLoginView ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'}
-          <button onClick={() => { setIsLoginView(!isLoginView); setError(''); }}>
+          <button
+            className="ml-2 px-4 py-2 rounded bg-blue-600 text-white text-sm font-semibold"
+            onClick={() => { setIsLoginView(!isLoginView); setError(''); }}
+          >
             {isLoginView ? '회원가입' : '로그인'}
           </button>
         </div>
