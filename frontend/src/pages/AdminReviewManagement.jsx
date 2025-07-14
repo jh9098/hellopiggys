@@ -1,4 +1,4 @@
-// src/pages/AdminReviewManagement.jsx (Tailwind CSS 클래스 제거 최종본)
+// src/pages/AdminReviewManagement.jsx (수정 완료)
 
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, getDoc, deleteDoc } from '../firebaseConfig';
@@ -32,7 +32,12 @@ export default function AdminReviewManagementPage() {
       if (review.subAccountId) {
           const subAccountRef = doc(db, "subAccounts", review.subAccountId);
           const subAccountSnap = await getDoc(subAccountRef);
-          if(subAccountSnap.exists()) Object.assign(review, subAccountSnap.data());
+          if(subAccountSnap.exists()) {
+            const subAccountData = subAccountSnap.data();
+            // [수정] subAccount의 createdAt이 review의 createdAt을 덮어쓰지 않도록 합니다.
+            delete subAccountData.createdAt; 
+            Object.assign(review, subAccountData);
+          }
       }
       return review;
     }));
