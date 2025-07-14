@@ -26,6 +26,7 @@ export default function ReviewDetailModal({ review, onClose }) {
   const [isEditing, setIsEditing] = useState(false);
   const [currentReview, setCurrentReview] = useState(review);
   const [editableData, setEditableData] = useState({});
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     setCurrentReview(review);
@@ -91,7 +92,11 @@ export default function ReviewDetailModal({ review, onClose }) {
     });
   };
 
+  const openImagePreview = (url) => setImagePreview(url);
+  const closeImagePreview = () => setImagePreview(null);
+
   return (
+    <>
     <div className="modal-back" onClick={onClose}>
       <div className="review-detail-modal" onClick={(e) => e.stopPropagation()}>
         <button className="close-btn" onClick={onClose}>✖</button>
@@ -202,9 +207,12 @@ export default function ReviewDetailModal({ review, onClose }) {
                 return imageUrls.map((url, index) => (
                   <div key={`${key}-${index}`} className="image-item">
                     <label>{label}</label>
-                    <a href={url} target="_blank" rel="noopener noreferrer">
-                      <img src={url} alt={`${label} ${index + 1}`} className="thumb" />
-                    </a>
+                    <img
+                      src={url}
+                      alt={`${label} ${index + 1}`}
+                      className="thumb"
+                      onClick={() => openImagePreview(url)}
+                    />
                   </div>
                 ));
               }
@@ -221,9 +229,12 @@ export default function ReviewDetailModal({ review, onClose }) {
               {currentReview.confirmImageUrls.map((url, index) => (
                 <div key={index} className="image-item">
                   <label>인증 이미지 {index + 1}</label>
-                   <a href={url} target="_blank" rel="noopener noreferrer">
-                    <img src={url} alt={`리뷰 인증 ${index + 1}`} className="thumb" />
-                  </a>
+                  <img
+                    src={url}
+                    alt={`리뷰 인증 ${index + 1}`}
+                    className="thumb"
+                    onClick={() => openImagePreview(url)}
+                  />
                 </div>
               ))}
             </div>
@@ -231,5 +242,14 @@ export default function ReviewDetailModal({ review, onClose }) {
         )}
       </div>
     </div>
+    {imagePreview && (
+      <div className="modal-back" onClick={closeImagePreview}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <button className="close" onClick={closeImagePreview}>✖</button>
+          <img src={imagePreview} alt="미리보기" style={{ width: '100%' }} />
+        </div>
+      </div>
+    )}
+    </>
   );
 }
