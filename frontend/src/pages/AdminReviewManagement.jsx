@@ -94,7 +94,7 @@ export default function AdminReviewManagementPage() {
     if (processedRows.length === 0) return alert("다운로드할 데이터가 없습니다.");
     const csvData = processedRows.map(r => ({
       // [수정] 다운로드 파일도 24시간제로 변경
-      '구매폼 등록일시': formatTimestamp24h(r.createdAt), '상태': statusMap[r.status] || r.status, '상품명': r.productName,
+      '구매폼 등록일시': formatTimestamp24h(r.createdAt), '상태': statusMap[r.status] || r.status, '상품명': r.productName, '결제 종류': r.reviewType,
       '본계정': r.mainAccountName, '타계정': r.name, '전화번호': r.phoneNumber, '주소': r.address, '쿠팡ID': r.participantId, '주문번호': r.orderNumber, '금액': r.rewardAmount,
       '결제유형': r.paymentType, '상품종류': r.productType, '리뷰종류': r.reviewOption, '은행': r.bank, '계좌번호': r.bankNumber, '예금주': r.accountHolderName,
       '리뷰인증': r.confirmImageUrls?.length > 0 ? 'O' : 'X', '반려사유': r.rejectionReason || ''
@@ -166,6 +166,7 @@ export default function AdminReviewManagementPage() {
               <th onClick={() => requestSort('createdAt')} className="sortable">구매폼 등록일시<SortIndicator columnKey="createdAt" /></th>
               <th onClick={() => requestSort('status')} className="sortable">상태<SortIndicator columnKey="status" /></th>
               <th onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></th>
+              <th onClick={() => requestSort('payType')} className="sortable">결제 종류<SortIndicator columnKey="payType" /></th>
               <th onClick={() => requestSort('mainAccountName')} className="sortable">본계정<SortIndicator columnKey="mainAccountName" /></th>
               <th onClick={() => requestSort('name')} className="sortable">타계정<SortIndicator columnKey="name" /></th>
               <th onClick={() => requestSort('phoneNumber')} className="sortable">전화번호<SortIndicator columnKey="phoneNumber" /></th>
@@ -179,6 +180,7 @@ export default function AdminReviewManagementPage() {
               <th></th><th></th>
               <th><select name="status" value={filters.status} onChange={handleFilterChange}><option value="all">전체</option>{Object.values(statusMap).map(s => <option key={s} value={s}>{s}</option>)}</select></th>
               <th><input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></th>
+              <th><input type="text" name="payType" value={filters.payType} onChange={handleFilterChange} /></th>
               <th><input type="text" name="mainAccountName" value={filters.mainAccountName} onChange={handleFilterChange} /></th>
               <th><input type="text" name="name" value={filters.name} onChange={handleFilterChange} /></th>
               <th><input type="text" name="phoneNumber" value={filters.phoneNumber} onChange={handleFilterChange} /></th>
