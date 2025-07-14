@@ -138,3 +138,25 @@
     margin-bottom: 20px;
     cursor: pointer;
   }
+
+  /* 상품 정보 박스 및 상품명 크기 조정 */
+  .product-info-box {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .product-info-box h4 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    line-height: 1.4;
+  }
+
+  /* 선택 박스 옵션 크기 통일 */
+  .field select,
+  .field select option {
+    font-size: 14px;
+  }
