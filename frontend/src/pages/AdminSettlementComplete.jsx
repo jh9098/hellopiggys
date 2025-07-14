@@ -1,8 +1,14 @@
-// src/pages/AdminSettlementComplete.jsx (수정 완료)
+// src/pages/AdminSettlementComplete.jsx (24시간 표기 수정)
 
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, where, doc, getDoc, deleteDoc } from '../firebaseConfig';
 import ReviewDetailModal from '../components/ReviewDetailModal';
+
+// [추가] 24시간제 날짜 포맷 함수
+const formatTimestamp24h = (timestamp) => {
+  if (!timestamp || !timestamp.seconds) return '';
+  return new Date(timestamp.seconds * 1000).toLocaleString('ko-KR', { hour12: false });
+};
 
 export default function AdminSettlementCompletePage() {
   const [rows, setRows] = useState([]);
@@ -35,7 +41,6 @@ export default function AdminSettlementCompletePage() {
           const subAccountSnap = await getDoc(subAccountRef);
           if (subAccountSnap.exists()) {
             const subAccountData = subAccountSnap.data();
-            // [수정] subAccount의 createdAt이 review의 createdAt을 덮어쓰지 않도록 합니다.
             delete subAccountData.createdAt;
             Object.assign(review, subAccountData);
             review.subAccountName = subAccountData.name;
@@ -145,8 +150,9 @@ export default function AdminSettlementCompletePage() {
             {processedRows.map((r) => (
               <tr key={r.id}>
                 <td><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></td>
-                <td>{r.settledAt?.seconds ? new Date(r.settledAt.seconds * 1000).toLocaleString() : ''}</td>
-                <td>{r.verifiedAt?.seconds ? new Date(r.verifiedAt.seconds * 1000).toLocaleString() : ''}</td>
+                {/* [수정] 헬퍼 함수 사용 */}
+                <td>{formatTimestamp24h(r.settledAt)}</td>
+                <td>{formatTimestamp24h(r.verifiedAt)}</td>
                 <td>{r.productInfo?.productName || r.productName || '-'}</td>
                 <td>{r.mainAccountName || '-'}</td>
                 <td>{r.subAccountName || '-'}</td>

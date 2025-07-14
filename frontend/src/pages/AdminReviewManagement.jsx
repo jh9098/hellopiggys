@@ -1,9 +1,15 @@
-// src/pages/AdminReviewManagement.jsx (수정 완료)
+// src/pages/AdminReviewManagement.jsx (24시간 표기 수정)
 
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, getDoc, deleteDoc } from '../firebaseConfig';
 import Papa from 'papaparse';
 import ReviewDetailModal from '../components/ReviewDetailModal';
+
+// [추가] 24시간제 날짜 포맷 함수
+const formatTimestamp24h = (timestamp) => {
+  if (!timestamp || !timestamp.seconds) return '';
+  return new Date(timestamp.seconds * 1000).toLocaleString('ko-KR', { hour12: false });
+};
 
 const statusMap = { submitted: '구매 완료', review_completed: '리뷰 완료', rejected: '반려됨' };
 const getStatusKeyByValue = (value) => Object.keys(statusMap).find(key => statusMap[key] === value);
@@ -34,7 +40,6 @@ export default function AdminReviewManagementPage() {
           const subAccountSnap = await getDoc(subAccountRef);
           if(subAccountSnap.exists()) {
             const subAccountData = subAccountSnap.data();
-            // [수정] subAccount의 createdAt이 review의 createdAt을 덮어쓰지 않도록 합니다.
             delete subAccountData.createdAt; 
             Object.assign(review, subAccountData);
           }
@@ -88,7 +93,8 @@ export default function AdminReviewManagementPage() {
   const downloadCsv = () => {
     if (processedRows.length === 0) return alert("다운로드할 데이터가 없습니다.");
     const csvData = processedRows.map(r => ({
-      '구매폼 등록일시': r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString('ko-KR') : '', '상태': statusMap[r.status] || r.status, '상품명': r.productName, '결제 종류': r.reviewType,
+      // [수정] 다운로드 파일도 24시간제로 변경
+      '구매폼 등록일시': formatTimestamp24h(r.createdAt), '상태': statusMap[r.status] || r.status, '상품명': r.productName, '결제 종류': r.reviewType,
       '본계정': r.mainAccountName, '타계정': r.name, '전화번호': r.phoneNumber, '주소': r.address, '쿠팡ID': r.participantId, '주문번호': r.orderNumber, '금액': r.rewardAmount,
       '결제유형': r.paymentType, '상품종류': r.productType, '리뷰종류': r.reviewOption, '은행': r.bank, '계좌번호': r.bankNumber, '예금주': r.accountHolderName,
       '리뷰인증': r.confirmImageUrls?.length > 0 ? 'O' : 'X', '반려사유': r.rejectionReason || ''
@@ -187,7 +193,8 @@ export default function AdminReviewManagementPage() {
             {processedRows.map((r) => (
               <tr key={r.id}>
                 <td><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></td>
-                <td>{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString('ko-KR') : ''}</td>
+                {/* [수정] 헬퍼 함수 사용 */}
+                <td>{formatTimestamp24h(r.createdAt)}</td>
                 <td>{statusMap[r.status] || r.status}</td>
                 <td className="product-name-cell">{r.productName || '-'}</td>
                 <td>{r.payType || '-'}</td>

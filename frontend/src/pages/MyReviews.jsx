@@ -1,4 +1,4 @@
-// src/pages/MyReviews.jsx (수정 완료)
+// src/pages/MyReviews.jsx (24시간 표기 수정)
 
 import { useEffect, useState } from 'react';
 import imageCompression from 'browser-image-compression';
@@ -25,6 +25,12 @@ import {
 } from '../firebaseConfig';
 import LoginModal from '../components/LoginModal';
 import './MyReviews.css';
+
+// [추가] 24시간제 날짜 포맷 함수
+const formatTimestamp24h = (timestamp) => {
+  if (!timestamp || !timestamp.seconds) return '';
+  return new Date(timestamp.seconds * 1000).toLocaleString('ko-KR', { hour12: false });
+};
 
 function GuideToggle({ text }) {
   const [expanded, setExpanded] = useState(false);
@@ -108,7 +114,6 @@ export default function MyReviews() {
               const subDocSnap = await getDoc(subDocRef);
               if (subDocSnap.exists()) {
                 const subData = subDocSnap.data();
-                // [수정] subAccount의 createdAt이 review의 createdAt을 덮어쓰지 않도록 합니다.
                 delete subData.createdAt;
                 reviewData.subAccountInfo = subData;
                 Object.assign(reviewData, subData);
@@ -128,7 +133,7 @@ export default function MyReviews() {
         }
       } else {
         setLoading(false);
-        setRows([]); // 로그아웃 시 데이터 초기화
+        setRows([]);
       }
     });
     return () => unsubscribe();
@@ -366,7 +371,8 @@ export default function MyReviews() {
         const participantType = r.subAccountInfo ? participantName : '본계정';
         return (
           <div className={`card ${statusInfo.className}`} key={r.id}>
-            <div className="card-head"><div><span className="badge">{statusInfo.text}</span><span className="badge secondary">{participantType}</span></div><span className="timestamp">{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}</span></div>
+            {/* [수정] 헬퍼 함수 사용 */}
+            <div className="card-head"><div><span className="badge">{statusInfo.text}</span><span className="badge secondary">{participantType}</span></div><span className="timestamp">{formatTimestamp24h(r.createdAt)}</span></div>
             {r.productInfo && (
               <div className="product-details">
                 <h4>{r.productInfo.productName}</h4>
@@ -519,4 +525,5 @@ export default function MyReviews() {
       </div>
     )}
     </>
-  );}
+  );
+}
