@@ -14,6 +14,7 @@ import {
 export default function SellerSignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [bNo, setBNo] = useState('');
@@ -27,6 +28,10 @@ export default function SellerSignupPage() {
     e.preventDefault();
     if (!email || !password || !bNo || !name || !phone || !username || !nickname) {
       alert('모든 필드를 입력해주세요.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      alert('비밀번호가 일치하지 않습니다.');
       return;
     }
     setIsVerifying(true);
@@ -103,6 +108,7 @@ export default function SellerSignupPage() {
         <input value={username} onChange={e => setUsername(e.target.value)} placeholder="ID" required style={{ width:'100%', padding:'8px', marginBottom:'10px' }} />
         <input value={nickname} onChange={e => setNickname(e.target.value)} placeholder="닉네임" required style={{ width:'100%', padding:'8px', marginBottom:'10px' }} />
         <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="PW" required style={{ width:'100%', padding:'8px', marginBottom:'10px' }} />
+        <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="PW 재입력" required style={{ width:'100%', padding:'8px', marginBottom:'10px' }} />
         <input value={referrerId} onChange={e => setReferrerId(e.target.value)} placeholder="추천인 ID (선택)" style={{ width:'100%', padding:'8px', marginBottom:'10px' }} />
         <button type="submit" disabled={isVerifying} style={{ width:'100%', padding:'10px' }}>
           {isVerifying ? '인증 중...' : '가입하기'}
