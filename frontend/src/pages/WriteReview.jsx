@@ -154,7 +154,7 @@ export default function WriteReview() {
         subAccountId: form.subAccountId,
         productId: selectedProduct.id,
         productName: selectedProduct.productName,
-        reviewType: selectedProduct.reviewType,
+        paymentType: selectedProduct.paymentType,
         createdAt: serverTimestamp(),
         status: 'submitted',
         name: form.name,
@@ -198,7 +198,7 @@ export default function WriteReview() {
     if (product) {
       setForm(prev => ({
         ...prev,
-        paymentType: product.reviewType || '현영',
+        paymentType: product.paymentType || '현영',
         productType: product.productType || '실배송',
         reviewOption: product.reviewOption || '별점',
       }));
@@ -268,14 +268,14 @@ export default function WriteReview() {
           <label>상품 선택</label>
           <select onChange={handleProductSelect} value={selectedProduct?.id || ''}>
             <option value="" disabled>체험단 상품을 선택해 주세요</option>
-            {products.map(p => <option key={p.id} value={p.id}>{p.productName} ({p.reviewType})</option>)}
+            {products.map(p => <option key={p.id} value={p.id}>{p.productName} ({p.paymentType})</option>)}
           </select>
         </div>
       )}
       {selectedProduct && (<>
           <div className="product-info-box">
             <h4>{selectedProduct.productName}</h4>
-            <p><strong>결제 종류:</strong> {selectedProduct.reviewType}</p>
+            <p><strong>결제 종류:</strong> {selectedProduct.paymentType}</p>
             {selectedProduct.productType && (<p><strong>상품 종류:</strong> {selectedProduct.productType}</p>)}
             {selectedProduct.reviewOption && (<p><strong>리뷰 종류:</strong> {selectedProduct.reviewOption}</p>)}
             <p><strong>진행 일자:</strong> {selectedProduct.reviewDate}</p>
