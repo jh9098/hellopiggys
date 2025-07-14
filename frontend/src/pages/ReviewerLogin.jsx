@@ -13,6 +13,7 @@ export default function ReviewerLogin() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -36,6 +37,11 @@ export default function ReviewerLogin() {
         const snap = await getDoc(userByPhoneRef);
         if (snap.exists()) {
           setError('이미 등록된 전화번호입니다. 로그인해주세요.');
+          setSubmitting(false);
+          return;
+        }
+        if (password !== confirmPassword) {
+          setError('비밀번호가 일치하지 않습니다.');
           setSubmitting(false);
           return;
         }
@@ -103,6 +109,18 @@ export default function ReviewerLogin() {
             required
           />
         </div>
+        {!isLoginView && (
+          <div className="input-with-icon">
+            <input
+              type="password"
+              name="confirmPassword"
+              placeholder="비밀번호 재입력"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+          </div>
+        )}
         <button className="login-btn" type="submit" disabled={submitting}>
           {submitting ? '처리 중...' : isLoginView ? '로그인' : '회원가입'}
         </button>

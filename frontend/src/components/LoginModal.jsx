@@ -10,6 +10,7 @@ export default function LoginModal({ onClose, onLoginSuccess }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -27,6 +28,9 @@ export default function LoginModal({ onClose, onLoginSuccess }) {
         break;
       case 'password':
         setPassword(value);
+        break;
+      case 'confirmPassword':
+        setConfirmPassword(value);
         break;
       default:
         break;
@@ -59,6 +63,11 @@ export default function LoginModal({ onClose, onLoginSuccess }) {
       // --- 회원가입 로직 ---
       try {
         if (!name.trim()) return setError('이름을 입력해주세요.');
+        if (password !== confirmPassword) {
+          setError('비밀번호가 일치하지 않습니다.');
+          setSubmitting(false);
+          return;
+        }
         // Firestore에 이미 해당 전화번호로 가입한 유저가 있는지 확인 (선택적이지만 권장)
         const userByPhoneRef = doc(db, 'users_by_phone', phone.trim());
         const docSnap = await getDoc(userByPhoneRef);
@@ -109,6 +118,9 @@ export default function LoginModal({ onClose, onLoginSuccess }) {
           )}
           <input type="tel" placeholder="전화번호 ('-' 없이 입력)" value={phone} onChange={e => setPhone(e.target.value)} required />
           <input type="password" placeholder="비밀번호 (6자리 이상)" value={password} onChange={e => setPassword(e.target.value)} required />
+          {!isLoginView && (
+            <input type="password" name="confirmPassword" placeholder="비밀번호 재입력" value={confirmPassword} onChange={handleInputChange} required />
+          )}
           
           <button type="submit" className="auth-submit-btn" disabled={submitting}>
             {submitting ? '처리 중...' : (isLoginView ? '로그인' : '회원가입')}
