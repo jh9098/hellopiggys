@@ -175,7 +175,7 @@ export default function MyReviews() {
       ...currentReview,
       productId: currentReview.productId,
       productName: currentReview.productInfo?.productName,
-      reviewType: currentReview.productInfo?.reviewType,
+      paymentType: currentReview.productInfo?.paymentType,
     });
     setEditImages({});
     setImagesToDelete({});
@@ -211,7 +211,7 @@ export default function MyReviews() {
       ...prev,
       productId,
       productName: product?.productName || '',
-      reviewType: product?.reviewType || ''
+      paymentType: product?.paymentType || ''
     }));
   };
 
@@ -261,7 +261,7 @@ export default function MyReviews() {
         participantId: editableData.participantId,
         productId: editableData.productId,
         productName: editableData.productName,
-        reviewType: editableData.reviewType,
+        paymentType: editableData.paymentType,
       };
 
       for (const fieldKey in imagesToDelete) {
@@ -377,7 +377,7 @@ export default function MyReviews() {
               <div className="product-details">
                 <h4>{r.productInfo.productName}</h4>
                 <p>
-                  <strong>결제 종류:</strong> {r.productInfo.reviewType}
+                  <strong>결제 종류:</strong> {r.productInfo.paymentType}
                 </p>
                 {r.productType && ( <p><strong>상품 종류:</strong> {r.productType}</p> )}
                 {r.reviewOption && ( <p><strong>리뷰 종류:</strong> {r.reviewOption}</p> )}
@@ -419,7 +419,7 @@ export default function MyReviews() {
                       <option value="">상품 선택</option>
                       {products.map(p => (
                         <option key={p.id} value={p.id}>
-                          {p.productName} ({p.reviewType})
+                          {p.productName} ({p.paymentType})
                         </option>
                       ))}
                     </select>

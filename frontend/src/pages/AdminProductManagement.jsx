@@ -13,7 +13,7 @@ export default function AdminProductManagementPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    productName: '', reviewType: '', reviewDate: '', progressStatus: 'all',
+    productName: '', paymentType: '', reviewDate: '', progressStatus: 'all',
     productType: '', reviewOption: '',
   });
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
@@ -68,13 +68,13 @@ export default function AdminProductManagementPage() {
   };
 
   const resetFilters = () => setFilters({
-    productName: '', reviewType: '', reviewDate: '', progressStatus: 'all',
+    productName: '', paymentType: '', reviewDate: '', progressStatus: 'all',
     productType: '', reviewOption: '',
   });
 
   const downloadCsv = () => {
     const csvData = processedProducts.map(p => ({
-      '상품명': p.productName || '-', '결제 종류': p.reviewType || '-',
+      '상품명': p.productName || '-', '결제 종류': p.paymentType || '-',
       '상품 종류': p.productType || '-', '리뷰 종류': p.reviewOption || '-',
       '진행일자': p.reviewDate || '-', '진행 상태': p.progressStatus || '-',
       '등록날짜': formatDate(p.createdAt),
@@ -119,7 +119,7 @@ export default function AdminProductManagementPage() {
           <thead>
             <tr>
               <th onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></th>
-              <th onClick={() => requestSort('reviewType')} className="sortable">결제 종류<SortIndicator columnKey="reviewType" /></th>
+              <th onClick={() => requestSort('paymentType')} className="sortable">결제 종류<SortIndicator columnKey="paymentType" /></th>
               <th onClick={() => requestSort('productType')} className="sortable">상품 종류<SortIndicator columnKey="productType" /></th>
               <th onClick={() => requestSort('reviewOption')} className="sortable">리뷰 종류<SortIndicator columnKey="reviewOption" /></th>
               <th onClick={() => requestSort('reviewDate')} className="sortable">진행일자<SortIndicator columnKey="reviewDate" /></th>
@@ -129,7 +129,7 @@ export default function AdminProductManagementPage() {
             </tr>
             <tr className="filter-row">
               <th><input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></th>
-              <th><input type="text" name="reviewType" value={filters.reviewType} onChange={handleFilterChange} /></th>
+              <th><input type="text" name="paymentType" value={filters.paymentType} onChange={handleFilterChange} /></th>
               <th><input type="text" name="productType" value={filters.productType} onChange={handleFilterChange} /></th>
               <th><input type="text" name="reviewOption" value={filters.reviewOption} onChange={handleFilterChange} /></th>
               <th><input type="text" name="reviewDate" value={filters.reviewDate} onChange={handleFilterChange} /></th>
@@ -141,7 +141,7 @@ export default function AdminProductManagementPage() {
           {processedProducts.length > 0 ? processedProducts.map(p => (
               <tr key={p.id}>
                 <td style={{textAlign: 'left'}}>{p.productName}</td>
-                <td>{p.reviewType}</td>
+                <td>{p.paymentType}</td>
                 <td>{p.productType || '-'}</td>
                 <td>{p.reviewOption || '-'}</td>
                 <td>{p.reviewDate}</td>
