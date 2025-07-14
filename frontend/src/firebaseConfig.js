@@ -6,7 +6,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  createUserWithEmailAndPassword, // [추가]
+  createUserWithEmailAndPassword,
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -23,9 +23,10 @@ import {
   deleteDoc,
   setDoc,
   deleteField,
-  onSnapshot,  // [추가]
-  writeBatch,  // [추가]
-  increment,   // [추가]
+  onSnapshot,
+  writeBatch,
+  increment,
+  arrayRemove, // [추가] Firestore 배열 요소 삭제 함수
 } from 'firebase/firestore';
 import {
   getStorage,
@@ -57,7 +58,7 @@ export {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  createUserWithEmailAndPassword, // [추가]
+  createUserWithEmailAndPassword,
 
   // Firestore
   collection,
@@ -73,9 +74,10 @@ export {
   deleteDoc,
   setDoc,
   deleteField,
-  onSnapshot,  // [추가]
-  writeBatch,  // [추가]
-  increment,   // [추가]
+  onSnapshot,
+  writeBatch,
+  increment,
+  arrayRemove, // [추가] 다른 파일에서 사용할 수 있도록 export
 
   // Storage
   ref,
