@@ -141,7 +141,7 @@ export default function MyReviews() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const q = query(collection(db, 'products'), where('progressStatus', '==', '진행중'), orderBy('createdAt', 'desc'));
+        const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
         const snap = await getDocs(q);
         setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (err) {
