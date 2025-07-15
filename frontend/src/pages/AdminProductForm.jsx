@@ -18,7 +18,7 @@ const initialFormState = {
   // ▼▼▼ 요청하신 내용으로 가이드 텍스트를 수정했습니다 ▼▼▼
   guide: `✅ 구매폼 작성\n- ${REVIEW_LINK_PLACEHOLDER}\n\n현영(지출증빙): 736-28-00836, 7362800836\n🚫상품명 검색 금지🚫\n🚫타계 동일 연락처, 동일 주소 중복 불가🚫\n🚫여러 상품 진행 시 장바구니 결제🚫\n✅키워드 검색 후 (가격 검색 필수) [찜🩷]\n + 체류 2분 후 [장바구니🛒] > [바로구매] \n\n⚠ 가이드의 상품 옵션 그대로 구매 진행 \n⚠ 옵션 변경 시 페이백 불가 \n\n✅리뷰 가이드🙇\n- 상품별 별도 안내\n⭐ 별점 리뷰 : 별점 5점 \n✍ 텍스트 리뷰 : 텍스트 3줄 이상 + 별점 5점\n📸 포토 리뷰 : 포토 3장 + 텍스트 3줄 이상 + 별점 5점\n📸 프리미엄(포토) : 포토 10장 + 예쁜 텍스트 많이 / 풀-포리\n📹 프리미엄(영상) : 영상 + 포토 10장 + 예쁜 텍스트 많이\n\n✅구매 후 업로드!\n - 구매 인증 시 상품명, 옵션 확인 안될 경우 페이백 불가\n - 현금영수증(지출증빙) 7362800836 입력 인증 필수! \n\n✅ 페이백 - 리뷰 인증 확인 후 48시간 이내 페이백 (입금자명 : 강예슬)\n - 페이백 확인이 안될 경우 개인톡❌\n - 1:1 문의방으로 문의해 주세요\n  → https://open.kakao.com/o/sscJn3wh\n - 입장 후 구매일자, 구매상품을 말씀해 주시면 더 빠른 확인이 가능해요!`,
   // ▲▲▲ 텍스트 수정 완료 ▲▲▲
-  reviewDate: '', progressStatus: '진행중', productType: '실배송', reviewOption: '포토',
+  reviewDate: new Date().toISOString().slice(0, 10), progressStatus: '진행중', productType: '실배송', reviewOption: '포토',
 };
 export default function AdminProductFormPage() {
   const { productId } = useParams();
