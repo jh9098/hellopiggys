@@ -23,6 +23,7 @@ export default function WriteReview() {
 
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   
   const [currentUser, setCurrentUser] = useState(null);
@@ -53,6 +54,10 @@ export default function WriteReview() {
   const [isAccountSelected, setIsAccountSelected] = useState(false);
   const [selectedSubAccountInfo, setSelectedSubAccountInfo] = useState(null);
   const [isAgreed, setIsAgreed] = useState(false);
+
+  const filteredProducts = products.filter(p =>
+    p.productName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   useEffect(() => {
     if (isAccountModalOpen || isLoginModalOpen) {
@@ -270,9 +275,20 @@ export default function WriteReview() {
       {currentUser && (
         <div className="field">
           <label>상품 선택</label>
+          <input
+            type="text"
+            placeholder="상품명 검색"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ marginBottom: '8px' }}
+          />
           <select onChange={handleProductSelect} value={selectedProduct?.id || ''}>
             <option value="" disabled>체험단 상품을 선택해 주세요</option>
-            {products.map(p => <option key={p.id} value={p.id}>{p.productName} ({p.reviewType})</option>)}
+            {filteredProducts.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.productName} ({p.reviewType})
+              </option>
+            ))}
           </select>
         </div>
       )}
