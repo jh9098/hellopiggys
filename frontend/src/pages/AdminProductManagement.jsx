@@ -1,4 +1,4 @@
-// src/pages/AdminProductManagement.jsx (수정 완료)
+// src/pages/AdminProductManagement.jsx (최종 수정 완료)
 
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -96,15 +96,18 @@ export default function AdminProductManagementPage() {
     }
   };
 
-  // [추가] 링크 복사 핸들러
-  const handleCopyLink = (productId) => {
-    const link = `https://hellopiggys.netlify.app/link?pid=${productId}`;
-    navigator.clipboard.writeText(link)
+  // [수정] 가이드 복사 핸들러
+  const handleCopyGuide = (guideText) => {
+    if (!guideText) {
+        alert('복사할 가이드 내용이 없습니다.');
+        return;
+    }
+    navigator.clipboard.writeText(guideText)
       .then(() => {
-        alert('리뷰 링크가 복사되었습니다!');
+        alert('가이드가 복사되었습니다!');
       })
       .catch(err => {
-        alert('링크 복사에 실패했습니다.');
+        alert('가이드 복사에 실패했습니다.');
         console.error('Could not copy text: ', err);
       });
   };
@@ -160,7 +163,7 @@ export default function AdminProductManagementPage() {
                 <td className="actions-cell">
                   {/* ▼▼▼ 관리 버튼 그룹 수정 ▼▼▼ */}
                   <button className="table-edit-btn" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>수정</button>
-                  <button className="table-copy-btn" onClick={() => handleCopyLink(p.id)}>링크복사</button>
+                  <button className="table-copy-btn" onClick={() => handleCopyGuide(p.guide)}>가이드복사</button>
                   <button onClick={() => handleDelete(p.id)} className="table-delete-btn">삭제</button>
                   {/* ▲▲▲ 수정 완료 ▲▲▲ */}
                 </td>

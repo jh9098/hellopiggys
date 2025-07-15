@@ -1,8 +1,8 @@
-// src/pages/AdminProductForm.jsx (수정 완료)
+// src/pages/AdminProductForm.jsx (최종 수정 완료)
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { db, collection, addDoc, serverTimestamp, updateDoc, doc, getDoc, writeBatch } from '../firebaseConfig';
+import { db, collection, serverTimestamp, updateDoc, doc, getDoc, setDoc } from '../firebaseConfig'; // [수정] setDoc 추가, addDoc 제거
 
 const progressStatusOptions = ['진행전', '진행중', '진행완료', '일부완료', '보류'];
 const productTypeOptions = ['실배송', '빈박스'];
@@ -10,13 +10,11 @@ const reviewTypeOptions = ['현영', '자율결제'];
 const fullReviewOptions = ['별점', '텍스트', '포토', '프리미엄포토', '프리미엄영상'];
 const limitedReviewOptions = ['별점', '텍스트'];
 
-// [수정] 링크 템플릿을 상수로 관리하여 유지보수 용이성 확보
 const REVIEW_LINK_PLACEHOLDER = '[[리뷰링크]]';
 const REVIEW_LINK_BASE_URL = 'https://hellopiggys.netlify.app/link?pid=';
 
 const initialFormState = {
   productName: '', reviewType: '현영',
-  // [수정] 가이드 내용에 플레이스홀더 추가
   guide: `✅ 리뷰 인증 페이지!\n- ${REVIEW_LINK_PLACEHOLDER}\n\n현영(지출증빙): 736-28-00836, 7362800836\n🚫상품명 검색 금지🚫\n🚫타계 동일 연락처, 동일 주소 중복 불가🚫\n🚫여러 상품 진행 시 장바구니 결제🚫\n✅키워드 검색 후 (가격 검색 필수) [찜🩷]\n + 체류 2분 후 [장바구니🛒] > [바로구매] \n\n⚠ 가이드의 상품 옵션 그대로 구매 진행 \n⚠ 옵션 변경 시 페이백 불가 \n\n✅리뷰 가이드🙇 📸 포토 리뷰(포토 3장 + 텍스트 3줄 이상 + 별점 5점) \n\n✅구매 후 업로드!\n - 구매 인증 시 상품명, 옵션 확인 안될 경우 페이백 불가\n - 현금영수증(지출증빙) 7362800836 입력 인증 필수! \n\n✅ 페이백 - 리뷰 인증 확인 후 48시간 이내 페이백 (입금자명 : 강예슬)\n - 페이백 확인이 안될 경우 개인톡❌\n - 1:1 문의방으로 문의해 주세요\n  → https://open.kakao.com/o/sscJn3wh\n - 입장 후 구매일자, 구매상품을 말씀해 주시면 더 빠른 확인이 가능해요!`,
   reviewDate: '', progressStatus: '진행중', productType: '실배송', reviewOption: '포토',
 };
@@ -36,11 +34,13 @@ export default function AdminProductFormPage() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          // [수정] 불러온 데이터의 가이드에 링크가 없으면 새로 생성해서 채워줌
-          if (data.guide && !data.guide.includes(REVIEW_LINK_BASE_URL)) {
-              data.guide = data.guide.replace(REVIEW_LINK_PLACEHOLDER, REVIEW_LINK_BASE_URL + productId)
+          let guide = data.guide || '';
+          if (!guide.includes(REVIEW_LINK_BASE_URL)) {
+             guide = guide.replace(REVIEW_LINK_PLACEHOLDER, REVIEW_LINK_BASE_URL + productId);
+          } else { // 이미 링크가 있는 경우, 최신 ID로 갱신 (만약을 대비)
+             guide = guide.replace(/pid=[a-zA-Z0-9]+/, `pid=${productId}`);
           }
-          setForm({ ...initialFormState, ...data });
+          setForm({ ...initialFormState, ...data, guide });
         } else {
           alert('해당 상품 정보를 찾을 수 없습니다.');
           navigate('/admin/products');
@@ -68,25 +68,25 @@ export default function AdminProductFormPage() {
     }
     setIsSubmitting(true);
     
-    // [수정] 가이드에 링크를 삽입하는 로직
-    let finalGuide = form.guide || '';
-    const linkToInsert = isEditMode ? REVIEW_LINK_BASE_URL + productId : ''; // 수정 모드일 때의 링크
-
     try {
       if (isEditMode) {
-        // 수정 모드: [[리뷰링크]]를 실제 링크로 교체
-        finalGuide = finalGuide.replace(REVIEW_LINK_PLACEHOLDER, linkToInsert);
+        // 수정 모드
         const productRef = doc(db, 'products', productId);
+        const linkToInsert = REVIEW_LINK_BASE_URL + productId;
+        const finalGuide = form.guide.replace(REVIEW_LINK_PLACEHOLDER, linkToInsert)
+                                      .replace(/pid=[a-zA-Z0-9]+/, `pid=${productId}`); // 기존 링크도 갱신
+        
         await updateDoc(productRef, { ...form, guide: finalGuide });
         alert('상품이 성공적으로 수정되었습니다.');
       } else {
         // 생성 모드: ID를 먼저 만들고, 그 ID로 링크를 만든 후 데이터 저장
-        const newProductRef = doc(collection(db, 'products'));
+        const newProductRef = doc(collection(db, 'products')); // ID를 가진 빈 문서 참조 생성
         const newProductId = newProductRef.id;
         const newProductLink = REVIEW_LINK_BASE_URL + newProductId;
-        finalGuide = finalGuide.replace(REVIEW_LINK_PLACEHOLDER, newProductLink);
+        const finalGuide = form.guide.replace(REVIEW_LINK_PLACEHOLDER, newProductLink);
         
-        await addDoc(collection(db, 'products'), { 
+        // setDoc으로 ID를 지정하여 데이터 저장
+        await setDoc(newProductRef, { 
             ...form, 
             guide: finalGuide,
             createdAt: serverTimestamp() 
