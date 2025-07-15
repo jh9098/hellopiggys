@@ -1,4 +1,4 @@
-// src/pages/WriteReview.jsx (최종 수정 버전: 미리보기 제거, 파일 이름 목록 표시)
+// src/pages/WriteReview.jsx (오류 방지 코드 추가 최종본)
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -47,7 +47,6 @@ export default function WriteReview() {
   const [addressOptions, setAddressOptions] = useState([]);
   const [globalAddresses, setGlobalAddresses] = useState([]);
   
-  // images state는 유지하고, previews state는 제거합니다.
   const [images, setImages] = useState({});
 
   const [submitting, setSubmitting] = useState(false);
@@ -55,7 +54,6 @@ export default function WriteReview() {
   const [selectedSubAccountInfo, setSelectedSubAccountInfo] = useState(null);
   const [isAgreed, setIsAgreed] = useState(false);
 
-  // 모달창 스크롤 제어용 useEffect
   useEffect(() => {
     if (isAccountModalOpen || isLoginModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -99,7 +97,6 @@ export default function WriteReview() {
     return () => unsubscribeAuth();
   }, []);
 
-  // 미리보기 생성 로직을 제거하여 안정성을 높인 onFileChange 함수
   const onFileChange = async (e) => {
     const { name, files } = e.target;
     if (!files || files.length === 0) return;
@@ -121,7 +118,6 @@ export default function WriteReview() {
       }
     }
     
-    // FileList를 배열로 변환하여 slice 사용
     const selectedFiles = Array.from(processedFiles).slice(0, 5);
     setImages(prev => ({ ...prev, [name]: selectedFiles }));
   };
@@ -154,7 +150,9 @@ export default function WriteReview() {
         subAccountId: form.subAccountId,
         productId: selectedProduct.id,
         productName: selectedProduct.productName,
-        reviewType: selectedProduct.reviewType,
+        // ▼▼▼ 오류 방지 코드 (2차 방어) ▼▼▼
+        reviewType: selectedProduct.reviewType || '현영',
+        // ▲▲▲ 수정 완료 ▲▲▲
         createdAt: serverTimestamp(),
         status: 'submitted',
         name: form.name,
@@ -189,6 +187,7 @@ export default function WriteReview() {
 
   const handleMainButtonClick = () => { if (currentUser) { if (selectedProduct) { setIsAccountModalOpen(true); } else { alert("먼저 참여할 상품을 선택해주세요."); } } else { setIsLoginModalOpen(true); } };
   const handleLoginSuccess = () => setIsLoginModalOpen(false);
+
   const handleProductSelect = (e) => {
     const productId = e.target.value;
     const product = products.find(p => p.id === productId) || null;
@@ -198,12 +197,15 @@ export default function WriteReview() {
     if (product) {
       setForm(prev => ({
         ...prev,
+        // ▼▼▼ 오류 방지 코드 (1차 방어) ▼▼▼
         paymentType: product.reviewType || '현영',
+        // ▲▲▲ 수정 완료 ▲▲▲
         productType: product.productType || '실배송',
         reviewOption: product.reviewOption || '별점',
       }));
     }
   };
+
   const handleSelectAccount = (subAccount) => {
     setForm(prev => ({
       ...prev,
@@ -297,7 +299,6 @@ export default function WriteReview() {
       
       {isAccountSelected && selectedSubAccountInfo && (
         <form onSubmit={handleSubmit}>
-          {/* ... 폼 필드 (구매자, 전화번호 등) ... */}
           <div className="field">
             <label>구매자(수취인)</label>
             <input name="name" value={form.name} onChange={onFormChange} required />
@@ -388,7 +389,6 @@ export default function WriteReview() {
               <div className="field" key={key}>
                 <label>{label} (최대 5장)</label>
                 <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
-                {/* ▼▼▼ 미리보기 대신 파일 이름 목록 표시 ▼▼▼ */}
                 <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
                   {images[key] && images[key].length > 0 ? (
                     images[key].map((file, i) => (
@@ -398,7 +398,6 @@ export default function WriteReview() {
                     <div style={{ color: '#999' }}>선택된 파일 없음</div>
                   )}
                 </div>
-                {/* ▲▲▲ 변경 완료 ▲▲▲ */}
               </div>
             ))}
           </div>
@@ -409,7 +408,6 @@ export default function WriteReview() {
               <div className="field" key={key}>
                 <label>{label} (최대 5장)</label>
                 <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
-                {/* ▼▼▼ 여기도 동일하게 파일 이름 목록 표시 ▼▼▼ */}
                 <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
                   {images[key] && images[key].length > 0 ? (
                     images[key].map((file, i) => (
@@ -419,7 +417,6 @@ export default function WriteReview() {
                     <div style={{ color: '#999' }}>선택된 파일 없음</div>
                   )}
                 </div>
-                {/* ▲▲▲ 변경 완료 ▲▲▲ */}
               </div>
             ))}
           </div>
