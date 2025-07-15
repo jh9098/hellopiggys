@@ -1,4 +1,4 @@
-// src/pages/MyReviews.jsx (24시간 표기 수정)
+// src/pages/MyReviews.jsx (수정 완료)
 
 import { useEffect, useState } from 'react';
 import imageCompression from 'browser-image-compression';
@@ -26,7 +26,6 @@ import {
 import LoginModal from '../components/LoginModal';
 import './MyReviews.css';
 
-// [추가] 24시간제 날짜 포맷 함수
 const formatTimestamp24h = (timestamp) => {
   if (!timestamp || !timestamp.seconds) return '';
   return new Date(timestamp.seconds * 1000).toLocaleString('ko-KR', { hour12: false });
@@ -255,14 +254,17 @@ export default function MyReviews() {
         const subAccountRef = doc(db, "subAccounts", currentReview.subAccountId);
         await updateDoc(subAccountRef, { name: editableData.name, phoneNumber: editableData.phoneNumber, address: editableData.address, bank: editableData.bank, bankNumber: editableData.bankNumber, accountHolderName: editableData.accountHolderName });
       }
+      
+      // ▼▼▼ 오류가 발생한 부분을 수정합니다 ▼▼▼
       const fieldsToUpdateInReview = {
         rewardAmount: editableData.rewardAmount,
         orderNumber: editableData.orderNumber,
         participantId: editableData.participantId,
         productId: editableData.productId,
-        productName: editableData.productName,
-        reviewType: editableData.reviewType,
+        productName: editableData.productName || '상품명 없음',
+        reviewType: editableData.reviewType || '현영',
       };
+      // ▲▲▲ 수정 완료 ▲▲▲
 
       for (const fieldKey in imagesToDelete) {
         if (imagesToDelete[fieldKey].length > 0) {
@@ -371,7 +373,6 @@ export default function MyReviews() {
         const participantType = r.subAccountInfo ? participantName : '본계정';
         return (
           <div className={`card ${statusInfo.className}`} key={r.id}>
-            {/* [수정] 헬퍼 함수 사용 */}
             <div className="card-head"><div><span className="badge">{statusInfo.text}</span><span className="badge secondary">{participantType}</span></div><span className="timestamp">{formatTimestamp24h(r.createdAt)}</span></div>
             {r.productInfo && (
               <div className="product-details">
