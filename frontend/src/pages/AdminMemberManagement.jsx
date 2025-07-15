@@ -1,7 +1,7 @@
 // src/pages/AdminMemberManagement.jsx
 
 import { useState, useEffect, useMemo } from 'react';
-import { db, collection, getDocs, query, orderBy, getDoc, doc } from '../firebaseConfig';
+import { db, collection, getDocs, query, orderBy, getDoc, doc, where, writeBatch } from '../firebaseConfig';
 import MemberDetailModal from '../components/MemberDetailModal';
 
 const formatDate = (date) => {
@@ -112,6 +112,29 @@ export default function AdminMemberManagementPage() {
     const SortIndicator = ({ columnKey }) => sortConfig.key !== columnKey ? null : (sortConfig.direction === 'asc' ? ' ▲' : ' ▼');
     const handleOpenModal = (member) => { setSelectedMember(member); setIsModalOpen(true); };
 
+    const handleDeleteMember = async (member) => {
+        if (!window.confirm(`정말로 '${member.mainAccountName || ''}' 회원을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+        try {
+            const batch = writeBatch(db);
+            batch.delete(doc(db, 'users', member.id));
+            if (member.mainAccountPhone) {
+                batch.delete(doc(db, 'users_by_phone', member.mainAccountPhone));
+            }
+            const subSnap = await getDocs(query(collection(db, 'subAccounts'), where('mainAccountId', '==', member.id)));
+            subSnap.forEach(d => batch.delete(d.ref));
+            const addrSnap = await getDocs(query(collection(db, 'addresses'), where('mainAccountId', '==', member.id)));
+            addrSnap.forEach(d => batch.delete(d.ref));
+            const reviewSnap = await getDocs(query(collection(db, 'reviews'), where('mainAccountId', '==', member.id)));
+            reviewSnap.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+            alert('회원 관련 데이터가 삭제되었습니다. Firebase Authentication 계정은 콘솔에서 별도로 삭제해주세요.');
+            setMembers(prev => prev.filter(m => m.id !== member.id));
+        } catch (err) {
+            console.error('회원 삭제 오류:', err);
+            alert('회원 삭제 중 오류가 발생했습니다: ' + err.message);
+        }
+    };
+
     if (loading) return <p>회원 정보를 불러오는 중...</p>;
 
     return (
@@ -130,6 +153,7 @@ export default function AdminMemberManagementPage() {
                             <th onClick={() => requestSort('reviewCount')} className="sortable">총 참여횟수<SortIndicator columnKey="reviewCount" /></th>
                             <th>최근 참여일</th>
                             <th>정보 보기</th>
+                            <th>회원 탈퇴</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -140,6 +164,7 @@ export default function AdminMemberManagementPage() {
                                 <td>{member.reviews.length}회</td>
                                 <td>{formatDate(member.lastSubmissionDate)}</td>
                                 <td><button onClick={() => handleOpenModal(member)}>보기</button></td>
+                                <td><button onClick={() => handleDeleteMember(member)}>탈퇴</button></td>
                             </tr>
                         ))}
                     </tbody>
@@ -152,7 +177,13 @@ export default function AdminMemberManagementPage() {
                 <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>{'>'}</button>
                 <button onClick={() => goToPage(totalPages)} disabled={currentPage === totalPages}>{'>>'}</button>
             </div>
-            {isModalOpen && <MemberDetailModal member={selectedMember} onClose={() => setIsModalOpen(false)} />}
+            {isModalOpen && (
+                <MemberDetailModal
+                    member={selectedMember}
+                    onClose={() => setIsModalOpen(false)}
+                    onDelete={handleDeleteMember}
+                />
+            )}
         </>
     );
 }
