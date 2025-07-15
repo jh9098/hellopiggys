@@ -123,10 +123,32 @@ export default function WriteReview() {
   };
   
   const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ▼▼▼ 여기에 디버깅용 alert 코드를 추가합니다 ▼▼▼
+    try {
+      const debugData = {
+        selectedProduct: selectedProduct, // 현재 선택된 상품 객체
+        isFormValid: isFormValid,         // 폼 유효성 여부
+      };
+      // 이 alert 창을 스크린샷 찍어달라고 사용자에게 요청하세요.
+      alert('개발자에게 이 화면을 캡쳐해서 보내주세요:\n\n' + JSON.stringify(debugData, null, 2));
+    } catch (err) {
+      alert('디버깅 정보 생성 중 오류');
+    }
+    // ▲▲▲ 디버깅 코드 끝 ▲▲▲
+
+
+    if (!selectedProduct) {
+        alert('오류: 상품이 선택되지 않았습니다. 페이지를 새로고침하고 다시 시도해주세요.');
+        return;
+    }
+
     if (!isFormValid) {
       return alert('필수 입력 항목을 모두 채워주세요.');
     }
+    
     setSubmitting(true);
     try {
       const urlMap = {};
