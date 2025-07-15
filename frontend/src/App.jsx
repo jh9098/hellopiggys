@@ -5,6 +5,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 // --- 레이아웃 컴포넌트 ---
 import AdminLayout from './pages/AdminLayout'; // [수정] pages 폴더의 레이아웃 사용
 import SellerLayout from './layouts/SellerLayout';
+import ReviewerLayout from './layouts/ReviewerLayout';
 
 // --- 인증 및 공용 페이지 ---
 import PrivateRoute from './pages/PrivateRoute';
@@ -44,17 +45,22 @@ function App() {
   return (
     <Routes>
       {/* ───── 1. 공용 라우트 ───── */}
-      <Route path="/" element={<Navigate to="/link" replace />} />
+      <Route path="/" element={<Navigate to="/reviewer/link" replace />} />
       <Route path="/reviewer-login" element={<ReviewerLogin />} />
       <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/seller-login" element={<SellerLoginPage />} />
       <Route path="/seller-signup" element={<SellerSignupPage />} />
-      <Route path="/link" element={<WriteReview />} />
+      <Route path="/link" element={<Navigate to="/reviewer/link" replace />} />
+      <Route path="/my-reviews" element={<Navigate to="/reviewer/my-reviews" replace />} />
       
       {/* ───── 2. 인증이 필요한 페이지 그룹 ───── */}
       <Route element={<PrivateRoute />}>
         {/* 리뷰어 */}
-        <Route path="/my-reviews" element={<MyReviews />} />
+        <Route path="/reviewer" element={<ReviewerLayout />}>
+          <Route index element={<Navigate to="link" replace />} />
+          <Route path="link" element={<WriteReview />} />
+          <Route path="my-reviews" element={<MyReviews />} />
+        </Route>
 
         {/* 판매자 */}
         <Route path="/seller" element={<SellerLayout />}>
