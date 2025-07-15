@@ -123,7 +123,6 @@ export default function WriteReview() {
   };
   
   const handleSubmit = async (e) => {
-  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // ▼▼▼ 여기에 디버깅용 alert 코드를 추가합니다 ▼▼▼
