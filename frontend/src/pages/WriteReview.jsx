@@ -145,14 +145,14 @@ export default function WriteReview() {
         }
       }
 
+      // ▼▼▼ 여기를 수정합니다 ▼▼▼
       const reviewData = {
         mainAccountId: currentUser.uid,
         subAccountId: form.subAccountId,
         productId: selectedProduct.id,
-        productName: selectedProduct.productName,
-        // ▼▼▼ 오류 방지 코드 (2차 방어) ▼▼▼
-        reviewType: selectedProduct.reviewType || '현영',
-        // ▲▲▲ 수정 완료 ▲▲▲
+        // product 객체의 필드가 누락될 경우를 대비해 기본값(fallback)을 설정합니다.
+        productName: selectedProduct.productName || '상품명 없음', 
+        reviewType: selectedProduct.reviewType || '현영', // 오류가 발생한 필드
         createdAt: serverTimestamp(),
         status: 'submitted',
         name: form.name,
@@ -169,6 +169,7 @@ export default function WriteReview() {
         reviewOption: form.reviewOption,
         ...urlMap,
       };
+      // ▲▲▲ 수정 완료 ▲▲▲
 
       await addDoc(collection(db, 'reviews'), reviewData);
       const uploadedAllImages = UPLOAD_FIELDS.every(f => images[f.key] && images[f.key].length > 0);
@@ -178,8 +179,9 @@ export default function WriteReview() {
       alert(msg);
       navigate('/my-reviews', { replace: true });
     } catch (err) {
-      alert('제출 실패: ' + err.message);
-      console.error(err);
+      // 오류 메시지를 더 자세히 표시하도록 수정합니다.
+      alert(`제출 실패: ${err.message}`);
+      console.error("제출 실패:", err);
     } finally {
       setSubmitting(false);
     }
