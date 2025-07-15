@@ -27,9 +27,9 @@ export default function AdminLayout() {
         <nav>
           {/* --- 기존 리뷰어 관리 메뉴 --- */}
           <h3 className="menu-section-title">리뷰어 관리</h3>
-          <NavLink to="/admin/reviews">리뷰 접수 관리</NavLink>
           <NavLink to="/admin/members">회원 관리</NavLink>
-          <NavLink to="/admin/products">리뷰 상품 관리</NavLink>
+          <NavLink to="/admin/products">상품 등록 및 관리</NavLink>
+          <NavLink to="/admin/reviews">리뷰어 구매 관리</NavLink>
           <NavLink to="/admin/settlement">정산 관리</NavLink>
           <NavLink to="/admin/settlement-complete">정산 완료 내역</NavLink>
 
