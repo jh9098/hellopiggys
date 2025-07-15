@@ -9,7 +9,7 @@ const formatTimestamp24h = (timestamp) => {
     return new Date(timestamp.seconds * 1000).toLocaleString('ko-KR', { hour12: false });
 }
 
-export default function MemberDetailModal({ member, onClose }) {
+export default function MemberDetailModal({ member, onClose, onDelete }) {
   const [searchTerm, setSearchTerm] = useState('');
   if (!member) return null;
 
@@ -22,6 +22,9 @@ export default function MemberDetailModal({ member, onClose }) {
       <div className="review-detail-modal" onClick={(e) => e.stopPropagation()}>
         <button className="close-btn" onClick={onClose}>✖</button>
         <h3>회원 상세 정보</h3>
+        {onDelete && (
+          <button className="delete-btn" onClick={() => onDelete(member)} style={{ marginLeft: '10px' }}>회원 탈퇴</button>
+        )}
         
         <div className="modal-section">
           <h4>본계정 정보</h4>
