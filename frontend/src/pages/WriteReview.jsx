@@ -1,10 +1,10 @@
-// src/pages/WriteReview.jsx (오류 방지 코드 추가 최종본)
+// src/pages/WriteReview.jsx (수정 완료)
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; // [수정] useLocation 추가
 import { 
   auth, onAuthStateChanged, db, storage, 
-  ref, uploadBytes, getDownloadURL, addDoc, collection, 
+  ref, uploadBytes, getDownloadURL, addDoc, collection, doc, getDoc, // [수정] doc, getDoc 추가
   serverTimestamp, getDocs, query, orderBy, where 
 } from '../firebaseConfig';
 import LoginModal from '../components/LoginModal';
@@ -18,8 +18,15 @@ const UPLOAD_FIELDS = [
   { key: 'cashcardImage', label: '현금영수증/매출전표', group: 'purchase', required: false },
 ];
 
+// [추가] URL 파라미터를 읽기 위한 헬퍼 함수
+function useQuery() {
+  return new URLSearchParams(useLocation().search);
+}
+
 export default function WriteReview() {
   const navigate = useNavigate();
+  const queryParams = useQuery(); // [추가]
+  const productIdFromUrl = queryParams.get('pid'); // [추가]
 
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -79,6 +86,7 @@ export default function WriteReview() {
     } catch (e) { console.error('주소 목록 로딩 실패:', e); }
   };
 
+  // [수정] useEffect 로직을 URL 파라미터에 따라 분기
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
@@ -90,17 +98,41 @@ export default function WriteReview() {
         setGlobalAddresses([]);
       }
     });
-    const fetchProducts = async () => {
-      try {
-        const q = query(collection(db, 'products'), where('progressStatus', '==', '진행중'), orderBy('createdAt', 'desc'));
-        const snapshot = await getDocs(q);
-        setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } catch (e) { console.error("상품 목록 로딩 실패:", e); }
-      finally { setLoading(false); }
+
+    const initializeProducts = async () => {
+      setLoading(true);
+      if (productIdFromUrl) {
+        // URL에 pid가 있는 경우, 해당 상품만 불러옴
+        const productRef = doc(db, 'products', productIdFromUrl);
+        const productSnap = await getDoc(productRef);
+        if (productSnap.exists()) {
+          const productData = { id: productSnap.id, ...productSnap.data() };
+          setSelectedProduct(productData);
+          setForm(prev => ({
+            ...prev,
+            paymentType: productData.reviewType || '현영',
+            productType: productData.productType || '실배송',
+            reviewOption: productData.reviewOption || '별점',
+          }));
+        } else {
+          alert('유효하지 않은 상품 링크입니다. 관리자에게 문의하세요.');
+        }
+      } else {
+        // URL에 pid가 없는 경우, 전체 목록을 불러옴
+        try {
+          const q = query(collection(db, 'products'), where('progressStatus', '==', '진행중'), orderBy('createdAt', 'desc'));
+          const snapshot = await getDocs(q);
+          setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        } catch (e) {
+          console.error("상품 목록 로딩 실패:", e);
+        }
+      }
+      setLoading(false);
     };
-    fetchProducts();
+
+    initializeProducts();
     return () => unsubscribeAuth();
-  }, []);
+  }, [productIdFromUrl]); // [수정] 의존성 배열에 productIdFromUrl 추가
 
   const onFileChange = async (e) => {
     const { name, files } = e.target;
@@ -129,6 +161,12 @@ export default function WriteReview() {
   
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!selectedProduct) {
+        alert('오류: 상품이 선택되지 않았습니다. 페이지를 새로고침하고 다시 시도해주세요.');
+        return;
+    }
+
     if (!isFormValid) {
       return alert('필수 입력 항목을 모두 채워주세요.');
     }
@@ -150,14 +188,12 @@ export default function WriteReview() {
         }
       }
 
-      // ▼▼▼ 여기를 수정합니다 ▼▼▼
       const reviewData = {
         mainAccountId: currentUser.uid,
         subAccountId: form.subAccountId,
         productId: selectedProduct.id,
-        // product 객체의 필드가 누락될 경우를 대비해 기본값(fallback)을 설정합니다.
         productName: selectedProduct.productName || '상품명 없음', 
-        reviewType: selectedProduct.reviewType || '현영', // 오류가 발생한 필드
+        reviewType: selectedProduct.reviewType || '현영',
         createdAt: serverTimestamp(),
         status: 'submitted',
         name: form.name,
@@ -174,7 +210,6 @@ export default function WriteReview() {
         reviewOption: form.reviewOption,
         ...urlMap,
       };
-      // ▲▲▲ 수정 완료 ▲▲▲
 
       await addDoc(collection(db, 'reviews'), reviewData);
       const uploadedAllImages = UPLOAD_FIELDS.every(f => images[f.key] && images[f.key].length > 0);
@@ -184,7 +219,6 @@ export default function WriteReview() {
       alert(msg);
       navigate('/my-reviews', { replace: true });
     } catch (err) {
-      // 오류 메시지를 더 자세히 표시하도록 수정합니다.
       alert(`제출 실패: ${err.message}`);
       console.error("제출 실패:", err);
     } finally {
@@ -204,9 +238,7 @@ export default function WriteReview() {
     if (product) {
       setForm(prev => ({
         ...prev,
-        // ▼▼▼ 오류 방지 코드 (1차 방어) ▼▼▼
         paymentType: product.reviewType || '현영',
-        // ▲▲▲ 수정 완료 ▲▲▲
         productType: product.productType || '실배송',
         reviewOption: product.reviewOption || '별점',
       }));
@@ -272,7 +304,9 @@ export default function WriteReview() {
       ) : (
         <button onClick={() => setIsLoginModalOpen(true)} className="login-open-btn">로그인 / 회원가입</button>
       )}
-      {currentUser && (
+
+      {/* [수정] URL에 pid가 없을 때만 상품 선택 UI를 보여줌 */}
+      {currentUser && !productIdFromUrl && (
         <div className="field">
           <label>상품 선택</label>
           <input
@@ -292,6 +326,7 @@ export default function WriteReview() {
           </select>
         </div>
       )}
+
       {selectedProduct && (<>
           <div className="product-info-box">
             <h4>{selectedProduct.productName}</h4>
