@@ -141,7 +141,7 @@ export default function MyReviews() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+        const q = query(collection(db, 'products'), where('progressStatus', '==', '진행중'), orderBy('createdAt', 'desc'));
         const snap = await getDocs(q);
         setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (err) {
@@ -254,8 +254,6 @@ export default function MyReviews() {
         const subAccountRef = doc(db, "subAccounts", currentReview.subAccountId);
         await updateDoc(subAccountRef, { name: editableData.name, phoneNumber: editableData.phoneNumber, address: editableData.address, bank: editableData.bank, bankNumber: editableData.bankNumber, accountHolderName: editableData.accountHolderName });
       }
-      
-      // ▼▼▼ 오류가 발생한 부분을 수정합니다 ▼▼▼
       const fieldsToUpdateInReview = {
         rewardAmount: editableData.rewardAmount,
         orderNumber: editableData.orderNumber,
@@ -264,7 +262,6 @@ export default function MyReviews() {
         productName: editableData.productName || '상품명 없음',
         reviewType: editableData.reviewType || '현영',
       };
-      // ▲▲▲ 수정 완료 ▲▲▲
 
       for (const fieldKey in imagesToDelete) {
         if (imagesToDelete[fieldKey].length > 0) {
@@ -358,9 +355,11 @@ export default function MyReviews() {
       <div className="page-header">
         <h2>내 리뷰 목록</h2>
         <div className="header-actions">
-          <button className="action-btn" onClick={() => navigate('/link')}>
+          {/* ▼▼▼ "구매폼 작성" 버튼의 navigate 경로를 수정합니다 ▼▼▼ */}
+          <button className="action-btn" onClick={() => navigate('/reviewer/link')}>
             구매폼 작성
           </button>
+          {/* ▲▲▲ 수정 완료 ▲▲▲ */}
           <button className="logout" onClick={handleLogout}>
             로그아웃 ➡
           </button>

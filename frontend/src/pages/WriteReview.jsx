@@ -1,10 +1,10 @@
 // src/pages/WriteReview.jsx (수정 완료)
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom'; // [수정] useLocation 추가
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   auth, onAuthStateChanged, db, storage, 
-  ref, uploadBytes, getDownloadURL, addDoc, collection, doc, getDoc, // [수정] doc, getDoc 추가
+  ref, uploadBytes, getDownloadURL, addDoc, collection, doc, getDoc,
   serverTimestamp, getDocs, query, orderBy, where 
 } from '../firebaseConfig';
 import LoginModal from '../components/LoginModal';
@@ -18,15 +18,14 @@ const UPLOAD_FIELDS = [
   { key: 'cashcardImage', label: '현금영수증/매출전표', group: 'purchase', required: false },
 ];
 
-// [추가] URL 파라미터를 읽기 위한 헬퍼 함수
 function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
 
 export default function WriteReview() {
   const navigate = useNavigate();
-  const queryParams = useQuery(); // [추가]
-  const productIdFromUrl = queryParams.get('pid'); // [추가]
+  const queryParams = useQuery();
+  const productIdFromUrl = queryParams.get('pid');
 
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -86,7 +85,6 @@ export default function WriteReview() {
     } catch (e) { console.error('주소 목록 로딩 실패:', e); }
   };
 
-  // [수정] useEffect 로직을 URL 파라미터에 따라 분기
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
@@ -102,7 +100,6 @@ export default function WriteReview() {
     const initializeProducts = async () => {
       setLoading(true);
       if (productIdFromUrl) {
-        // URL에 pid가 있는 경우, 해당 상품만 불러옴
         const productRef = doc(db, 'products', productIdFromUrl);
         const productSnap = await getDoc(productRef);
         if (productSnap.exists()) {
@@ -118,7 +115,6 @@ export default function WriteReview() {
           alert('유효하지 않은 상품 링크입니다. 관리자에게 문의하세요.');
         }
       } else {
-        // URL에 pid가 없는 경우, 전체 목록을 불러옴
         try {
           const q = query(collection(db, 'products'), where('progressStatus', '==', '진행중'), orderBy('createdAt', 'desc'));
           const snapshot = await getDocs(q);
@@ -132,7 +128,7 @@ export default function WriteReview() {
 
     initializeProducts();
     return () => unsubscribeAuth();
-  }, [productIdFromUrl]); // [수정] 의존성 배열에 productIdFromUrl 추가
+  }, [productIdFromUrl]);
 
   const onFileChange = async (e) => {
     const { name, files } = e.target;
@@ -212,12 +208,16 @@ export default function WriteReview() {
       };
 
       await addDoc(collection(db, 'reviews'), reviewData);
+      
+      // ▼▼▼ 제출 성공 메시지의 URL과 navigate 경로를 수정합니다 ▼▼▼
       const uploadedAllImages = UPLOAD_FIELDS.every(f => images[f.key] && images[f.key].length > 0);
       const msg = uploadedAllImages
         ? '리뷰가 성공적으로 제출되었습니다.'
-        : '리뷰가 성공적으로 제출되었습니다.\nhttps://hellopiggy.netlify.app/my-reviews 에서 이미지 등록을 완료해주셔야 구매인증이 완료됩니다.';
+        : '리뷰가 성공적으로 제출되었습니다.\nhttps://hellopiggys.netlify.app/reviewer/my-reviews 에서 이미지 등록을 완료해주셔야 구매인증이 완료됩니다.';
       alert(msg);
-      navigate('/my-reviews', { replace: true });
+      navigate('/reviewer/my-reviews', { replace: true });
+      // ▲▲▲ 수정 완료 ▲▲▲
+
     } catch (err) {
       alert(`제출 실패: ${err.message}`);
       console.error("제출 실패:", err);
@@ -305,7 +305,6 @@ export default function WriteReview() {
         <button onClick={() => setIsLoginModalOpen(true)} className="login-open-btn">로그인 / 회원가입</button>
       )}
 
-      {/* [수정] URL에 pid가 없을 때만 상품 선택 UI를 보여줌 */}
       {currentUser && !productIdFromUrl && (
         <div className="field">
           <label>상품 선택</label>
