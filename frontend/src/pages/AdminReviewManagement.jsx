@@ -13,7 +13,7 @@ const formatTimestamp24h = (timestamp) => {
 
 const statusMap = { submitted: '구매 완료', review_completed: '리뷰 완료', rejected: '반려됨' };
 const getStatusKeyByValue = (value) => Object.keys(statusMap).find(key => statusMap[key] === value);
-const initialFilters = { productName: '', payType: '', mainAccountName: '', name: '', phoneNumber: '', status: 'all', reviewConfirm: 'all' };
+const initialFilters = { productName: '', mainAccountName: '', name: '', phoneNumber: '', status: 'all', reviewConfirm: 'all' };
 
 export default function AdminReviewManagementPage() {
   const [rows, setRows] = useState([]);
@@ -166,7 +166,6 @@ export default function AdminReviewManagementPage() {
               <th onClick={() => requestSort('createdAt')} className="sortable">구매폼 등록일시<SortIndicator columnKey="createdAt" /></th>
               <th onClick={() => requestSort('status')} className="sortable">상태<SortIndicator columnKey="status" /></th>
               <th onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></th>
-              <th onClick={() => requestSort('payType')} className="sortable">결제 종류<SortIndicator columnKey="payType" /></th>
               <th onClick={() => requestSort('mainAccountName')} className="sortable">본계정<SortIndicator columnKey="mainAccountName" /></th>
               <th onClick={() => requestSort('name')} className="sortable">타계정<SortIndicator columnKey="name" /></th>
               <th onClick={() => requestSort('phoneNumber')} className="sortable">전화번호<SortIndicator columnKey="phoneNumber" /></th>
@@ -180,7 +179,6 @@ export default function AdminReviewManagementPage() {
               <th></th><th></th>
               <th><select name="status" value={filters.status} onChange={handleFilterChange}><option value="all">전체</option>{Object.values(statusMap).map(s => <option key={s} value={s}>{s}</option>)}</select></th>
               <th><input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></th>
-              <th><input type="text" name="payType" value={filters.payType} onChange={handleFilterChange} /></th>
               <th><input type="text" name="mainAccountName" value={filters.mainAccountName} onChange={handleFilterChange} /></th>
               <th><input type="text" name="name" value={filters.name} onChange={handleFilterChange} /></th>
               <th><input type="text" name="phoneNumber" value={filters.phoneNumber} onChange={handleFilterChange} /></th>
@@ -197,7 +195,6 @@ export default function AdminReviewManagementPage() {
                 <td>{formatTimestamp24h(r.createdAt)}</td>
                 <td>{statusMap[r.status] || r.status}</td>
                 <td className="product-name-cell">{r.productName || '-'}</td>
-                <td>{r.payType || '-'}</td>
                 <td>{r.mainAccountName || '-'}</td>
                 <td>{r.name || '-'}</td>
                 <td>{r.phoneNumber || '-'}</td>
