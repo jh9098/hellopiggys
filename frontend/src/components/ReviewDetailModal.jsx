@@ -1,18 +1,26 @@
 // src/components/ReviewDetailModal.jsx (오류 수정 최종본)
 
 import React, { useState, useEffect } from 'react';
-import { db, doc, updateDoc } from '../firebaseConfig';
+import imageCompression from 'browser-image-compression';
+import {
+  db,
+  doc,
+  updateDoc,
+  storage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  arrayRemove,
+} from '../firebaseConfig';
 import './ReviewDetailModal.css';
 
-// 모달에 표시할 이미지 목록 정의
-// ▼▼▼ 이 상수를 수정합니다 ▼▼▼
-const initialImageFields = [
-  // 'keywordAndLikeImageUrls' -> 'keywordAndLikeImagesUrls' 로 수정
+// 이미지 필드 정의 (my-reviews와 동일하게)
+const imageFields = [
   { key: 'keywordAndLikeImagesUrls', label: '키워드 & 찜 인증' },
   { key: 'orderImageUrls', label: '구매 인증' },
   { key: 'cashcardImageUrls', label: '현영/매출전표' },
+  { key: 'confirmImageUrls', label: '리뷰 완료 인증' },
 ];
-// ▲▲▲
 
 const bankOptions = [
   '신한', '국민', '산업', 'KEB하나', '케이뱅크', '경남', '저축', '우리',
@@ -27,6 +35,9 @@ export default function ReviewDetailModal({ review, onClose }) {
   const [currentReview, setCurrentReview] = useState(review);
   const [editableData, setEditableData] = useState({});
   const [imagePreview, setImagePreview] = useState(null);
+  const [editImages, setEditImages] = useState({});
+  const [imagesToDelete, setImagesToDelete] = useState({});
+  const [uploading, setUploading] = useState(false);
 
   const openImagePreview = (url) => setImagePreview(url);
   const closeImagePreview = () => setImagePreview(null);
@@ -55,7 +66,38 @@ export default function ReviewDetailModal({ review, onClose }) {
     }
   };
 
+  const onEditFileChange = async (e) => {
+    const { name, files } = e.target;
+    if (!files || files.length === 0) return;
+
+    const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
+    const processed = [];
+    for (const file of files) {
+      try {
+        processed.push(await imageCompression(file, options));
+      } catch (err) {
+        console.warn(`이미지 압축 실패. 원본 사용: ${file.name}`, err);
+        processed.push(file);
+      }
+    }
+    const selected = processed.slice(0, 5);
+    setEditImages(prev => ({ ...prev, [name]: selected }));
+  };
+
+  const handleDeleteExistingImage = (fieldKey, urlToDelete) => {
+    if (!window.confirm('이 이미지를 삭제하시겠습니까? 저장을 눌러야 최종 반영됩니다.')) return;
+    setCurrentReview(prev => ({
+      ...prev,
+      [fieldKey]: prev[fieldKey].filter(url => url !== urlToDelete),
+    }));
+    setImagesToDelete(prev => ({
+      ...prev,
+      [fieldKey]: [...(prev[fieldKey] || []), urlToDelete],
+    }));
+  };
+
   const handleSave = async () => {
+    setUploading(true);
     try {
       if (currentReview.subAccountId) {
         await updateDoc(doc(db, 'subAccounts', currentReview.subAccountId), {
@@ -64,19 +106,49 @@ export default function ReviewDetailModal({ review, onClose }) {
           address: editableData.address,
           bank: editableData.bank,
           bankNumber: editableData.bankNumber,
-          accountHolderName: editableData.accountHolderName
+          accountHolderName: editableData.accountHolderName,
         });
       }
-      await updateDoc(doc(db, 'reviews', currentReview.id), {
+
+      const fieldsToUpdateInReview = {
         participantId: editableData.participantId,
         orderNumber: editableData.orderNumber,
-        rewardAmount: editableData.rewardAmount
-      });
-      setCurrentReview(prev => ({ ...prev, ...editableData }));
+        rewardAmount: editableData.rewardAmount,
+      };
+
+      for (const fieldKey in imagesToDelete) {
+        if (imagesToDelete[fieldKey]?.length > 0) {
+          fieldsToUpdateInReview[fieldKey] = arrayRemove(...imagesToDelete[fieldKey]);
+        }
+      }
+
+      const imageUrlMap = {};
+      for (const { key } of imageFields) {
+        if (editImages[key] && editImages[key].length > 0) {
+          const newUrls = [];
+          for (const f of editImages[key]) {
+            const storageRef = ref(storage, `reviewImages/${Date.now()}_${f.name}`);
+            await uploadBytes(storageRef, f);
+            newUrls.push(await getDownloadURL(storageRef));
+          }
+          imageUrlMap[key] = [...(currentReview[key] || []), ...newUrls];
+        }
+      }
+
+      const finalUpdateData = { ...fieldsToUpdateInReview, ...imageUrlMap };
+      await updateDoc(doc(db, 'reviews', currentReview.id), finalUpdateData);
+
+      const updatedReviewData = { ...currentReview, ...editableData, ...imageUrlMap };
+      setCurrentReview(updatedReviewData);
+
       alert('수정이 완료되었습니다.');
       setIsEditing(false);
+      setEditImages({});
+      setImagesToDelete({});
     } catch (err) {
       alert('수정 실패: ' + err.message);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -93,6 +165,8 @@ export default function ReviewDetailModal({ review, onClose }) {
       bankNumber: currentReview.bankNumber || '',
       accountHolderName: currentReview.accountHolderName || ''
     });
+    setEditImages({});
+    setImagesToDelete({});
   };
 
   return (
@@ -199,49 +273,91 @@ export default function ReviewDetailModal({ review, onClose }) {
 
         <div className="modal-section">
           <h4>제출된 이미지 (구매폼)</h4>
-          {/* ▼▼▼ 여러 이미지를 표시하도록 로직 수정 ▼▼▼ */}
-          <div className="image-grid">
-              {initialImageFields.flatMap(({ key, label }) => {
-                const imageUrls = currentReview[key];
-              if (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) {
-                return imageUrls.map((url, index) => (
-                  <div key={`${key}-${index}`} className="image-item">
-                    <label>{label}</label>
+          {imageFields.slice(0,3).map(({ key, label }) => (
+            <div className="field full-width" key={key}>
+              <label>{label}</label>
+              {isEditing && (
+                <>
+                  <input type="file" accept="image/*" name={key} multiple onChange={onEditFileChange} />
+                  <div className="file-list">
+                    {editImages[key] && editImages[key].length > 0 ? (
+                      editImages[key].map((file, i) => (
+                        <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
+                      ))
+                    ) : (
+                      <div className="file-list-placeholder">새로 추가할 파일 없음</div>
+                    )}
+                  </div>
+                </>
+              )}
+              {currentReview[key] && currentReview[key].length > 0 && (
+                <div className="preview-container">
+                  {currentReview[key].map((url, i) => (
+                    <div key={i} className="image-item-wrapper">
+                      <img
+                        src={url}
+                        alt={`${label} ${i + 1}`}
+                        className="thumb"
+                        onClick={() => openImagePreview(url)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      {isEditing && (
+                        <button className="delete-image-btn" onClick={() => handleDeleteExistingImage(key, url)}>✖</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        
+          <div className="modal-section">
+            <h4>리뷰 인증 이미지</h4>
+            {isEditing && (
+              <>
+                <input
+                  type="file"
+                  accept="image/*"
+                  name="confirmImageUrls"
+                  multiple
+                  onChange={onEditFileChange}
+                />
+                <div className="file-list">
+                  {editImages.confirmImageUrls && editImages.confirmImageUrls.length > 0 ? (
+                    editImages.confirmImageUrls.map((file, i) => (
+                      <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
+                    ))
+                  ) : (
+                    <div className="file-list-placeholder">새로 추가할 파일 없음</div>
+                  )}
+                </div>
+              </>
+            )}
+            {currentReview.confirmImageUrls && currentReview.confirmImageUrls.length > 0 && (
+              <div className="preview-container">
+                {currentReview.confirmImageUrls.map((url, index) => (
+                  <div key={index} className="image-item-wrapper">
                     <img
                       src={url}
-                      alt={`${label} ${index + 1}`}
+                      alt={`리뷰 인증 ${index + 1}`}
                       className="thumb"
                       onClick={() => openImagePreview(url)}
                       style={{ cursor: 'pointer' }}
                     />
+                    {isEditing && (
+                      <button
+                        className="delete-image-btn"
+                        onClick={() => handleDeleteExistingImage('confirmImageUrls', url)}
+                      >
+                        ✖
+                      </button>
+                    )}
                   </div>
-                ));
-              }
-              return [];
-            })}
+                ))}
+              </div>
+            )}
           </div>
-          {/* ▲▲▲ 로직 수정 완료 ▲▲▲ */}
-        </div>
-        
-          {currentReview.confirmImageUrls && currentReview.confirmImageUrls.length > 0 && (
-          <div className="modal-section">
-            <h4>리뷰 인증 이미지</h4>
-            <div className="image-grid">
-              {currentReview.confirmImageUrls.map((url, index) => (
-                <div key={index} className="image-item">
-                  <label>인증 이미지 {index + 1}</label>
-                  <img
-                    src={url}
-                    alt={`리뷰 인증 ${index + 1}`}
-                    className="thumb"
-                    onClick={() => openImagePreview(url)}
-                    style={{ cursor: 'pointer' }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
     {imagePreview && (
