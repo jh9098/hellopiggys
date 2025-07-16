@@ -206,7 +206,7 @@ export default function AccountModal({ onClose, onSelectAccount, onAddressAdded 
           <h3>구매할 계정 선택 또는 추가</h3>
           {subAccounts.length > 0 && (
             <div className="sub-account-list">
-              <h4>등록된 계정 목록을 선택하세요</h4>
+              <h4>진행할 계정을 선택해 주세요</h4>
               {subAccounts.map(acc => (
                 <div key={acc.id} className="sub-account-item">
                   <span
