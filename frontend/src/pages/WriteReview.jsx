@@ -429,8 +429,8 @@ export default function WriteReview() {
                   <option value="별점">별점</option>
                   <option value="텍스트">텍스트</option>
                   <option value="포토">포토</option>
-                  <option value="프리미엄포토">프리미엄포토</option>
-                  <option value="프리미엄영상">프리미엄영상</option>
+                  <option value="프리미엄(포토)">프리미엄(포토)</option>
+                  <option value="프리미엄(영상)">프리미엄(영상)</option>
                 </>
               )}
             </select>
