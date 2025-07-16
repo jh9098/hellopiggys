@@ -435,7 +435,10 @@ export default function WriteReview() {
               )}
             </select>
           </div>
-          
+
+          <hr className="section-divider" />
+          <p className="upload-note">이미지 등록 생략하고 제출 후, 리뷰관리에서 업로드 하셔도 됩니다</p>
+
           <div className="image-upload-group">
             {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label }) => (
               <div className="field" key={key}>
