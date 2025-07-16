@@ -7,7 +7,7 @@ import { db, collection, serverTimestamp, updateDoc, doc, getDoc, setDoc } from 
 const progressStatusOptions = ['진행전', '진행중', '진행완료', '일부완료', '보류'];
 const productTypeOptions = ['실배송', '빈박스'];
 const reviewTypeOptions = ['현영', '자율결제'];
-const fullReviewOptions = ['별점', '텍스트', '포토', '프리미엄포토', '프리미엄영상'];
+const fullReviewOptions = ['별점', '텍스트', '포토', '프리미엄(포토)', '프리미엄(영상)'];
 const limitedReviewOptions = ['별점', '텍스트'];
 
 const REVIEW_LINK_PLACEHOLDER = '[[리뷰링크]]';
