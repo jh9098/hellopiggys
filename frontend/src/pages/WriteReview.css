@@ -160,3 +160,23 @@
   .field select option {
     font-size: 14px;
   }
+
+  .field select {
+    background-color: #fff;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+  .section-divider {
+    border: 0;
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 24px 0;
+  }
+
+  .upload-note {
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: #555;
+  }
