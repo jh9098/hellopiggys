@@ -17,6 +17,16 @@ export default function ReviewerLogin() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const handleKakaoLogin = () => {
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: import.meta.env.VITE_KAKAO_REST_KEY,
+      redirect_uri: import.meta.env.VITE_KAKAO_REDIRECT_URI,
+      scope: 'profile_nickname,phone_number',
+    });
+    window.location.href = `https://kauth.kakao.com/oauth/authorize?${params.toString()}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -132,6 +142,9 @@ export default function ReviewerLogin() {
           {isLoginView ? '회원가입' : '로그인'}
         </button>
       </div>
+      <button onClick={handleKakaoLogin} style={{ marginTop: '20px' }}>
+        카카오 로그인
+      </button>
     </div>
   );
 }

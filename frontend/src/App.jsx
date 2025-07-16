@@ -18,6 +18,7 @@ import PaymentPage from './pages/dashboard/PaymentPage';
 import ReviewerLogin from './pages/ReviewerLogin';
 import MyReviews from './pages/MyReviews';
 import WriteReview from './pages/WriteReview';
+import KakaoCallback from './pages/KakaoCallback';
 
 // --- [기존] 리뷰어 관리자 페이지들 ---
 import AdminReviewManagement from './pages/AdminReviewManagement';
@@ -52,6 +53,7 @@ function App() {
       <Route path="/seller-signup" element={<SellerSignupPage />} />
       <Route path="/link" element={<Navigate to="/reviewer/link" replace />} />
       <Route path="/my-reviews" element={<Navigate to="/reviewer/my-reviews" replace />} />
+      <Route path="/kakao-callback" element={<KakaoCallback />} />
       
       {/* ───── 2. 인증이 필요한 페이지 그룹 ───── */}
       <Route element={<PrivateRoute />}>

@@ -15,6 +15,16 @@ export default function LoginModal({ onClose, onLoginSuccess }) {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const handleKakaoLogin = () => {
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: import.meta.env.VITE_KAKAO_REST_KEY,
+      redirect_uri: import.meta.env.VITE_KAKAO_REDIRECT_URI,
+      scope: 'profile_nickname,phone_number',
+    });
+    window.location.href = `https://kauth.kakao.com/oauth/authorize?${params.toString()}`;
+  };
+
   // ▼▼▼ 핸들러 함수 수정 ▼▼▼
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -137,6 +147,9 @@ export default function LoginModal({ onClose, onLoginSuccess }) {
             {isLoginView ? '회원가입' : '로그인'}
           </button>
         </div>
+        <button onClick={handleKakaoLogin} style={{ marginTop: '20px' }}>
+          카카오 로그인
+        </button>
       </div>
     </div>
   );}
