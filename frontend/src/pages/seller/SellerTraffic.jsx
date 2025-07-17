@@ -1,20 +1,11 @@
 // src/pages/seller/SellerTraffic.jsx
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc } from '../../firebaseConfig';
+import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, getDoc } from '../../firebaseConfig';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { ko } from 'date-fns/locale';
-
-const initialTrafficProducts = [
-  { category: '베이직 트래픽', name: '피에스타', description: '', retailPrice: 60000, discountRate: 1 - 33900 / 60000 },
-  { category: '베이직 트래픽', name: '시그니처', description: '', retailPrice: 50000, discountRate: 1 - 31900 / 50000 },
-  { category: '애드온 트래픽', name: 'CP', description: '', retailPrice: 60000, discountRate: 1 - 34900 / 60000 },
-  { category: '애드온 트래픽', name: '솔트', description: '', retailPrice: 70000, discountRate: 1 - 41900 / 70000 },
-  { category: '애드온 트래픽', name: 'BBS', description: '', retailPrice: 80000, discountRate: 1 - 34900 / 80000 },
-  { category: '애드온 트래픽', name: '팡팡', description: '', retailPrice: 60000, discountRate: 1 - 39900 / 60000 },
-];
 
 const formatDateWithDay = (date) => {
     if (!date || !(date instanceof Date)) return '-';
@@ -30,14 +21,7 @@ export default function SellerTrafficPage() {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  const [products, setProducts] = useState(
-    initialTrafficProducts.map(p => ({
-      ...p,
-      salePrice: Math.round(p.retailPrice * (1 - p.discountRate)),
-      quantity: 0,
-      requestDate: null,
-    }))
-  );
+  const [products, setProducts] = useState([]);
 
   const [savedRequests, setSavedRequests] = useState([]);
   const [deposit, setDeposit] = useState(0);
@@ -45,13 +29,22 @@ export default function SellerTrafficPage() {
   const [showDepositPopup, setShowDepositPopup] = useState(false);
   const [confirmRequest, setConfirmRequest] = useState(null);
 
-  const categoryCounts = useMemo(() => {
-    const counts = {};
-    initialTrafficProducts.forEach(p => {
-      counts[p.category] = (counts[p.category] || 0) + 1;
-    });
-    return counts;
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const snap = await getDoc(doc(db, 'config', 'traffic_products'));
+      if (snap.exists()) {
+        const data = snap.data().products || [];
+        setProducts(data.map(p => ({
+          ...p,
+          salePrice: Math.round(p.retailPrice * (1 - p.discountRate)),
+          quantity: 0,
+          requestDate: null,
+        })));
+      }
+    };
+    fetchProducts();
   }, []);
+
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -81,6 +74,21 @@ export default function SellerTrafficPage() {
     newProducts[index][field] = field === 'quantity' ? Math.max(0, Number(value)) : value;
     setProducts(newProducts);
   };
+
+  const categoryRowSpans = useMemo(() => {
+    const spans = {};
+    let i = 0;
+    while (i < products.length) {
+      let j = i + 1;
+      while (j < products.length && products[j].category === products[i].category) {
+        j++;
+      }
+      spans[i] = j - i;
+      for (let k = i + 1; k < j; k++) spans[k] = 0;
+      i = j;
+    }
+    return spans;
+  }, [products]);
 
   const handleProcessPayment = async () => {
     const itemsToRequest = products.filter(p => p.quantity > 0 && p.requestDate);
@@ -122,12 +130,7 @@ export default function SellerTrafficPage() {
 
   const handleClosePopupAndReset = () => {
     setShowDepositPopup(false);
-    setProducts(
-        initialTrafficProducts.map(p => ({
-          ...p, salePrice: Math.round(p.retailPrice * (1 - p.discountRate)),
-          quantity: 0, requestDate: null,
-        }))
-    );
+    setProducts(prev => prev.map(p => ({ ...p, quantity: 0, requestDate: null })));
     setUseDeposit(false);
   };
 
@@ -180,10 +183,13 @@ export default function SellerTrafficPage() {
                       const startDate = p.requestDate ? new Date(p.requestDate.getTime() + 24 * 60 * 60 * 1000) : null;
                       const endDate = startDate ? new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000) : null;
                       const estimate = p.salePrice * p.quantity;
-                      const isFirstOfCategory = index === 0 || p.category !== products[index - 1].category;
+                      const rowSpan = categoryRowSpans[index];
+                      const isFirst = rowSpan > 0;
                       return (
-                      <tr key={index} className={isFirstOfCategory && index > 0 ? 'border-t-2 border-gray-300' : ''}>
-                          {isFirstOfCategory && (<td rowSpan={categoryCounts[p.category]} className={`${tdClass} align-middle text-center font-bold bg-gray-50`}>{p.category}</td>)}
+                      <tr key={index}>
+                          {isFirst && (
+                            <td rowSpan={rowSpan} className={`${tdClass} align-middle text-center font-bold bg-gray-50`}>{p.category}</td>
+                          )}
                           <td className={`${tdClass} font-semibold`}>{p.name}</td>
                           <td className={tdClass}>{p.description}</td>
                           <td className={`${tdClass} text-xs`}><div className="flex flex-col"><span>시중가: {p.retailPrice.toLocaleString()}원</span><span className="text-red-600">할인율: {Math.round(p.discountRate * 100)}%</span><span className="font-bold text-blue-600 text-sm">판매가: {p.salePrice.toLocaleString()}원</span></div></td>
