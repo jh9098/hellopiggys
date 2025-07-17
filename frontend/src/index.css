@@ -11,3 +11,8 @@ body {
     "Helvetica Neue", sans-serif;
   background-color: #f3f4f6; /* 전체 배경색을 연한 회색으로 설정 */
 }
+
+/* ensure date picker popups appear above other elements */
+.react-datepicker-popper {
+  z-index: 50;
+}

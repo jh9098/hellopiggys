@@ -183,7 +183,7 @@ export default function AdminProductManagementPage() {
                     <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[c.sellerUid]}</td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm"><input type="checkbox" checked={!!c.paymentReceived} onChange={(e) => handleTogglePayment(c.id, e.target.checked)} /></td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm"><input type="checkbox" checked={c.paymentReceived === true} onChange={(e) => handleTogglePayment(c.id, e.target.checked)} /></td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm">자율결제/실배송/별점/X</td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
                   </tr>
