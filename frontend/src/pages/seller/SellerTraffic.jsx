@@ -1,6 +1,6 @@
 // src/pages/seller/SellerTraffic.jsx
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, getDoc } from '../../firebaseConfig';
 import DatePicker from 'react-datepicker';
@@ -74,6 +74,21 @@ export default function SellerTrafficPage() {
     newProducts[index][field] = field === 'quantity' ? Math.max(0, Number(value)) : value;
     setProducts(newProducts);
   };
+
+  const categoryRowSpans = useMemo(() => {
+    const spans = {};
+    let i = 0;
+    while (i < products.length) {
+      let j = i + 1;
+      while (j < products.length && products[j].category === products[i].category) {
+        j++;
+      }
+      spans[i] = j - i;
+      for (let k = i + 1; k < j; k++) spans[k] = 0;
+      i = j;
+    }
+    return spans;
+  }, [products]);
 
   const handleProcessPayment = async () => {
     const itemsToRequest = products.filter(p => p.quantity > 0 && p.requestDate);
@@ -168,9 +183,13 @@ export default function SellerTrafficPage() {
                       const startDate = p.requestDate ? new Date(p.requestDate.getTime() + 24 * 60 * 60 * 1000) : null;
                       const endDate = startDate ? new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000) : null;
                       const estimate = p.salePrice * p.quantity;
+                      const rowSpan = categoryRowSpans[index];
+                      const isFirst = rowSpan > 0;
                       return (
                       <tr key={index}>
-                          <td className={`${tdClass} align-middle text-center font-bold bg-gray-50`}>{p.category}</td>
+                          {isFirst && (
+                            <td rowSpan={rowSpan} className={`${tdClass} align-middle text-center font-bold bg-gray-50`}>{p.category}</td>
+                          )}
                           <td className={`${tdClass} font-semibold`}>{p.name}</td>
                           <td className={tdClass}>{p.description}</td>
                           <td className={`${tdClass} text-xs`}><div className="flex flex-col"><span>시중가: {p.retailPrice.toLocaleString()}원</span><span className="text-red-600">할인율: {Math.round(p.discountRate * 100)}%</span><span className="font-bold text-blue-600 text-sm">판매가: {p.salePrice.toLocaleString()}원</span></div></td>

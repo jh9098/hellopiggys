@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { ko } from 'date-fns/locale';
@@ -43,6 +43,21 @@ export default function SellerAdminTrafficPage() {
     newProducts[index][field] = field === 'quantity' ? Math.max(0, Number(value)) : value;
     setProducts(newProducts);
   };
+
+  const categoryRowSpans = useMemo(() => {
+    const spans = {};
+    let i = 0;
+    while (i < products.length) {
+      let j = i + 1;
+      while (j < products.length && products[j].category === products[i].category) {
+        j++;
+      }
+      spans[i] = j - i;
+      for (let k = i + 1; k < j; k++) spans[k] = 0;
+      i = j;
+    }
+    return spans;
+  }, [products]);
 
 
   const quoteTotal = products.reduce((sum, p) => sum + (p.salePrice * p.quantity), 0);
@@ -98,11 +113,15 @@ export default function SellerAdminTrafficPage() {
                       const startDate = p.requestDate ? new Date(p.requestDate.getTime() + 24 * 60 * 60 * 1000) : null;
                       const endDate = startDate ? new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000) : null;
                       const estimate = p.salePrice * p.quantity;
+                      const rowSpan = categoryRowSpans[index];
+                      const isFirst = rowSpan > 0;
                       return (
                       <tr key={index}>
-                          <td className={`${tdClass} align-middle text-center font-bold bg-gray-50`}>
+                          {isFirst && (
+                            <td rowSpan={rowSpan} className={`${tdClass} align-middle text-center font-bold bg-gray-50`}>
                               <input type="text" value={p.category} onChange={e => handleEdit(index, 'category', e.target.value)} className={inputClass} />
-                          </td>
+                            </td>
+                          )}
                           <td className={`${tdClass} font-semibold`}>
                             <input type="text" value={p.name} onChange={e => handleEdit(index, 'name', e.target.value)} className={inputClass} />
                           </td>
