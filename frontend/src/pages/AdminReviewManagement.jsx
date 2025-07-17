@@ -91,23 +91,31 @@ export default function AdminReviewManagementPage() {
   const toggleSelectAll = (e) => setSelected(e.target.checked ? new Set(processedRows.map(r => r.id)) : new Set());
 
   const downloadCsv = () => {
-    if (processedRows.length === 0) return alert("다운로드할 데이터가 없습니다.");
+    if (processedRows.length === 0) return alert('다운로드할 데이터가 없습니다.');
+    const toText = (v, excelText = false) => `="${(v ?? '').toString()}"`;
     const csvData = processedRows.map(r => ({
-      // [수정] 다운로드 파일도 24시간제로 변경
-      '구매폼 등록일시': formatTimestamp24h(r.createdAt), '상태': statusMap[r.status] || r.status, '상품명': r.productName, '결제 종류': r.reviewType,
-      '본계정': r.mainAccountName, '타계정': r.name, '전화번호': r.phoneNumber, '주소': r.address, '쿠팡ID': r.participantId, '주문번호': r.orderNumber, '금액': r.rewardAmount,
-      '결제유형': r.paymentType, '상품종류': r.productType, '리뷰종류': r.reviewOption, '은행': r.bank, '계좌번호': r.bankNumber, '예금주': r.accountHolderName,
-      '리뷰인증': r.confirmImageUrls?.length > 0 ? 'O' : 'X', '반려사유': r.rejectionReason || ''
+      '진행일자': toText(r.productInfo?.reviewDate || '-'),
+      '결제종류': toText(r.paymentType || '-'),
+      '상품종류': toText(r.productType || '-'),
+      '주문번호': toText(r.orderNumber || '-'),
+      '상품명': toText(r.productInfo?.productName || r.productName || '-'),
+      '본계정이름': toText(r.mainAccountName || '-'),
+      '타계정이름(수취인)': toText(r.name || '-'),
+      '전화번호': toText(r.phoneNumber || '-', true),
+      '주소': toText(r.address || '-'),
+      '은행': toText(r.bank || '-'),
+      '계좌번호': toText(r.bankNumber || '', true),
+      '금액': toText(r.rewardAmount || '0'),
+      '예금주': toText(r.accountHolderName || '-'),
     }));
-    const csvString = Papa.unparse(csvData);
-    const blob = new Blob(["\uFEFF" + csvString], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    const today = new Date();
-    link.download = `reviews_${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const csv = Papa.unparse(csvData, { header: true });
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `리뷰정보파일_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
   
   const handleVerify = async () => {
