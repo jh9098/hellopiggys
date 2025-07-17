@@ -1,6 +1,6 @@
 // src/pages/seller/SellerTraffic.jsx
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, getDoc } from '../../firebaseConfig';
 import DatePicker from 'react-datepicker';
@@ -45,13 +45,6 @@ export default function SellerTrafficPage() {
     fetchProducts();
   }, []);
 
-  const categoryCounts = useMemo(() => {
-    const counts = {};
-    products.forEach(p => {
-      counts[p.category] = (counts[p.category] || 0) + 1;
-    });
-    return counts;
-  }, [products]);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -175,10 +168,9 @@ export default function SellerTrafficPage() {
                       const startDate = p.requestDate ? new Date(p.requestDate.getTime() + 24 * 60 * 60 * 1000) : null;
                       const endDate = startDate ? new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000) : null;
                       const estimate = p.salePrice * p.quantity;
-                      const isFirstOfCategory = index === 0 || p.category !== products[index - 1].category;
                       return (
-                      <tr key={index} className={isFirstOfCategory && index > 0 ? 'border-t-2 border-gray-300' : ''}>
-                          {isFirstOfCategory && (<td rowSpan={categoryCounts[p.category]} className={`${tdClass} align-middle text-center font-bold bg-gray-50`}>{p.category}</td>)}
+                      <tr key={index}>
+                          <td className={`${tdClass} align-middle text-center font-bold bg-gray-50`}>{p.category}</td>
                           <td className={`${tdClass} font-semibold`}>{p.name}</td>
                           <td className={tdClass}>{p.description}</td>
                           <td className={`${tdClass} text-xs`}><div className="flex flex-col"><span>시중가: {p.retailPrice.toLocaleString()}원</span><span className="text-red-600">할인율: {Math.round(p.discountRate * 100)}%</span><span className="font-bold text-blue-600 text-sm">판매가: {p.salePrice.toLocaleString()}원</span></div></td>

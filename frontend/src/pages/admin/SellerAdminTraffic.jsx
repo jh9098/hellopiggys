@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { ko } from 'date-fns/locale';
@@ -44,13 +44,6 @@ export default function SellerAdminTrafficPage() {
     setProducts(newProducts);
   };
 
-  const categoryCounts = useMemo(() => {
-    const counts = {};
-    products.forEach(p => {
-      counts[p.category] = (counts[p.category] || 0) + 1;
-    });
-    return counts;
-  }, [products]);
 
   const quoteTotal = products.reduce((sum, p) => sum + (p.salePrice * p.quantity), 0);
   const totalCommission = Math.round(quoteTotal * 0.1);
@@ -105,14 +98,11 @@ export default function SellerAdminTrafficPage() {
                       const startDate = p.requestDate ? new Date(p.requestDate.getTime() + 24 * 60 * 60 * 1000) : null;
                       const endDate = startDate ? new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000) : null;
                       const estimate = p.salePrice * p.quantity;
-                      const isFirstOfCategory = index === 0 || p.category !== products[index - 1].category;
                       return (
-                      <tr key={index} className={isFirstOfCategory && index > 0 ? 'border-t-2 border-gray-300' : ''}>
-                          {isFirstOfCategory && (
-                            <td rowSpan={categoryCounts[p.category]} className={`${tdClass} align-middle text-center font-bold bg-gray-50`}>
+                      <tr key={index}>
+                          <td className={`${tdClass} align-middle text-center font-bold bg-gray-50`}>
                               <input type="text" value={p.category} onChange={e => handleEdit(index, 'category', e.target.value)} className={inputClass} />
-                            </td>)
-                          }
+                          </td>
                           <td className={`${tdClass} font-semibold`}>
                             <input type="text" value={p.name} onChange={e => handleEdit(index, 'name', e.target.value)} className={inputClass} />
                           </td>
