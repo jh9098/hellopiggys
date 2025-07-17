@@ -1,11 +1,11 @@
-// src/pages/WriteReview.jsx (수정 완료)
+// src/pages/WriteReview.jsx (개선안)
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   auth, onAuthStateChanged, db, storage, 
   ref, uploadBytes, getDownloadURL, addDoc, collection, doc, getDoc,
-  serverTimestamp, getDocs, query, orderBy, where 
+  serverTimestamp, getDocs, query, orderBy, where, updateDoc
 } from '../firebaseConfig';
 import LoginModal from '../components/LoginModal';
 import AccountModal from '../components/AccountModal';
@@ -58,7 +58,11 @@ export default function WriteReview() {
 
   const [showImageUpload, setShowImageUpload] = useState(false);
 
+  // ▼▼▼ [수정] 제출 상태를 더 상세하게 관리하기 위한 state 추가 ▼▼▼
   const [submitting, setSubmitting] = useState(false);
+  const [submissionStatus, setSubmissionStatus] = useState('');
+  // ▲▲▲ [수정] 완료 ▲▲▲
+
   const [isAccountSelected, setIsAccountSelected] = useState(false);
   const [selectedSubAccountInfo, setSelectedSubAccountInfo] = useState(null);
   const [isAgreed, setIsAgreed] = useState(false);
@@ -136,11 +140,14 @@ export default function WriteReview() {
     const { name, files } = e.target;
     if (!files || files.length === 0) return;
   
+    // ▼▼▼ [수정] 이미지 압축 옵션을 더 공격적으로 변경하여 모바일 처리 속도 향상 ▼▼▼
     const options = {
-      maxSizeMB: 1,
-      maxWidthOrHeight: 1920,
+      maxSizeMB: 0.8,          // 최대 파일 크기를 1MB에서 0.8MB로 줄여 업로드 속도 향상
+      maxWidthOrHeight: 1280,  // 최대 해상도를 1920에서 1280으로 줄여 압축 시간 단축
       useWebWorker: true,
+      initialQuality: 0.7,     // 초기 압축 품질을 지정하여 처리 속도 개선
     };
+    // ▲▲▲ [수정] 완료 ▲▲▲
   
     const processedFiles = [];
     for (const file of files) {
@@ -149,7 +156,7 @@ export default function WriteReview() {
         processedFiles.push(compressedFile);
       } catch (error) {
         console.warn(`이미지 압축 실패. 원본 파일을 사용합니다: ${file.name}`, error);
-        processedFiles.push(file);
+        processedFiles.push(file); // 압축 실패 시 원본 사용
       }
     }
     
@@ -157,76 +164,97 @@ export default function WriteReview() {
     setImages(prev => ({ ...prev, [name]: selectedFiles }));
   };
   
+  // ▼▼▼ [수정] 제출 로직을 사용자 피드백과 안정성을 강화하는 방향으로 대폭 수정 ▼▼▼
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!selectedProduct) {
-        alert('오류: 상품이 선택되지 않았습니다. 페이지를 새로고침하고 다시 시도해주세요.');
-        return;
+      alert('오류: 상품이 선택되지 않았습니다. 페이지를 새로고침하고 다시 시도해주세요.');
+      return;
     }
-
     if (!isFormValid) {
-      return alert('필수 입력 항목을 모두 채워주세요.');
+      alert('필수 입력 항목을 모두 채워주세요.');
+      return;
     }
-    setSubmitting(true);
-    try {
-      const urlMap = {};
 
-      for (const field of UPLOAD_FIELDS) {
-        const fieldName = field.key;
-        if (images[fieldName] && images[fieldName].length > 0) {
-          const urls = [];
-          for (const file of images[fieldName]) {
-            const storageRef = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
-            const snapshot = await uploadBytes(storageRef, file);
-            const downloadUrl = await getDownloadURL(snapshot.ref);
-            urls.push(downloadUrl);
-          }
-          urlMap[`${fieldName}Urls`] = urls;
+    setSubmitting(true);
+    setSubmissionStatus('리뷰 정보 저장 중...');
+
+    // --- 1단계: 텍스트 정보만 먼저 Firestore에 저장 ---
+    // 이렇게 하면 이미지가 업로드되는 동안에도 사용자는 제출이 시작되었다고 인지 가능
+    const reviewData = {
+      mainAccountId: currentUser.uid,
+      subAccountId: form.subAccountId,
+      productId: selectedProduct.id,
+      productName: selectedProduct.productName || '상품명 없음', 
+      reviewType: selectedProduct.reviewType || '현영',
+      createdAt: serverTimestamp(),
+      status: 'uploading_images', // 'submitted' 대신 이미지 업로드 중이라는 임시 상태 사용
+      name: form.name,
+      phoneNumber: form.phoneNumber,
+      address: form.address,
+      bank: form.bank,
+      bankNumber: form.bankNumber,
+      accountHolderName: form.accountHolderName,
+      orderNumber: form.orderNumber,
+      rewardAmount: form.rewardAmount,
+      participantId: form.participantId,
+      paymentType: form.paymentType,
+      productType: form.productType,
+      reviewOption: form.reviewOption,
+    };
+
+    try {
+      const docRef = await addDoc(collection(db, 'reviews'), reviewData);
+      setSubmissionStatus('이미지 파일 처리 중...');
+
+      // --- 2단계: 이미지들을 하나씩 압축 및 업로드하고, URL을 Firestore 문서에 업데이트 ---
+      const allImageFiles = UPLOAD_FIELDS.flatMap(field => 
+        (images[field.key] || []).map(file => ({ fieldName: field.key, file }))
+      );
+
+      const urlMap = {};
+      for (let i = 0; i < allImageFiles.length; i++) {
+        const { fieldName, file } = allImageFiles[i];
+        const fieldKeyForUrl = `${fieldName}Urls`;
+        
+        setSubmissionStatus(`이미지 업로드 중... (${i + 1}/${allImageFiles.length})`);
+
+        const storageRef = ref(storage, `reviewImages/${docRef.id}/${Date.now()}_${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadUrl = await getDownloadURL(snapshot.ref);
+        
+        if (!urlMap[fieldKeyForUrl]) {
+          urlMap[fieldKeyForUrl] = [];
         }
+        urlMap[fieldKeyForUrl].push(downloadUrl);
       }
 
-      const reviewData = {
-        mainAccountId: currentUser.uid,
-        subAccountId: form.subAccountId,
-        productId: selectedProduct.id,
-        productName: selectedProduct.productName || '상품명 없음', 
-        reviewType: selectedProduct.reviewType || '현영',
-        createdAt: serverTimestamp(),
-        status: 'submitted',
-        name: form.name,
-        phoneNumber: form.phoneNumber,
-        address: form.address,
-        bank: form.bank,
-        bankNumber: form.bankNumber,
-        accountHolderName: form.accountHolderName,
-        orderNumber: form.orderNumber,
-        rewardAmount: form.rewardAmount,
-        participantId: form.participantId,
-        paymentType: form.paymentType,
-        productType: form.productType,
-        reviewOption: form.reviewOption,
+      // --- 3단계: 모든 이미지 URL과 최종 상태를 Firestore에 업데이트 ---
+      setSubmissionStatus('최종 정보 업데이트 중...');
+      await updateDoc(docRef, {
+        status: 'submitted', // 최종 상태로 변경
         ...urlMap,
-      };
+      });
 
-      await addDoc(collection(db, 'reviews'), reviewData);
-      
-      // ▼▼▼ 제출 성공 메시지의 URL과 navigate 경로를 수정합니다 ▼▼▼
-      const uploadedAllImages = UPLOAD_FIELDS.every(f => images[f.key] && images[f.key].length > 0);
-      const msg = uploadedAllImages
+      const hasAnyImage = Object.keys(images).some(key => images[key] && images[key].length > 0);
+      const msg = hasAnyImage
         ? '리뷰가 성공적으로 제출되었습니다.'
-        : '리뷰가 성공적으로 제출되었습니다.\nhttps://hellopiggys.netlify.app/reviewer/my-reviews 에서 이미지 등록을 완료해주셔야 구매인증이 완료됩니다.';
+        : '리뷰 정보가 제출되었습니다. 이미지를 등록하시려면 "리뷰 관리" 페이지를 이용해주세요.';
       alert(msg);
       navigate('/reviewer/my-reviews', { replace: true });
-      // ▲▲▲ 수정 완료 ▲▲▲
 
     } catch (err) {
-      alert(`제출 실패: ${err.message}`);
+      alert(`제출 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. 오류: ${err.message}`);
       console.error("제출 실패:", err);
+      // 오류 발생 시 생성된 review 문서를 삭제하거나, 사용자에게 재시도를 안내할 수 있습니다.
+      // 여기서는 간단히 알림만 표시합니다.
     } finally {
       setSubmitting(false);
+      setSubmissionStatus('');
     }
   };
+  // ▲▲▲ [수정] 완료 ▲▲▲
 
   const handleMainButtonClick = () => { if (currentUser) { if (selectedProduct) { setIsAccountModalOpen(true); } else { alert("먼저 참여할 상품을 선택해주세요."); } } else { setIsLoginModalOpen(true); } };
   const handleLoginSuccess = () => setIsLoginModalOpen(false);
@@ -505,7 +533,9 @@ export default function WriteReview() {
             type="submit" 
             disabled={!isFormValid || submitting}
           >
-            {submitting ? '제출 중…' : '제출하기'}
+            {/* ▼▼▼ [수정] 버튼 텍스트를 제출 상태에 따라 동적으로 변경 ▼▼▼ */}
+            {submitting ? submissionStatus : '제출하기'}
+            {/* ▲▲▲ [수정] 완료 ▲▲▲ */}
           </button>
         </form>
       )}
