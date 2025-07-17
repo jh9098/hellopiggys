@@ -192,3 +192,28 @@
     margin-bottom: 16px;
     cursor: pointer;
   }
+.image-processing-notice {
+  background-color: #fffbe6; /* 밝은 노란색 배경 */
+  color: #a16207; /* 어두운 노란색 계열 텍스트 */
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-top: 8px;
+  text-align: center;
+  font-weight: 500;
+  border: 1px solid #fde68a; /* 배경과 어울리는 테두리 */
+  animation: pulse 2s infinite; /* 시각적 효과를 위한 애니메이션 */
+}
+
+/* 알림 메시지가 깜빡이는 효과 (선택사항) */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}

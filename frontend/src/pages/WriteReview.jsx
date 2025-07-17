@@ -55,6 +55,9 @@ export default function WriteReview() {
   const [globalAddresses, setGlobalAddresses] = useState([]);
   
   const [images, setImages] = useState({});
+  // ▼▼▼ [추가] 이미지 처리 상태를 관리할 state ▼▼▼
+  const [imageProcessingStatus, setImageProcessingStatus] = useState({});
+  // ▲▲▲ [추가] 완료 ▲▲▲
 
   const [showImageUpload, setShowImageUpload] = useState(false);
 
@@ -136,33 +139,47 @@ export default function WriteReview() {
     return () => unsubscribeAuth();
   }, [productIdFromUrl]);
 
+  // ▼▼▼ [수정] onFileChange 함수에 처리 중 상태 로직 추가 ▼▼▼
   const onFileChange = async (e) => {
     const { name, files } = e.target;
     if (!files || files.length === 0) return;
-  
-    // ▼▼▼ [수정] 이미지 압축 옵션을 더 공격적으로 변경하여 모바일 처리 속도 향상 ▼▼▼
-    const options = {
-      maxSizeMB: 0.8,          // 최대 파일 크기를 1MB에서 0.8MB로 줄여 업로드 속도 향상
-      maxWidthOrHeight: 1280,  // 최대 해상도를 1920에서 1280으로 줄여 압축 시간 단축
-      useWebWorker: true,
-      initialQuality: 0.7,     // 초기 압축 품질을 지정하여 처리 속도 개선
-    };
-    // ▲▲▲ [수정] 완료 ▲▲▲
-  
-    const processedFiles = [];
-    for (const file of files) {
-      try {
-        const compressedFile = await imageCompression(file, options);
-        processedFiles.push(compressedFile);
-      } catch (error) {
-        console.warn(`이미지 압축 실패. 원본 파일을 사용합니다: ${file.name}`, error);
-        processedFiles.push(file); // 압축 실패 시 원본 사용
-      }
-    }
+
+    // 1. 파일 선택 즉시 처리 중 상태로 변경
+    setImageProcessingStatus(prev => ({ ...prev, [name]: true }));
+
+    try {
+      const options = {
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1280,
+        useWebWorker: true,
+        initialQuality: 0.7,
+      };
     
-    const selectedFiles = Array.from(processedFiles).slice(0, 5);
-    setImages(prev => ({ ...prev, [name]: selectedFiles }));
+      const processedFiles = [];
+      // for-of 루프는 await를 순차적으로 기다려줍니다.
+      for (const file of files) {
+        try {
+          const compressedFile = await imageCompression(file, options);
+          processedFiles.push(compressedFile);
+        } catch (error) {
+          console.warn(`이미지 압축 실패. 원본 파일을 사용합니다: ${file.name}`, error);
+          processedFiles.push(file);
+        }
+      }
+      
+      const selectedFiles = Array.from(processedFiles).slice(0, 5);
+      // 2. 압축 완료 후, state에 파일 목록 업데이트
+      setImages(prev => ({ ...prev, [name]: selectedFiles }));
+
+    } catch (err) {
+      console.error("이미지 처리 중 오류 발생:", err);
+      alert("이미지를 처리하는 중 오류가 발생했습니다. 다른 파일을 선택해보세요.");
+    } finally {
+      // 3. 성공/실패 여부와 관계없이 처리 중 상태 해제
+      setImageProcessingStatus(prev => ({ ...prev, [name]: false }));
+    }
   };
+  // ▲▲▲ [수정] 완료 ▲▲▲
   
   // ▼▼▼ [수정] 제출 로직을 사용자 피드백과 안정성을 강화하는 방향으로 대폭 수정 ▼▼▼
   const handleSubmit = async (e) => {
@@ -480,31 +497,50 @@ export default function WriteReview() {
 
           {showImageUpload && (
             <>
-              <div className="image-upload-group">
-                {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label }) => (
-                  <div className="field" key={key}>
-                    <label>{label} (최대 5장)</label>
-                    <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
-                    <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
-                      {images[key] && images[key].length > 0 ? (
-                        images[key].map((file, i) => (
-                          <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
-                        ))
-                      ) : (
-                        <div style={{ color: '#999' }}>선택된 파일 없음</div>
-                      )}
-                    </div>
+          <div className="image-upload-group">
+            {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label }) => (
+              <div className="field" key={key}>
+                <label>{label} (최대 5장)</label>
+                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple disabled={imageProcessingStatus[key]} />
+                
+                {/* ▼▼▼ [추가] 이미지 처리 중 알림 메시지 ▼▼▼ */}
+                {imageProcessingStatus[key] && (
+                  <div className="image-processing-notice">
+                    이미지 처리 중입니다. 파일 목록이 표시될 때까지 잠시만 기다려주세요...
                   </div>
-                ))}
-              </div>
+                )}
+                {/* ▲▲▲ [추가] 완료 ▲▲▲ */}
 
-              <div className="image-upload-group">
-                <h4>2. 구매 & 증빙 인증</h4>
-                {UPLOAD_FIELDS.filter(f => f.group === 'purchase').map(({ key, label }) => (
-                  <div className="field" key={key}>
-                    <label>{label} (최대 5장)</label>
-                    <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
-                    <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
+                <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
+                  {images[key] && images[key].length > 0 ? (
+                    images[key].map((file, i) => (
+                      <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
+                    ))
+                  ) : (
+                    <div style={{ color: '#999' }}>선택된 파일 없음</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="image-upload-group">
+            <h4>2. 구매 & 증빙 인증</h4>
+            {UPLOAD_FIELDS.filter(f => f.group === 'purchase').map(({ key, label }) => (
+              <div className="field" key={key}>
+                <label>{label} (최대 5장)</label>
+                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple disabled={imageProcessingStatus[key]} />
+
+                {/* ▼▼▼ [추가] 이미지 처리 중 알림 메시지 (동일한 로직) ▼▼▼ */}
+                {imageProcessingStatus[key] && (
+                  <div className="image-processing-notice">
+                    이미지 처리 중입니다. 파일 목록이 표시될 때까지 잠시만 기다려주세요...
+                  </div>
+                )}
+                {/* ▲▲▲ [추가] 완료 ▲▲▲ */}
+
+                <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
+
                       {images[key] && images[key].length > 0 ? (
                         images[key].map((file, i) => (
                           <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
