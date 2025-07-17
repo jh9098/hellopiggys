@@ -102,6 +102,14 @@ export default function AdminProductManagementPage() {
     }
   };
 
+  const handleTogglePayment = async (id, checked) => {
+    try {
+      await updateDoc(doc(db, 'campaigns', id), { paymentReceived: checked });
+    } catch (err) {
+      console.error('입금 여부 업데이트 오류:', err);
+    }
+  };
+
   const handleDownloadExcel = () => {
     if (filteredCampaigns.length === 0) return alert("다운로드할 데이터가 없습니다.");
     const dataForExcel = filteredCampaigns.map((c, index) => ({
@@ -159,6 +167,7 @@ export default function AdminProductManagementPage() {
                 <th className={thClass}>본계정</th>
                 <th className={thClass}>타계정</th>
                 <th className={thClass}>전화번호</th>
+                <th className={thClass}>입금확인</th>
                 <th className={thClass}>결제유형/상품종류/리뷰종류/리뷰인증</th>
                 <th className={thClass}>작업</th>
               </tr>
@@ -174,6 +183,7 @@ export default function AdminProductManagementPage() {
                     <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[c.sellerUid]}</td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm"><input type="checkbox" checked={!!c.paymentReceived} onChange={(e) => handleTogglePayment(c.id, e.target.checked)} /></td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm">자율결제/실배송/별점/X</td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
                   </tr>
