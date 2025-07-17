@@ -40,6 +40,7 @@ export default function AdminLayout() {
           <NavLink to="/admin/seller-list">판매자 목록</NavLink>
           <NavLink to="/admin/seller-schedule">예약 시트 관리</NavLink>
           <NavLink to="/admin/seller-progress">진행현황</NavLink>
+          <NavLink to="/admin/seller-traffic">트래픽 설정</NavLink>
         </nav>
       </aside>
       <main>
