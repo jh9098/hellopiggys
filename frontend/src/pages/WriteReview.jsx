@@ -439,7 +439,6 @@ export default function WriteReview() {
           </div>
 
           <hr className="section-divider" />
-          <p className="upload-note">이미지 등록 생략하고 제출 후, 리뷰관리에서 업로드 하셔도 됩니다</p>
           {!showImageUpload && (
             <button
               type="button"
@@ -449,6 +448,7 @@ export default function WriteReview() {
               이미지 지금 등록하기
             </button>
           )}
+          <p className="upload-note">이미지 등록 생략하고 제출 후, 리뷰관리에서 업로드 하셔도 됩니다</p>
 
           {showImageUpload && (
             <>
