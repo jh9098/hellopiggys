@@ -104,7 +104,7 @@ export default function AdminProductManagementPage() {
 
   const handleTogglePayment = async (id, checked) => {
     try {
-      await updateDoc(doc(db, 'campaigns', id), { paymentReceived: checked });
+      await updateDoc(doc(db, 'campaigns', id), { depositConfirmed: checked });
     } catch (err) {
       console.error('입금 여부 업데이트 오류:', err);
     }
@@ -161,6 +161,7 @@ export default function AdminProductManagementPage() {
               <tr>
                 <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === filteredCampaigns.length && filteredCampaigns.length > 0} /></th>
                 <th className={thClass}>상품 등록일시</th>
+                <th className={thClass}>진행일자</th>
                 <th className={thClass}>상태</th>
                 <th className={thClass}>상품명</th>
                 <th className={thClass}>결제 종류</th>
@@ -177,13 +178,14 @@ export default function AdminProductManagementPage() {
                   <tr key={c.id} className="hover:bg-gray-50">
                     <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleString('ko-KR') : 'N/A'}</td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '-'}</td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.status === '리뷰완료' ? 'bg-blue-100 text-blue-800' : c.status === '예약 확정' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{c.status}</span></td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.productName}</td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[c.sellerUid]}</td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm"><input type="checkbox" checked={c.paymentReceived === true} onChange={(e) => handleTogglePayment(c.id, e.target.checked)} /></td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm"><input type="checkbox" checked={!!c.depositConfirmed} onChange={(e) => handleTogglePayment(c.id, e.target.checked)} /></td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm">자율결제/실배송/별점/X</td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
                   </tr>

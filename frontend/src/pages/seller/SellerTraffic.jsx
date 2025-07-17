@@ -97,8 +97,14 @@ export default function SellerTrafficPage() {
         const itemTotal = item.salePrice * item.quantity;
         const finalItemAmount = Math.round(itemTotal * 1.1);
         batch.set(requestRef, {
-            ...requestData, sellerUid: user.uid, createdAt: serverTimestamp(), status: '미확정',
-            paymentReceived: false, itemTotal, finalItemAmount,
+            ...requestData,
+            sellerUid: user.uid,
+            createdAt: serverTimestamp(),
+            status: '미확정',
+            paymentReceived: false,
+            depositConfirmed: false,
+            itemTotal,
+            finalItemAmount,
         });
     });
 

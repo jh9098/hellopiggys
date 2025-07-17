@@ -199,7 +199,14 @@ export default function SellerReservationPage() {
         campaigns.forEach(campaign => {
             const { id, ...campaignData } = campaign;
             const campaignRef = doc(collection(db, 'campaigns'));
-            batch.set(campaignRef, { ...campaignData, sellerUid: user.uid, createdAt: serverTimestamp(), status: '미확정', paymentReceived: false });
+            batch.set(campaignRef, {
+                ...campaignData,
+                sellerUid: user.uid,
+                createdAt: serverTimestamp(),
+                status: '미확정',
+                paymentReceived: false,
+                depositConfirmed: false,
+            });
         });
         if (useDeposit && amountToUseFromDeposit > 0) {
             batch.update(sellerDocRef, { deposit: increment(-amountToUseFromDeposit) });
