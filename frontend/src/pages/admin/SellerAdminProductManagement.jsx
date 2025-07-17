@@ -120,6 +120,7 @@ export default function AdminProductManagementPage() {
 
   const handleDownloadExcel = () => {
     if (filteredCampaigns.length === 0) return alert("다운로드할 데이터가 없습니다.");
+    const toText = (v) => `="${(v ?? '').toString()}"`;
     const dataForExcel = filteredCampaigns.map((c, index) => {
       const finalItemAmount = c.itemTotal ? Math.round(c.itemTotal * 1.10) : 0;
       const commission = c.itemTotal ? finalItemAmount - c.itemTotal : 0;
@@ -141,7 +142,7 @@ export default function AdminProductManagementPage() {
         '상품 URL': c.productUrl || '',
         '상태': c.status || 'N/A',
         '닉네임': sellersMap[c.sellerUid]?.nickname || '',
-        '전화번호': sellersMap[c.sellerUid]?.phone || '',
+        '전화번호': toText(sellersMap[c.sellerUid]?.phone || ''),
         '입금확인': c.depositConfirmed ? 'Y' : 'N',
         '견적 상세': `((리뷰 ${Number(c.basePrice || 0).toLocaleString()}${
           c.sundayExtraCharge > 0
