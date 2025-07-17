@@ -118,10 +118,19 @@ export default function AdminSettlementPage() {
     if (processedRows.length === 0) return alert('다운로드할 정산 내역이 없습니다.');
     const toText = (v, excelText = false) => `="${(v ?? '').toString()}"`;
     const csvData = processedRows.map(r => ({
-      '상품명': toText(r.productInfo?.productName || r.productName || '-'), '진행일자': toText(r.productInfo?.reviewDate || '-'),
-      '주문번호': toText(r.orderNumber || '-'), '본계정 이름': toText(r.mainAccountName || '-'), '타계정 이름(수취인)': toText(r.subAccountName || '-'),
-      '전화번호': toText(r.phoneNumber || '-', true), '주소': toText(r.address || '-'), '은행': toText(r.bank || '-'),
-      '계좌번호': toText(r.bankNumber || '', true), '예금주': toText(r.accountHolderName || '-'), '금액': toText(r.rewardAmount || '0'),
+      '진행일자': toText(r.productInfo?.reviewDate || '-'),
+      '결제종류': toText(r.paymentType || '-'),
+      '상품종류': toText(r.productType || '-'),
+      '주문번호': toText(r.orderNumber || '-'),
+      '상품명': toText(r.productInfo?.productName || r.productName || '-'),
+      '본계정이름': toText(r.mainAccountName || '-'),
+      '타계정이름(수취인)': toText(r.subAccountName || '-'),
+      '전화번호': toText(r.phoneNumber || '-', true),
+      '주소': toText(r.address || '-'),
+      '은행': toText(r.bank || '-'),
+      '계좌번호': toText(r.bankNumber || '', true),
+      '금액': toText(r.rewardAmount || '0'),
+      '예금주': toText(r.accountHolderName || '-'),
     }));
     const csv = Papa.unparse(csvData, { header: true });
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
