@@ -201,6 +201,28 @@ main h2 {
   border-radius: 3px;
 }
 
+/* 일괄 변경 행 스타일 */
+.bulk-row th {
+  padding: 4px;
+  background-color: #f1f3f5;
+}
+
+.bulk-control {
+  display: flex;
+  gap: 4px;
+}
+
+.bulk-control select {
+  flex: 1;
+  padding: 4px;
+  font-size: 12px;
+}
+
+.bulk-control button {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
 /* 리뷰 확인 버튼 스타일 (기존과 동일하게 유지) */
 .link-button {
   background: none;

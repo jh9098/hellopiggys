@@ -175,39 +175,59 @@ export default function AdminProductManagementPage() {
       </div>
       <div className="toolbar">
         <button onClick={deleteSelected}>선택 삭제</button>
-        <select value={bulkReviewType} onChange={(e) => setBulkReviewType(e.target.value)}>
-          <option value="">결제 종류 일괄 변경</option>
-          {reviewTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <button onClick={() => { bulkUpdate('reviewType', bulkReviewType); setBulkReviewType(''); }}>적용</button>
-        <select value={bulkProductType} onChange={(e) => setBulkProductType(e.target.value)}>
-          <option value="">상품 종류 일괄 변경</option>
-          {productTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <button onClick={() => { bulkUpdate('productType', bulkProductType); setBulkProductType(''); }}>적용</button>
-        <select value={bulkReviewOption} onChange={(e) => setBulkReviewOption(e.target.value)}>
-          <option value="">리뷰 종류 일괄 변경</option>
-          {fullReviewOptions.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-        <button onClick={() => { bulkUpdate('reviewOption', bulkReviewOption); setBulkReviewOption(''); }}>적용</button>
       </div>
       <div className="table-container">
         <table className="admin-table">
           <thead>
-            <tr>
-              <th><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === processedProducts.length && processedProducts.length > 0} /></th>
-              <th onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></th>
-              <th onClick={() => requestSort('reviewType')} className="sortable">결제 종류<SortIndicator columnKey="reviewType" /></th>
-              <th onClick={() => requestSort('productType')} className="sortable">상품 종류<SortIndicator columnKey="productType" /></th>
-              <th onClick={() => requestSort('reviewOption')} className="sortable">리뷰 종류<SortIndicator columnKey="reviewOption" /></th>
-              <th onClick={() => requestSort('reviewDate')} className="sortable">진행일자<SortIndicator columnKey="reviewDate" /></th>
-              <th onClick={() => requestSort('progressStatus')} className="sortable">진행 상태<SortIndicator columnKey="progressStatus" /></th>
-              <th onClick={() => requestSort('createdAt')} className="sortable">등록날짜<SortIndicator columnKey="createdAt" /></th>
-              <th>관리</th>
-            </tr>
-            <tr className="filter-row">
-              <th></th>
-              <th><input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></th>
+          <tr>
+            <th><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === processedProducts.length && processedProducts.length > 0} /></th>
+            <th onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></th>
+            <th onClick={() => requestSort('reviewType')} className="sortable">결제 종류<SortIndicator columnKey="reviewType" /></th>
+            <th onClick={() => requestSort('productType')} className="sortable">상품 종류<SortIndicator columnKey="productType" /></th>
+            <th onClick={() => requestSort('reviewOption')} className="sortable">리뷰 종류<SortIndicator columnKey="reviewOption" /></th>
+            <th onClick={() => requestSort('reviewDate')} className="sortable">진행일자<SortIndicator columnKey="reviewDate" /></th>
+            <th onClick={() => requestSort('progressStatus')} className="sortable">진행 상태<SortIndicator columnKey="progressStatus" /></th>
+            <th onClick={() => requestSort('createdAt')} className="sortable">등록날짜<SortIndicator columnKey="createdAt" /></th>
+            <th>관리</th>
+          </tr>
+          <tr className="bulk-row">
+            <th></th>
+            <th></th>
+            <th>
+              <div className="bulk-control">
+                <select value={bulkReviewType} onChange={(e) => setBulkReviewType(e.target.value)}>
+                  <option value="">결제 종류 일괄 변경</option>
+                  {reviewTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <button onClick={() => { bulkUpdate('reviewType', bulkReviewType); setBulkReviewType(''); }}>적용</button>
+              </div>
+            </th>
+            <th>
+              <div className="bulk-control">
+                <select value={bulkProductType} onChange={(e) => setBulkProductType(e.target.value)}>
+                  <option value="">상품 종류 일괄 변경</option>
+                  {productTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <button onClick={() => { bulkUpdate('productType', bulkProductType); setBulkProductType(''); }}>적용</button>
+              </div>
+            </th>
+            <th>
+              <div className="bulk-control">
+                <select value={bulkReviewOption} onChange={(e) => setBulkReviewOption(e.target.value)}>
+                  <option value="">리뷰 종류 일괄 변경</option>
+                  {fullReviewOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+                <button onClick={() => { bulkUpdate('reviewOption', bulkReviewOption); setBulkReviewOption(''); }}>적용</button>
+              </div>
+            </th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+          </tr>
+          <tr className="filter-row">
+            <th></th>
+            <th><input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></th>
               <th><input type="text" name="reviewType" value={filters.reviewType} onChange={handleFilterChange} /></th>
               <th><input type="text" name="productType" value={filters.productType} onChange={handleFilterChange} /></th>
               <th><input type="text" name="reviewOption" value={filters.reviewOption} onChange={handleFilterChange} /></th>
