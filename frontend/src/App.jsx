@@ -35,6 +35,7 @@ import SellerAdminProductManagementPage from './pages/admin/SellerAdminProductMa
 import SellerAdminProgressPage from './pages/admin/SellerAdminProgress';
 import SellerAdminSchedulePage from './pages/admin/SellerAdminSchedule';
 import SellerAdminSellerManagementPage from './pages/admin/SellerAdminSellerManagement';
+import SellerAdminTrafficPage from './pages/admin/SellerAdminTraffic';
 
 // --- 판매자 페이지들 ---
 import SellerDashboardPage from './pages/seller/SellerDashboard'; 
@@ -94,6 +95,7 @@ function App() {
           <Route path="seller-list" element={<SellerAdminSellerManagementPage />} />
           <Route path="seller-schedule" element={<SellerAdminSchedulePage />} />
           <Route path="seller-progress" element={<SellerAdminProgressPage />} />
+          <Route path="seller-traffic" element={<SellerAdminTrafficPage />} />
         </Route>
       </Route>
       
