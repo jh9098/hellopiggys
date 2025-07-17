@@ -50,6 +50,9 @@ export default function AdminLayout() {
             <li className="mb-2">
               <NavLink to="/admin/selleradmin/progress" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>진행현황</NavLink>
             </li>
+            <li className="mb-2">
+              <NavLink to="/admin/seller-traffic" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>트래픽 설정</NavLink>
+            </li>
           </ul>
         </nav>
       </aside>
