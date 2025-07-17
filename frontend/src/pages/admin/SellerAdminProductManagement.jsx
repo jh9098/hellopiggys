@@ -120,13 +120,42 @@ export default function AdminProductManagementPage() {
 
   const handleDownloadExcel = () => {
     if (filteredCampaigns.length === 0) return alert("다운로드할 데이터가 없습니다.");
-    const dataForExcel = filteredCampaigns.map((c, index) => ({
-      '순번': index + 1, '진행일자': c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString() : '',
-      '상품명': c.productName || '', '옵션': c.productOption || '',
-      '판매자': sellersMap[c.sellerUid]?.nickname || 'N/A',
-      '상태': c.status || 'N/A',
-      // ... 필요한 다른 데이터 추가 ...
-    }));
+    const dataForExcel = filteredCampaigns.map((c, index) => {
+      const finalItemAmount = c.itemTotal ? Math.round(c.itemTotal * 1.10) : 0;
+      const commission = c.itemTotal ? finalItemAmount - c.itemTotal : 0;
+      return {
+        '순번': index + 1,
+        '상품 등록일시': c.createdAt?.seconds
+          ? new Date(c.createdAt.seconds * 1000).toLocaleString('ko-KR')
+          : '',
+        '진행일자': c.date?.seconds
+          ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR')
+          : '',
+        '구분': c.deliveryType || '',
+        '리뷰 종류': c.reviewType || '',
+        '체험단 개수': c.quantity || '',
+        '상품명': c.productName || '',
+        '상품가': c.productPrice ? Number(c.productPrice).toLocaleString() : '',
+        '옵션': c.productOption || '',
+        '키워드': c.keywords || '',
+        '상품 URL': c.productUrl || '',
+        '상태': c.status || 'N/A',
+        '닉네임': sellersMap[c.sellerUid]?.nickname || '',
+        '전화번호': sellersMap[c.sellerUid]?.phone || '',
+        '입금확인': c.depositConfirmed ? 'Y' : 'N',
+        '견적 상세': `((리뷰 ${Number(c.basePrice || 0).toLocaleString()}${
+          c.sundayExtraCharge > 0
+            ? ` + 공휴일 ${Number(c.sundayExtraCharge).toLocaleString()}`
+            : ''}) + 상품가 ${Number(c.productPrice).toLocaleString()}) * ${
+          c.quantity
+        }개`,
+        '총 견적': `${finalItemAmount.toLocaleString()}원 (견적 ${Number(
+          c.itemTotal || 0
+        ).toLocaleString()} + 수수료 ${commission.toLocaleString()})`,
+        '결제유형/상품종류/리뷰종류/리뷰인증': '자율결제/실배송/별점/X',
+        '작업': '반려',
+      };
+    });
     const csv = Papa.unparse(dataForExcel);
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
