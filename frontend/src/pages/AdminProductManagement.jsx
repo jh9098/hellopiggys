@@ -7,6 +7,10 @@ import Papa from 'papaparse';
 
 const formatDate = (date) => date ? new Date(date.seconds * 1000).toLocaleDateString() : 'N/A';
 const progressStatusOptions = ['진행전', '진행중', '진행완료', '일부완료', '보류'];
+const productTypeOptions = ['실배송', '빈박스'];
+const reviewTypeOptions = ['현영', '자율결제'];
+const fullReviewOptions = ['별점', '텍스트', '포토', '프리미엄(포토)', '프리미엄(영상)'];
+const limitedReviewOptions = ['별점', '텍스트'];
 
 export default function AdminProductManagementPage() {
   const [products, setProducts] = useState([]);
@@ -16,6 +20,10 @@ export default function AdminProductManagementPage() {
     productType: '', reviewOption: '',
   });
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkReviewType, setBulkReviewType] = useState('');
+  const [bulkProductType, setBulkProductType] = useState('');
+  const [bulkReviewOption, setBulkReviewOption] = useState('');
   const navigate = useNavigate();
 
   const fetchProducts = async () => {
@@ -96,6 +104,44 @@ export default function AdminProductManagementPage() {
     }
   };
 
+  const handleFieldChange = async (id, field, value) => {
+    try {
+      await updateDoc(doc(db, 'products', id), { [field]: value });
+      setProducts(prev => prev.map(p => (p.id === id ? { ...p, [field]: value } : p)));
+    } catch (err) {
+      alert('정보 수정 중 오류가 발생했습니다: ' + err.message);
+    }
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(processedProducts.map(p => p.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+  };
+
+  const deleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm('선택한 상품을 모두 삭제하시겠습니까?')) return;
+    for (const id of selectedIds) {
+      await deleteDoc(doc(db, 'products', id));
+    }
+    setProducts(prev => prev.filter(p => !selectedIds.includes(p.id)));
+    setSelectedIds([]);
+  };
+
+  const bulkUpdate = async (field, value) => {
+    if (!value || selectedIds.length === 0) return;
+    const updates = selectedIds.map(id => updateDoc(doc(db, 'products', id), { [field]: value }));
+    await Promise.all(updates);
+    setProducts(prev => prev.map(p => selectedIds.includes(p.id) ? { ...p, [field]: value } : p));
+  };
+
   // [수정] 가이드 복사 핸들러
   const handleCopyGuide = (guideText) => {
     if (!guideText) {
@@ -127,10 +173,29 @@ export default function AdminProductManagementPage() {
         <button onClick={resetFilters}>필터 초기화</button>
         <button onClick={downloadCsv}>엑셀 다운로드</button>
       </div>
+      <div className="toolbar">
+        <button onClick={deleteSelected}>선택 삭제</button>
+        <select value={bulkReviewType} onChange={(e) => setBulkReviewType(e.target.value)}>
+          <option value="">결제 종류 일괄 변경</option>
+          {reviewTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <button onClick={() => { bulkUpdate('reviewType', bulkReviewType); setBulkReviewType(''); }}>적용</button>
+        <select value={bulkProductType} onChange={(e) => setBulkProductType(e.target.value)}>
+          <option value="">상품 종류 일괄 변경</option>
+          {productTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <button onClick={() => { bulkUpdate('productType', bulkProductType); setBulkProductType(''); }}>적용</button>
+        <select value={bulkReviewOption} onChange={(e) => setBulkReviewOption(e.target.value)}>
+          <option value="">리뷰 종류 일괄 변경</option>
+          {fullReviewOptions.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+        <button onClick={() => { bulkUpdate('reviewOption', bulkReviewOption); setBulkReviewOption(''); }}>적용</button>
+      </div>
       <div className="table-container">
         <table className="admin-table">
           <thead>
             <tr>
+              <th><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === processedProducts.length && processedProducts.length > 0} /></th>
               <th onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></th>
               <th onClick={() => requestSort('reviewType')} className="sortable">결제 종류<SortIndicator columnKey="reviewType" /></th>
               <th onClick={() => requestSort('productType')} className="sortable">상품 종류<SortIndicator columnKey="productType" /></th>
@@ -141,6 +206,7 @@ export default function AdminProductManagementPage() {
               <th>관리</th>
             </tr>
             <tr className="filter-row">
+              <th></th>
               <th><input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></th>
               <th><input type="text" name="reviewType" value={filters.reviewType} onChange={handleFilterChange} /></th>
               <th><input type="text" name="productType" value={filters.productType} onChange={handleFilterChange} /></th>
@@ -153,10 +219,23 @@ export default function AdminProductManagementPage() {
           <tbody>
           {processedProducts.length > 0 ? processedProducts.map(p => (
               <tr key={p.id}>
+                <td><input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => handleSelectOne(p.id)} /></td>
                 <td style={{textAlign: 'left'}}>{p.productName}</td>
-                <td>{p.reviewType}</td>
-                <td>{p.productType || '-'}</td>
-                <td>{p.reviewOption || '-'}</td>
+                <td>
+                  <select value={p.reviewType || '현영'} onChange={(e) => handleFieldChange(p.id, 'reviewType', e.target.value)}>
+                    {reviewTypeOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </td>
+                <td>
+                  <select value={p.productType || '실배송'} onChange={(e) => handleFieldChange(p.id, 'productType', e.target.value)}>
+                    {productTypeOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </td>
+                <td>
+                  <select value={p.reviewOption || '별점'} onChange={(e) => handleFieldChange(p.id, 'reviewOption', e.target.value)}>
+                    {(p.productType === '빈박스' ? limitedReviewOptions : fullReviewOptions).map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </td>
                 <td>{p.reviewDate}</td>
                 <td><select value={p.progressStatus || '진행전'} onChange={(e) => handleStatusChange(p.id, e.target.value)}><option value="">선택</option>{progressStatusOptions.map(s => (<option key={s} value={s}>{s}</option>))}</select></td>
                 <td>{formatDate(p.createdAt)}</td>
@@ -169,7 +248,7 @@ export default function AdminProductManagementPage() {
                 </td>
               </tr>
             )) : (
-              <tr><td colSpan="8" style={{ padding: '50px', textAlign: 'center' }}>생성된 상품이 없습니다.</td></tr>
+              <tr><td colSpan="9" style={{ padding: '50px', textAlign: 'center' }}>생성된 상품이 없습니다.</td></tr>
             )}
           </tbody>
         </table>
