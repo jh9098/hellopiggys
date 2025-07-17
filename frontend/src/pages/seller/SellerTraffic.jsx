@@ -2,19 +2,10 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc } from '../../firebaseConfig';
+import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, getDoc } from '../../firebaseConfig';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { ko } from 'date-fns/locale';
-
-const initialTrafficProducts = [
-  { category: '베이직 트래픽', name: '피에스타', description: '', retailPrice: 60000, discountRate: 1 - 33900 / 60000 },
-  { category: '베이직 트래픽', name: '시그니처', description: '', retailPrice: 50000, discountRate: 1 - 31900 / 50000 },
-  { category: '애드온 트래픽', name: 'CP', description: '', retailPrice: 60000, discountRate: 1 - 34900 / 60000 },
-  { category: '애드온 트래픽', name: '솔트', description: '', retailPrice: 70000, discountRate: 1 - 41900 / 70000 },
-  { category: '애드온 트래픽', name: 'BBS', description: '', retailPrice: 80000, discountRate: 1 - 34900 / 80000 },
-  { category: '애드온 트래픽', name: '팡팡', description: '', retailPrice: 60000, discountRate: 1 - 39900 / 60000 },
-];
 
 const formatDateWithDay = (date) => {
     if (!date || !(date instanceof Date)) return '-';
@@ -30,14 +21,7 @@ export default function SellerTrafficPage() {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  const [products, setProducts] = useState(
-    initialTrafficProducts.map(p => ({
-      ...p,
-      salePrice: Math.round(p.retailPrice * (1 - p.discountRate)),
-      quantity: 0,
-      requestDate: null,
-    }))
-  );
+  const [products, setProducts] = useState([]);
 
   const [savedRequests, setSavedRequests] = useState([]);
   const [deposit, setDeposit] = useState(0);
@@ -45,13 +29,29 @@ export default function SellerTrafficPage() {
   const [showDepositPopup, setShowDepositPopup] = useState(false);
   const [confirmRequest, setConfirmRequest] = useState(null);
 
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const snap = await getDoc(doc(db, 'config', 'traffic_products'));
+      if (snap.exists()) {
+        const data = snap.data().products || [];
+        setProducts(data.map(p => ({
+          ...p,
+          salePrice: Math.round(p.retailPrice * (1 - p.discountRate)),
+          quantity: 0,
+          requestDate: null,
+        })));
+      }
+    };
+    fetchProducts();
+  }, []);
+
   const categoryCounts = useMemo(() => {
     const counts = {};
-    initialTrafficProducts.forEach(p => {
+    products.forEach(p => {
       counts[p.category] = (counts[p.category] || 0) + 1;
     });
     return counts;
-  }, []);
+  }, [products]);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -122,12 +122,7 @@ export default function SellerTrafficPage() {
 
   const handleClosePopupAndReset = () => {
     setShowDepositPopup(false);
-    setProducts(
-        initialTrafficProducts.map(p => ({
-          ...p, salePrice: Math.round(p.retailPrice * (1 - p.discountRate)),
-          quantity: 0, requestDate: null,
-        }))
-    );
+    setProducts(prev => prev.map(p => ({ ...p, quantity: 0, requestDate: null })));
     setUseDeposit(false);
   };
 
