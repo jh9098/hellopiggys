@@ -294,7 +294,40 @@ export default function SellerReservationPage() {
 
             <div className="p-6 bg-white rounded-xl shadow-lg">
                 <h2 className="text-2xl font-bold mb-4 text-gray-700">견적 목록 (스프레드시트)</h2>
-                <div className="overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-100"><tr>{['순번', '진행일자', '리뷰 종류', '상품명', '상품가', '작업개수', '견적 상세', '총 견적', '작업'].map(h => <th key={h} className={thClass}>{h}</th>)}</tr></thead><tbody className="bg-white divide-y divide-gray-200">{campaigns.length === 0 ? (<tr><td colSpan="9" className="text-center py-10 text-gray-500">위에서 작업을 추가해주세요.</td></tr>) : (campaigns.map((c, index) => { const finalItemAmount = Math.round(c.itemTotal * 1.10); const commission = finalItemAmount - c.itemTotal; return (<tr key={c.id}><td className={tdClass}>{index + 1}</td><td className={tdClass}><span className={c.date.getDay() === 0 ? 'text-red-500 font-bold' : ''}>{formatDateWithDay(new Date(c.date))}</span></td><td className={tdClass}>{c.deliveryType}/{c.reviewType}</td><td className={tdClass}>{c.productName}</td><td className={tdClass}>{Number(c.productPrice).toLocaleString()}원</td><td className={tdClass}>{c.quantity}</td><td className={tdClass + " text-xs text-gray-500"}>((리뷰 {c.basePrice.toLocaleString()}{c.sundayExtraCharge > 0 ? ` + 공휴일 ${c.sundayExtraCharge.toLocaleString()}` : ''}) + 상품가 {Number(c.productPrice).toLocaleString()}) * {c.quantity}개</td><td className={tdClass}><div className='font-bold'>{finalItemAmount.toLocaleString()}원</div><div className='text-xs text-gray-500'>(견적 {c.itemTotal.toLocaleString()} + 수수료 {commission.toLocaleString()})</div></td><td className={tdClass}><button onClick={() => handleDeleteCampaign(c.id)} className="text-red-600 hover:text-red-800 font-semibold">삭제</button></td></tr>)}))}</tbody></table></div>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-100">
+                            <tr>{['순번', '진행일자', '구분', '리뷰 종류', '체험단 개수', '상품명', '상품가', '옵션', '키워드', '상품 URL', '견적 상세', '총 견적', '작업'].map(h => <th key={h} className={thClass}>{h}</th>)}</tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {campaigns.length === 0 ? (
+                                <tr><td colSpan="13" className="text-center py-10 text-gray-500">위에서 작업을 추가해주세요.</td></tr>
+                            ) : (
+                                campaigns.map((c, index) => {
+                                    const finalItemAmount = Math.round(c.itemTotal * 1.10);
+                                    const commission = finalItemAmount - c.itemTotal;
+                                    return (
+                                        <tr key={c.id}>
+                                            <td className={tdClass}>{index + 1}</td>
+                                            <td className={tdClass}><span className={c.date.getDay() === 0 ? 'text-red-500 font-bold' : ''}>{formatDateWithDay(new Date(c.date))}</span></td>
+                                            <td className={tdClass}>{c.deliveryType}</td>
+                                            <td className={tdClass}>{c.reviewType}</td>
+                                            <td className={tdClass}>{c.quantity}</td>
+                                            <td className={tdClass}>{c.productName}</td>
+                                            <td className={tdClass}>{Number(c.productPrice).toLocaleString()}원</td>
+                                            <td className={tdClass}>{c.productOption}</td>
+                                            <td className={tdClass}>{c.keywords}</td>
+                                            <td className={tdClass}><a href={c.productUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">링크</a></td>
+                                            <td className={tdClass + " text-xs text-gray-500"}>((리뷰 {c.basePrice.toLocaleString()}{c.sundayExtraCharge > 0 ? ` + 공휴일 ${c.sundayExtraCharge.toLocaleString()}` : ''}) + 상품가 {Number(c.productPrice).toLocaleString()}) * {c.quantity}개</td>
+                                            <td className={tdClass}><div className='font-bold'>{finalItemAmount.toLocaleString()}원</div><div className='text-xs text-gray-500'>(견적 {c.itemTotal.toLocaleString()} + 수수료 {commission.toLocaleString()})</div></td>
+                                            <td className={tdClass}><button onClick={() => handleDeleteCampaign(c.id)} className="text-red-600 hover:text-red-800 font-semibold">삭제</button></td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
                 <div className="mt-6 pt-6 border-t border-gray-200 text-right">
                     <div className="space-y-2 mb-4 text-gray-700"><p className="text-md">견적 합계: <span className="font-semibold">{quoteTotal.toLocaleString()}</span> 원</p><p className="text-md">세금계산서 (10%): <span className="font-semibold">{totalCommission.toLocaleString()}</span> 원</p><p className="text-lg font-bold">총 결제 금액: <span className="font-bold text-blue-600">{totalAmount.toLocaleString()}</span> 원</p><hr className="my-3"/><div className="flex justify-end items-center text-lg"><label htmlFor="use-deposit" className="mr-2">예치금 사용:</label><input type="checkbox" id="use-deposit" checked={useDeposit} onChange={(e) => setUseDeposit(e.target.checked)} disabled={deposit === 0 || totalAmount === 0} className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"/><span className={`ml-2 text-red-500 font-semibold ${!useDeposit && 'opacity-50'}`}>- {amountToUseFromDeposit.toLocaleString()} 원</span></div><hr className="my-3"/><p className="text-gray-800">최종 결제 금액:<span className="font-bold text-3xl text-green-600 ml-4">{remainingPayment.toLocaleString()}</span> 원</p></div>
                     <button onClick={handleProcessPayment} disabled={campaigns.length === 0} className="mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed">입금하기</button>
@@ -303,7 +336,36 @@ export default function SellerReservationPage() {
 
             <div className="mt-8 p-6 bg-white rounded-xl shadow-lg">
                 <h2 className="text-2xl font-bold mb-4 text-gray-700">나의 예약 내역</h2>
-                <div className="overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-100"><tr><th className={thClass}>진행일자</th><th className={thClass} title="입금을 완료하셨으면 체크박스를 클릭해 주세요">입금여부*</th><th className={thClass}>결제상태</th><th className={thClass}>진행상태</th><th className={thClass}>상품명</th><th className={thClass}>리뷰 종류</th><th className={thClass}>총 견적</th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{savedCampaigns.length === 0 ? (<tr><td colSpan="7" className="text-center py-10 text-gray-500">예약 내역이 없습니다.</td></tr>) : (savedCampaigns.map(c => (<tr key={c.id}><td className={tdClass}>{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</td><td className={tdClass}><input type="checkbox" checked={!!c.paymentReceived} onChange={(e) => handleDepositChange(c.id, e.target.checked)} title="입금을 완료하셨으면 체크박스를 클릭해 주세요"/></td><td className={tdClass}>{c.paymentReceived ? '입금완료' : '입금전'}</td><td className={tdClass}>{c.depositConfirmed ? (c.status === '예약 확정' ? (<span>예약확정</span>) : (<button onClick={() => setConfirmCampaign(c)} className="text-blue-600 underline">예약확정</button>)) : '담당자 확인중'}</td><td className={tdClass}>{c.productName}</td><td className={tdClass}>{c.reviewType}</td><td className={tdClass}>{c.itemTotal?.toLocaleString()}원</td></tr>)))}</tbody></table></div>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-100">
+                            <tr>{['진행일자', '구분', '리뷰 종류', '체험단 개수', '상품명', '상품가', '옵션', '키워드', '상품 URL', '입금여부*', '결제상태', '진행상태', '총 견적'].map(h => <th key={h} className={thClass}>{h}</th>)}</tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {savedCampaigns.length === 0 ? (
+                                <tr><td colSpan="13" className="text-center py-10 text-gray-500">예약 내역이 없습니다.</td></tr>
+                            ) : (
+                                savedCampaigns.map(c => (
+                                    <tr key={c.id}>
+                                        <td className={tdClass}>{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</td>
+                                        <td className={tdClass}>{c.deliveryType}</td>
+                                        <td className={tdClass}>{c.reviewType}</td>
+                                        <td className={tdClass}>{c.quantity}</td>
+                                        <td className={tdClass}>{c.productName}</td>
+                                        <td className={tdClass}>{Number(c.productPrice).toLocaleString()}원</td>
+                                        <td className={tdClass}>{c.productOption}</td>
+                                        <td className={tdClass}>{c.keywords}</td>
+                                        <td className={tdClass}><a href={c.productUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">링크</a></td>
+                                        <td className={tdClass}><input type="checkbox" checked={!!c.paymentReceived} onChange={(e) => handleDepositChange(c.id, e.target.checked)} title="입금을 완료하셨으면 체크박스를 클릭해 주세요"/></td>
+                                        <td className={tdClass}>{c.paymentReceived ? '입금완료' : '입금전'}</td>
+                                        <td className={tdClass}>{c.depositConfirmed ? (c.status === '예약 확정' ? (<span>예약확정</span>) : (<button onClick={() => setConfirmCampaign(c)} className="text-blue-600 underline">예약확정</button>)) : '담당자 확인중'}</td>
+                                        <td className={tdClass}>{c.itemTotal?.toLocaleString()}원</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {isPriceModalOpen && (<div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50" onClick={() => setIsPriceModalOpen(false)}><div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}><h3 className="text-2xl font-bold mb-6 text-gray-800 text-center">리뷰 캠페인 단가표</h3><div className="mb-6"><h4 className="text-lg font-semibold mb-2 text-gray-700">📦 실배송</h4><table className="w-full text-sm text-left border-collapse"><thead><tr className="bg-gray-100"><th className="p-2 border">리뷰 종류</th><th className="p-2 border text-right">단가</th></tr></thead><tbody><tr><td className="p-2 border">별점</td><td className="p-2 border text-right">1,600원</td></tr><tr><td className="p-2 border">텍스트</td><td className="p-2 border text-right">1,700원</td></tr><tr><td className="p-2 border">포토</td><td className="p-2 border text-right">1,800원</td></tr><tr><td className="p-2 border">프리미엄(포토)</td><td className="p-2 border text-right">4,000원</td></tr><tr><td className="p-2 border">프리미엄(영상)</td><td className="p-2 border text-right">5,000원</td></tr></tbody></table></div><div><h4 className="text-lg font-semibold mb-2 text-gray-700">👻 빈박스</h4><table className="w-full text-sm text-left border-collapse"><thead><tr className="bg-gray-100"><th className="p-2 border">리뷰 종류</th><th className="p-2 border text-right">단가</th></tr></thead><tbody><tr><td className="p-2 border">별점</td><td className="p-2 border text-right">5,400원</td></tr><tr><td className="p-2 border">텍스트</td><td className="p-2 border text-right">5,400원</td></tr></tbody></table></div><p className="text-xs text-gray-500 mt-4">* 일요일/공휴일 진행 시 <strong className="text-red-500">600원</strong>의 가산금이 추가됩니다.</p><div className="mt-8 text-center"><button onClick={() => setIsPriceModalOpen(false)} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg">닫기</button></div></div></div>)}
