@@ -134,7 +134,7 @@ export default function AdminProductManagementPage() {
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">리뷰 관리 ({filteredCampaigns.length})</h2>
+        <h2 className="text-2xl font-bold">캠페인 관리 ({filteredCampaigns.length})</h2>
         <div className="flex items-center space-x-2">
             <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">선택 항목 인증</button>
             <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">삭제</button>
@@ -160,36 +160,58 @@ export default function AdminProductManagementPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === filteredCampaigns.length && filteredCampaigns.length > 0} /></th>
+                <th className={thClass}>순번</th>
                 <th className={thClass}>상품 등록일시</th>
                 <th className={thClass}>진행일자</th>
-                <th className={thClass}>상태</th>
+                <th className={thClass}>구분</th>
+                <th className={thClass}>리뷰 종류</th>
+                <th className={thClass}>체험단 개수</th>
                 <th className={thClass}>상품명</th>
-                <th className={thClass}>결제 종류</th>
+                <th className={thClass}>상품가</th>
+                <th className={thClass}>옵션</th>
+                <th className={thClass}>키워드</th>
+                <th className={thClass}>상품 URL</th>
+                <th className={thClass}>상태</th>
                 <th className={thClass}>본계정</th>
                 <th className={thClass}>타계정</th>
                 <th className={thClass}>전화번호</th>
                 <th className={thClass}>입금확인</th>
+                <th className={thClass}>견적 상세</th>
+                <th className={thClass}>총 견적</th>
                 <th className={thClass}>결제유형/상품종류/리뷰종류/리뷰인증</th>
                 <th className={thClass}>작업</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCampaigns.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleString('ko-KR') : 'N/A'}</td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '-'}</td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.status === '리뷰완료' ? 'bg-blue-100 text-blue-800' : c.status === '예약 확정' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{c.status}</span></td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.productName}</td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[c.sellerUid]}</td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm"><input type="checkbox" checked={!!c.depositConfirmed} onChange={(e) => handleTogglePayment(c.id, e.target.checked)} /></td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm">자율결제/실배송/별점/X</td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
-                  </tr>
-                ))}
+                {filteredCampaigns.map((c, index) => {
+                  const finalItemAmount = c.itemTotal ? Math.round(c.itemTotal * 1.10) : 0;
+                  const commission = c.itemTotal ? finalItemAmount - c.itemTotal : 0;
+                  return (
+                    <tr key={c.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">{index + 1}</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleString('ko-KR') : 'N/A'}</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '-'}</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">{c.deliveryType}</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">{c.reviewType}</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">{c.quantity}</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.productName}</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">{Number(c.productPrice).toLocaleString()}원</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">{c.productOption}</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">{c.keywords}</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm"><a href={c.productUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">링크</a></td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.status === '리뷰완료' ? 'bg-blue-100 text-blue-800' : c.status === '예약 확정' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{c.status}</span></td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[c.sellerUid]}</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">-</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm"><input type="checkbox" checked={!!c.depositConfirmed} onChange={(e) => handleTogglePayment(c.id, e.target.checked)} /></td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm text-xs text-gray-500">((리뷰 {Number(c.basePrice || 0).toLocaleString()}{c.sundayExtraCharge > 0 ? ` + 공휴일 ${Number(c.sundayExtraCharge).toLocaleString()}` : ''}) + 상품가 {Number(c.productPrice).toLocaleString()}) * {c.quantity}개</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm"><div className='font-bold'>{finalItemAmount.toLocaleString()}원</div><div className='text-xs text-gray-500'>(견적 {Number(c.itemTotal || 0).toLocaleString()} + 수수료 {commission.toLocaleString()})</div></td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">자율결제/실배송/별점/X</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         )}
