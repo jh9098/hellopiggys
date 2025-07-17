@@ -56,6 +56,8 @@ export default function WriteReview() {
   
   const [images, setImages] = useState({});
 
+  const [showImageUpload, setShowImageUpload] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [isAccountSelected, setIsAccountSelected] = useState(false);
   const [selectedSubAccountInfo, setSelectedSubAccountInfo] = useState(null);
@@ -438,43 +440,56 @@ export default function WriteReview() {
 
           <hr className="section-divider" />
           <p className="upload-note">이미지 등록 생략하고 제출 후, 리뷰관리에서 업로드 하셔도 됩니다</p>
+          {!showImageUpload && (
+            <button
+              type="button"
+              className="upload-toggle-btn"
+              onClick={() => setShowImageUpload(true)}
+            >
+              이미지 지금 등록하기
+            </button>
+          )}
 
-          <div className="image-upload-group">
-            {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label }) => (
-              <div className="field" key={key}>
-                <label>{label} (최대 5장)</label>
-                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
-                <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
-                  {images[key] && images[key].length > 0 ? (
-                    images[key].map((file, i) => (
-                      <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
-                    ))
-                  ) : (
-                    <div style={{ color: '#999' }}>선택된 파일 없음</div>
-                  )}
-                </div>
+          {showImageUpload && (
+            <>
+              <div className="image-upload-group">
+                {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label }) => (
+                  <div className="field" key={key}>
+                    <label>{label} (최대 5장)</label>
+                    <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
+                    <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
+                      {images[key] && images[key].length > 0 ? (
+                        images[key].map((file, i) => (
+                          <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
+                        ))
+                      ) : (
+                        <div style={{ color: '#999' }}>선택된 파일 없음</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div className="image-upload-group">
-            <h4>2. 구매 & 증빙 인증</h4>
-            {UPLOAD_FIELDS.filter(f => f.group === 'purchase').map(({ key, label }) => (
-              <div className="field" key={key}>
-                <label>{label} (최대 5장)</label>
-                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
-                <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
-                  {images[key] && images[key].length > 0 ? (
-                    images[key].map((file, i) => (
-                      <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
-                    ))
-                  ) : (
-                    <div style={{ color: '#999' }}>선택된 파일 없음</div>
-                  )}
-                </div>
+              <div className="image-upload-group">
+                <h4>2. 구매 & 증빙 인증</h4>
+                {UPLOAD_FIELDS.filter(f => f.group === 'purchase').map(({ key, label }) => (
+                  <div className="field" key={key}>
+                    <label>{label} (최대 5장)</label>
+                    <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
+                    <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
+                      {images[key] && images[key].length > 0 ? (
+                        images[key].map((file, i) => (
+                          <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
+                        ))
+                      ) : (
+                        <div style={{ color: '#999' }}>선택된 파일 없음</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
           
           <div className="field">
             <label>
