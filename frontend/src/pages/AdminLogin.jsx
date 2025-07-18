@@ -3,7 +3,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, signInWithEmailAndPassword, db, doc, getDoc } from '../firebaseConfig';
-import './AdminLogin.css';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const checkAdminStatus = async (user) => {
   if (!user) return false;
@@ -49,15 +52,26 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="admin-login-wrap">
-      <div className="icon" />
-      <h2>수리강 리뷰 관리자</h2>
-      <form onSubmit={submit}>
-        <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input type="password" placeholder="Password" value={pw} onChange={(e) => setPw(e.target.value)} required />
-        <button type="submit">로그인</button>
-      </form>
-      {err && <p className="err">{err}</p>}
+    <div className="flex items-center justify-center min-h-screen p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-center">수리강 리뷰 관리자</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={submit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" value={pw} onChange={(e) => setPw(e.target.value)} required />
+            </div>
+            {err && <p className="text-sm text-destructive">{err}</p>}
+            <Button type="submit" className="w-full">로그인</Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
