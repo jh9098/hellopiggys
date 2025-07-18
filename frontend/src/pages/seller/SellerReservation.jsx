@@ -1,4 +1,4 @@
-// src/pages/seller/SellerReservation.jsx (입금 팝업 디자인 및 로직 수정 최종 버전)
+// src/pages/seller/SellerReservation.jsx (프로세스 변경 최종본)
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -76,7 +76,9 @@ export default function SellerReservationPage() {
     
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [showDepositPopup, setShowDepositPopup] = useState(false);
-    const [confirmCampaign, setConfirmCampaign] = useState(null);
+    
+    // [수정] 예약확정 관련 state 제거
+    // const [confirmCampaign, setConfirmCampaign] = useState(null);
 
     const { 
         basePrice, sundayExtraCharge, finalUnitPrice,
@@ -248,7 +250,6 @@ export default function SellerReservationPage() {
         try {
             await batch.commit();
             
-            // [수정] 남은 결제 금액이 있을 때만 팝업을 띄웁니다.
             if (remainingPayment > 0) {
                 setShowDepositPopup(true);
             } else {
@@ -263,17 +264,14 @@ export default function SellerReservationPage() {
         }
     };
     
+    // 이 함수는 판매자가 입금했다고 알리는 기능만 합니다. 최종 확정은 관리자가 합니다.
     const handleDepositChange = async (id, checked) => {
         try { await updateDoc(doc(db, 'campaigns', id), { paymentReceived: checked }); }
         catch (err) { console.error('입금 여부 업데이트 오류:', err); }
     };
     
-    const handleConfirmReservation = async () => {
-        if (!confirmCampaign) return;
-        try { await updateDoc(doc(db, 'campaigns', confirmCampaign.id), { status: '예약 확정', confirmedAt: serverTimestamp() }); }
-        catch (err) { console.error('예약 확정 오류:', err); }
-        setConfirmCampaign(null);
-    };
+    // [수정] 예약확정 함수 제거
+    // const handleConfirmReservation = async () => { ... };
 
     const handleLogout = async () => {
         try {
@@ -466,17 +464,18 @@ export default function SellerReservationPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>나의 예약 내역</CardTitle>
-                        <CardDescription>과거에 예약한 모든 캠페인 내역입니다.</CardDescription>
+                        <CardDescription>과거에 예약한 모든 캠페인 내역입니다. 입금 완료 후 '입금'란을 체크해주세요.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="border rounded-md">
                             <Table>
                                 <TableHeader>
-                                    <TableRow>{['일자', '상품명', '구분', '리뷰', '수량', '입금', '상태', '최종금액', '확정'].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow>
+                                    {/* [수정] '확정' 헤더 제거 */}
+                                    <TableRow>{['일자', '상품명', '구분', '리뷰', '수량', '입금', '상태', '최종금액'].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {savedCampaigns.length === 0 ? (
-                                        <TableRow><TableCell colSpan="9" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
+                                         <TableRow><TableCell colSpan="8" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
                                     ) : (
                                         savedCampaigns.map(c => (
                                             <TableRow key={c.id}>
@@ -488,19 +487,7 @@ export default function SellerReservationPage() {
                                                 <TableCell><input type="checkbox" checked={!!c.paymentReceived} onChange={(e) => handleDepositChange(c.id, e.target.checked)} title="입금 완료 시 체크"/></TableCell>
                                                 <TableCell><Badge variant={c.status === '예약 확정' ? 'default' : 'secondary'}>{c.status}</Badge></TableCell>
                                                 <TableCell className="text-right">{Math.round(c.finalTotalAmount || 0).toLocaleString()}원</TableCell>
-                                                <TableCell>
-                                                    {c.depositConfirmed && c.status !== '예약 확정' && (
-                                                        <AlertDialog open={confirmCampaign?.id === c.id} onOpenChange={(open) => !open && setConfirmCampaign(null)}>
-                                                            <AlertDialogTrigger asChild>
-                                                                <Button variant="outline" size="sm" onClick={() => setConfirmCampaign(c)}>예약확정</Button>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader><AlertDialogTitle>예약을 확정하시겠습니까?</AlertDialogTitle><AlertDialogDescription>확정 후에는 수정이 불가능합니다.</AlertDialogDescription></AlertDialogHeader>
-                                                                <AlertDialogFooter><AlertDialogCancel>취소</AlertDialogCancel><AlertDialogAction onClick={handleConfirmReservation}>확인</AlertDialogAction></AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    )}
-                                                </TableCell>
+                                                {/* [수정] '확정' 버튼 셀 제거 */}
                                             </TableRow>
                                         ))
                                     )}
@@ -510,7 +497,6 @@ export default function SellerReservationPage() {
                     </CardContent>
                 </Card>
 
-                {/* --- [수정] 입금 안내 Dialog --- */}
                 <Dialog open={showDepositPopup} onOpenChange={setShowDepositPopup}>
                     <DialogContent className="sm:max-w-lg">
                         <DialogHeader>
