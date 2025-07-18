@@ -99,7 +99,7 @@ export default function SellerAdminTrafficPage() {
       <div className="bg-white rounded-xl shadow-lg mb-8">
           <h2 className="text-2xl font-bold mb-4 text-gray-700 p-6">트래픽 견적요청 (스프레드시트)</h2>
           <div className="overflow-x-auto">
-              <table className="min-w-full">
+              <table className="min-w-max">
                   <thead>
                     <tr>
                       <th className={`${thClass} w-40`}>구분</th>
