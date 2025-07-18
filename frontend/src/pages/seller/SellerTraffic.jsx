@@ -191,7 +191,11 @@ export default function SellerTrafficPage() {
                             <td rowSpan={rowSpan} className={`${tdClass} align-middle text-center font-bold bg-gray-50`}>{p.category}</td>
                           )}
                           <td className={`${tdClass} font-semibold`}>{p.name}</td>
-                          <td className={tdClass}>{p.description}</td>
+                          <td className={tdClass}>
+                            {p.description.split('\n').map((line, i) => (
+                              <p key={i}>{line}</p>
+                            ))}
+                          </td>
                           <td className={`${tdClass} text-xs`}><div className="flex flex-col"><span>시중가: {p.retailPrice.toLocaleString()}원</span><span className="text-red-600">할인율: {Math.round(p.discountRate * 100)}%</span><span className="font-bold text-blue-600 text-sm">판매가: {p.salePrice.toLocaleString()}원</span></div></td>
                           <td className={tdClass}><input type="number" value={p.quantity} onChange={(e) => handleInputChange(index, 'quantity', e.target.value)} className={inputClass} min="0"/></td>
                           <td className={tdClass}><DatePicker selected={p.requestDate} onChange={(date) => handleInputChange(index, 'requestDate', date)} className={inputClass} dateFormat="yyyy/MM/dd" locale={ko} placeholderText="날짜 선택"/></td>
