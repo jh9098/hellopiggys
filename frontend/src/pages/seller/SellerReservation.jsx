@@ -1,4 +1,4 @@
-// src/pages/seller/SellerReservation.jsx (입금 체크 시 팝업 추가 최종본)
+// src/pages/seller/SellerReservation.jsx (옵션 미입력 시 확인 팝업 추가 최종본)
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -6,7 +6,6 @@ import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where
 import { nanoid } from 'nanoid';
 import { format } from "date-fns";
 import { ko } from 'date-fns/locale';
-// [추가] 팝업에 사용할 아이콘 임포트
 import { Calendar as CalendarIcon, Trash2, CheckCircle } from "lucide-react";
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -23,6 +22,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+// [수정] AlertDialog 관련 컴포넌트 임포트
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -77,8 +78,11 @@ export default function SellerReservationPage() {
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [showDepositPopup, setShowDepositPopup] = useState(false);
     
-    // [추가] 입금 확인 팝업을 위한 상태
-    const [confirmationDialogData, setConfirmationDialogData] = useState(null); // { id, checked } 형태
+    const [confirmationDialogData, setConfirmationDialogData] = useState(null);
+
+    // [추가] 옵션 미입력 시 확인을 위한 상태
+    const [pendingCampaign, setPendingCampaign] = useState(null);
+
 
     const { 
         basePrice, sundayExtraCharge, finalUnitPrice,
@@ -195,9 +199,11 @@ export default function SellerReservationPage() {
         setIsDatePickerOpen(false);
     };
 
+    // [수정] 캠페인 추가 핸들러 로직 변경
     const handleAddCampaign = (e) => {
         e.preventDefault();
-        
+
+        // 공통 로직: 캠페인 데이터 계산
         const reviewFee = finalUnitPrice;
         const productPriceWithAgencyFee = Number(formState.productPrice) * 1.1;
         const subtotalPerItem = reviewFee + productPriceWithAgencyFee;
@@ -216,9 +222,24 @@ export default function SellerReservationPage() {
             finalTotalAmount: totalFinalAmount
         };
 
-        setCampaigns([...campaigns, newCampaign]);
-        setFormState(initialFormState);
+        // 분기 처리: 옵션이 없으면 확인 팝업, 있으면 바로 추가
+        if (!formState.productOption.trim()) {
+            setPendingCampaign(newCampaign);
+        } else {
+            setCampaigns(prev => [...prev, newCampaign]);
+            setFormState(initialFormState);
+        }
     };
+
+    // [추가] 팝업에서 '추가' 버튼 클릭 시 실행될 함수
+    const handleConfirmAddCampaign = () => {
+        if (pendingCampaign) {
+            setCampaigns(prev => [...prev, pendingCampaign]);
+            setFormState(initialFormState);
+            setPendingCampaign(null); // 팝업 닫기
+        }
+    };
+
 
     const handleDeleteCampaign = (id) => {
         setCampaigns(campaigns.filter(c => c.id !== id));
@@ -264,18 +285,14 @@ export default function SellerReservationPage() {
         }
     };
     
-    // [수정] 체크박스 클릭 시 팝업을 띄우거나 바로 업데이트하는 핸들러
     const handleDepositCheckboxChange = (id, checked) => {
       if (checked) {
-        // 체크하는 경우, 팝업을 띄우기 위해 상태를 설정
         setConfirmationDialogData({ id, checked });
       } else {
-        // 체크를 해제하는 경우, 바로 DB 업데이트
         updateDepositStatus(id, checked);
       }
     };
 
-    // [추가] 실제 DB를 업데이트하는 함수
     const updateDepositStatus = async (id, checked) => {
       try {
         await updateDoc(doc(db, 'campaigns', id), { paymentReceived: checked });
@@ -348,6 +365,7 @@ export default function SellerReservationPage() {
                         <CardTitle>새 작업 추가</CardTitle>
                         <CardDescription>진행할 리뷰 캠페인의 정보를 입력하고 견적에 추가하세요.</CardDescription>
                     </CardHeader>
+                    {/* form 태그의 onSubmit은 그대로 유지합니다. */}
                     <form onSubmit={handleAddCampaign}>
                         <CardContent className="grid lg:grid-cols-3 gap-8">
                             <div className="space-y-4">
@@ -495,7 +513,6 @@ export default function SellerReservationPage() {
                                                 <TableCell><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
                                                 <TableCell><Badge>{c.reviewType}</Badge></TableCell>
                                                 <TableCell>{c.quantity}</TableCell>
-                                                {/* [수정] 체크박스 핸들러 변경 */}
                                                 <TableCell>
                                                     <input 
                                                         type="checkbox" 
@@ -523,59 +540,49 @@ export default function SellerReservationPage() {
                                 아래 계좌로 <strong className="text-primary">{remainingPayment.toLocaleString()}원</strong>을 입금해주세요.
                             </DialogDescription>
                         </DialogHeader>
-
                         <div className="my-6 p-6 bg-muted rounded-lg space-y-4 text-base sm:text-lg">
-                            <div className="flex items-center">
-                                <span className="w-28 font-semibold text-muted-foreground">은 행</span>
-                                <span>국민은행</span>
-                            </div>
-                            <div className="flex items-center">
-                                <span className="w-28 font-semibold text-muted-foreground">계좌번호</span>
-                                <span className="font-mono tracking-wider">289537-00-006049</span>
-                            </div>
-                            <div className="flex items-center">
-                                <span className="w-28 font-semibold text-muted-foreground">예금주</span>
-                                <span>아이언마운틴컴퍼니</span>
-                            </div>
+                            <div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">은 행</span><span>국민은행</span></div>
+                            <div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">계좌번호</span><span className="font-mono tracking-wider">289537-00-006049</span></div>
+                            <div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">예금주</span><span>아이언마운틴컴퍼니</span></div>
                         </div>
-                        
-                        <Button 
-                            onClick={() => setShowDepositPopup(false)} 
-                            className="w-full h-12 text-lg mt-2"
-                        >
-                            확인
-                        </Button>
+                        <Button onClick={() => setShowDepositPopup(false)} className="w-full h-12 text-lg mt-2">확인</Button>
                     </DialogContent>
                 </Dialog>
 
-                {/* [추가] 입금 확인 정보 팝업 */}
                 <Dialog open={!!confirmationDialogData} onOpenChange={() => setConfirmationDialogData(null)}>
                     <DialogContent className="sm:max-w-md">
                         <DialogHeader>
-                            <DialogTitle className="flex items-center space-x-2">
-                                <CheckCircle className="text-green-500" />
-                                <span>입금 확인 요청</span>
-                            </DialogTitle>
-                            <DialogDescription className="pt-4 text-base">
-                                입금 확인을 요청했습니다. <br/>
-                                관리자 승인 후 예약이 자동으로 확정됩니다.
-                            </DialogDescription>
+                            <DialogTitle className="flex items-center space-x-2"><CheckCircle className="text-green-500" /><span>입금 확인 요청</span></DialogTitle>
+                            <DialogDescription className="pt-4 text-base">입금 확인을 요청했습니다. <br/>관리자 승인 후 예약이 자동으로 확정됩니다.</DialogDescription>
                         </DialogHeader>
                         <DialogFooter className="mt-4">
-                            <Button
-                                className="w-full"
-                                onClick={() => {
-                                    if (confirmationDialogData) {
-                                        updateDepositStatus(confirmationDialogData.id, confirmationDialogData.checked);
-                                    }
-                                    setConfirmationDialogData(null);
-                                }}
-                            >
-                                확인
-                            </Button>
+                            <Button className="w-full" onClick={() => {
+                                if (confirmationDialogData) {
+                                    updateDepositStatus(confirmationDialogData.id, confirmationDialogData.checked);
+                                }
+                                setConfirmationDialogData(null);
+                            }}>확인</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+
+                {/* [추가] 옵션 미입력 확인 AlertDialog */}
+                <AlertDialog open={!!pendingCampaign} onOpenChange={() => setPendingCampaign(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>옵션 미입력 확인</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                옵션이 입력되지 않았습니다. 이대로 견적에 추가하시겠습니까?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>취소</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleConfirmAddCampaign}>
+                                추가
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </>
     );
