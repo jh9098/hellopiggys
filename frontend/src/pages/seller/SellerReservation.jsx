@@ -1,8 +1,7 @@
-// src/pages/seller/SellerReservation.jsx (요청사항 반영 최종 수정 버전)
+// src/pages/seller/SellerReservation.jsx (입금 팝업 디자인 및 로직 수정 최종 버전)
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-// [수정] signOut 임포트 추가
 import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, signOut } from '../../firebaseConfig';
 import { nanoid } from 'nanoid';
 import { format } from "date-fns";
@@ -113,7 +112,6 @@ export default function SellerReservationPage() {
         };
     }, [formState.deliveryType, formState.reviewType, formState.date, campaigns, useDeposit, deposit]);
     
-    // ... (이하 로직은 이전과 동일) ...
     const calendarEvents = useMemo(() => {
         if (Object.keys(sellersMap).length === 0 || calendarCampaigns.length === 0) return [];
         const dailyAggregates = {};
@@ -249,7 +247,14 @@ export default function SellerReservationPage() {
         }
         try {
             await batch.commit();
-            setShowDepositPopup(true);
+            
+            // [수정] 남은 결제 금액이 있을 때만 팝업을 띄웁니다.
+            if (remainingPayment > 0) {
+                setShowDepositPopup(true);
+            } else {
+                alert('예치금을 사용하여 예약이 접수되었습니다.');
+            }
+
             setCampaigns([]);
             setUseDeposit(false);
         } catch (error) {
@@ -270,7 +275,6 @@ export default function SellerReservationPage() {
         setConfirmCampaign(null);
     };
 
-    // [수정] 로그아웃 핸들러 추가
     const handleLogout = async () => {
         try {
             await signOut(auth);
@@ -303,7 +307,6 @@ export default function SellerReservationPage() {
 
     return (
         <>
-            {/* --- [수정] 페이지 상단 헤더 (예치금 현황, 예치금 사용, 로그아웃) --- */}
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4 p-4 bg-card border rounded-lg shadow-sm">
                 <div className="flex items-center space-x-4">
                     <div className="text-sm font-semibold">
@@ -330,7 +333,6 @@ export default function SellerReservationPage() {
             </div>
 
             <div className="space-y-8">
-                {/* --- 1. 새 작업 추가 섹션 (기존과 동일) --- */}
                 <Card>
                     <CardHeader>
                         <CardTitle>새 작업 추가</CardTitle>
@@ -395,7 +397,6 @@ export default function SellerReservationPage() {
                     </form>
                 </Card>
 
-                {/* --- 2. 견적 목록 섹션 --- */}
                 <Card>
                     <CardHeader>
                         <CardTitle>견적 목록(스프레드시트)</CardTitle>
@@ -436,14 +437,12 @@ export default function SellerReservationPage() {
                             </Table>
                         </div>
                     </CardContent>
-                    {/* --- [수정] CardFooter에서 예치금 사용 체크박스 제거 --- */}
                     {campaigns.length > 0 && (
                         <CardFooter className="flex flex-col items-end gap-2 text-right">
                             <div className="text-sm text-muted-foreground">공급가액 합계: {totalSubtotal.toLocaleString()}원</div>
                             <div className="text-sm text-muted-foreground">부가세 (10%): {totalVat.toLocaleString()}원</div>
                             <div className="font-semibold">총 결제 금액: {totalAmount.toLocaleString()}원</div>
                             
-                            {/* 예치금 사용 시 차감 내역 표시 */}
                             {useDeposit && (
                                 <>
                                     <Separator className="my-2"/>
@@ -464,7 +463,6 @@ export default function SellerReservationPage() {
                     )}
                 </Card>
 
-                {/* --- 3. 나의 예약 내역 섹션 (기존과 동일) --- */}
                 <Card>
                     <CardHeader>
                         <CardTitle>나의 예약 내역</CardTitle>
@@ -512,20 +510,37 @@ export default function SellerReservationPage() {
                     </CardContent>
                 </Card>
 
-                {/* --- 입금 안내 Dialog (기존과 동일) --- */}
+                {/* --- [수정] 입금 안내 Dialog --- */}
                 <Dialog open={showDepositPopup} onOpenChange={setShowDepositPopup}>
-                    <DialogContent>
+                    <DialogContent className="sm:max-w-lg">
                         <DialogHeader>
-                            <DialogTitle>입금 계좌 안내</DialogTitle>
-                            <DialogDescription>아래 계좌로 <strong className="text-primary">{remainingPayment.toLocaleString()}원</strong>을 입금해주세요.</DialogDescription>
+                            <DialogTitle className="text-2xl text-center font-bold">입금 계좌 안내</DialogTitle>
+                            <DialogDescription className="text-center pt-2">
+                                아래 계좌로 <strong className="text-primary">{remainingPayment.toLocaleString()}원</strong>을 입금해주세요.
+                            </DialogDescription>
                         </DialogHeader>
-                        <div className="my-4 p-4 bg-muted rounded-md text-center">
-                            <p className="font-semibold">채종문 (아이언마운틴컴퍼니)</p>
-                            <p className="font-bold text-lg text-primary mt-1">국민은행 834702-04-290385</p>
+
+                        <div className="my-6 p-6 bg-muted rounded-lg space-y-4 text-base sm:text-lg">
+                            <div className="flex items-center">
+                                <span className="w-28 font-semibold text-muted-foreground">은 행</span>
+                                <span>국민은행</span>
+                            </div>
+                            <div className="flex items-center">
+                                <span className="w-28 font-semibold text-muted-foreground">계좌번호</span>
+                                <span className="font-mono tracking-wider">289537-00-006049</span>
+                            </div>
+                            <div className="flex items-center">
+                                <span className="w-28 font-semibold text-muted-foreground">예금주</span>
+                                <span>아이언마운틴컴퍼니</span>
+                            </div>
                         </div>
-                        <DialogFooter>
-                            <Button onClick={() => setShowDepositPopup(false)}>확인</Button>
-                        </DialogFooter>
+                        
+                        <Button 
+                            onClick={() => setShowDepositPopup(false)} 
+                            className="w-full h-12 text-lg mt-2"
+                        >
+                            확인
+                        </Button>
                     </DialogContent>
                 </Dialog>
             </div>
@@ -533,7 +548,6 @@ export default function SellerReservationPage() {
     );
 }
 
-// --- 페이지 내에서 사용하는 작은 컴포넌트들 (기존과 동일) ---
 function PriceListDialog() {
     return (
         <Dialog>
