@@ -4,7 +4,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { ko } from 'date-fns/locale';
 import { db, doc, getDoc, setDoc } from '../../firebaseConfig';
 
-const DEFAULT_PRODUCT = { category: '', name: '', description: '', retailPrice: 0, discountRate: 0 };
+const DEFAULT_PRODUCT = { category: '', name: '', description: '', retailPrice: 0, salePrice: 0, discountRate: 0 };
 
 export default function SellerAdminTrafficPage() {
   const [products, setProducts] = useState([]);
@@ -29,9 +29,14 @@ export default function SellerAdminTrafficPage() {
 
   const handleEdit = (index, field, value) => {
     const newProducts = [...products];
-    if (field === 'retailPrice' || field === 'discountRate') {
+    if (field === 'retailPrice' || field === 'salePrice') {
       newProducts[index][field] = Number(value);
-      newProducts[index].salePrice = Math.round(newProducts[index].retailPrice * (1 - newProducts[index].discountRate));
+      const { retailPrice, salePrice } = newProducts[index];
+      if (retailPrice > 0) {
+        newProducts[index].discountRate = 1 - (salePrice / retailPrice);
+      } else {
+        newProducts[index].discountRate = 0;
+      }
     } else {
       newProducts[index][field] = value;
     }
@@ -75,7 +80,7 @@ export default function SellerAdminTrafficPage() {
   const saveProducts = async () => {
     const plain = products.map(p => {
       const { salePrice, quantity, requestDate, ...rest } = p;
-      return rest;
+      return { ...rest, discountRate: p.retailPrice ? 1 - (p.salePrice / p.retailPrice) : 0 };
     });
     await setDoc(doc(db, 'config', 'traffic_products'), { products: plain });
     alert('저장되었습니다.');
@@ -126,14 +131,13 @@ export default function SellerAdminTrafficPage() {
                             <input type="text" value={p.name} onChange={e => handleEdit(index, 'name', e.target.value)} className={inputClass} />
                           </td>
                           <td className={tdClass}>
-                            <input type="text" value={p.description} onChange={e => handleEdit(index, 'description', e.target.value)} className={inputClass} />
+                            <textarea value={p.description} onChange={e => handleEdit(index, 'description', e.target.value)} className={inputClass} rows={3} />
                           </td>
                           <td className={`${tdClass} text-xs`}>
                             <div className="flex flex-col space-y-1">
-                              <input type="number" value={p.retailPrice} onChange={e => handleEdit(index, 'retailPrice', e.target.value)} className={inputClass} />
-                              <input type="number" value={p.discountRate} onChange={e => handleEdit(index, 'discountRate', e.target.value)} step="0.01" className={inputClass} />
+                              <input type="number" value={p.retailPrice} onChange={e => handleEdit(index, 'retailPrice', e.target.value)} className={inputClass} placeholder="시중가" />
+                              <input type="number" value={p.salePrice} onChange={e => handleEdit(index, 'salePrice', e.target.value)} className={inputClass} placeholder="판매가" />
                               <span className="text-red-600">할인율: {Math.round(p.discountRate * 100)}%</span>
-                              <span className="font-bold text-blue-600 text-sm">판매가: {p.salePrice.toLocaleString()}원</span>
                             </div>
                           </td>
                           <td className={tdClass}>
