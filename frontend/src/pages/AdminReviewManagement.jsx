@@ -11,7 +11,14 @@ const formatTimestamp24h = (timestamp) => {
   return new Date(timestamp.seconds * 1000).toLocaleString('ko-KR', { hour12: false });
 };
 
-const statusMap = { submitted: '구매 완료', review_completed: '리뷰 완료', rejected: '반려됨' };
+const statusMap = {
+  uploading_images: '이미지 업로드 중',
+  submitted: '구매 완료',
+  review_completed: '리뷰 완료',
+  verified: '리뷰 인증 완료',
+  rejected: '반려됨',
+  settled: '정산 완료'
+};
 const getStatusKeyByValue = (value) => Object.keys(statusMap).find(key => statusMap[key] === value);
 const initialFilters = { productName: '', mainAccountName: '', name: '', phoneNumber: '', status: 'all', reviewConfirm: 'all' };
 
@@ -26,7 +33,7 @@ export default function AdminReviewManagementPage() {
 
   const fetchReviews = async () => {
     setLoading(true);
-    const q = query(collection(db, 'reviews'), where('status', 'in', ['submitted', 'review_completed', 'rejected', 'verified']), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'reviews'), orderBy('createdAt', 'desc'));
     const snap = await getDocs(q);
     const reviewsData = await Promise.all(snap.docs.map(async (d) => {
       const review = { id: d.id, ...d.data() };
@@ -46,7 +53,7 @@ export default function AdminReviewManagementPage() {
       }
       return review;
     }));
-    setRows(reviewsData.filter(r => r.status !== 'verified'));
+    setRows(reviewsData);
     setLoading(false);
   };
 
