@@ -1,4 +1,4 @@
-// src/pages/seller/SellerDashboard.jsx (UI 스타일링 최종 적용)
+// src/pages/seller/SellerDashboard.jsx (shadcn/ui 리팩토링 버전)
 
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, onSnapshot } from '../../firebaseConfig';
@@ -6,21 +6,27 @@ import { Link } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from "@fullcalendar/interaction";
+import { format } from 'date-fns';
+
+// --- shadcn/ui 컴포넌트 임포트 ---
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from '@/lib/utils';
 
 const formatDate = (date) => {
     if (!date || !(date instanceof Date)) return '';
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return format(date, "yyyy-MM-dd");
 };
 
 export default function SellerDashboardPage() {
     const [campaigns, setCampaigns] = useState([]);
     const [sellers, setSellers] = useState({});
     const [capacities, setCapacities] = useState({});
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        const unsubscribes = [];
+        
         const sellerUnsubscribe = onSnapshot(collection(db, 'sellers'), (snap) => {
             const fetchedSellers = {};
             snap.forEach(doc => {
@@ -29,18 +35,22 @@ export default function SellerDashboardPage() {
             });
             setSellers(fetchedSellers);
         });
+        unsubscribes.push(sellerUnsubscribe);
 
         const campaignUnsubscribe = onSnapshot(collection(db, 'campaigns'), (snap) => {
             setCampaigns(snap.docs.map(d => ({ id: d.id, ...d.data() })));
         });
+        unsubscribes.push(campaignUnsubscribe);
         
         const capacityUnsubscribe = onSnapshot(collection(db, 'capacities'), (snap) => {
             const fetchedCaps = {};
             snap.forEach(doc => { fetchedCaps[doc.id] = doc.data().capacity || 0; });
             setCapacities(fetchedCaps);
+            setIsLoading(false); // 마지막 데이터 로딩 후 로딩 상태 변경
         });
+        unsubscribes.push(capacityUnsubscribe);
 
-        return () => { sellerUnsubscribe(); campaignUnsubscribe(); capacityUnsubscribe(); };
+        return () => unsubscribes.forEach(unsub => unsub());
     }, []);
 
     const events = useMemo(() => {
@@ -66,8 +76,13 @@ export default function SellerDashboardPage() {
                 const totalQuantity = dailyAggregates[dateStr][nickname];
                 if (totalQuantity > 0) {
                     aggregatedEvents.push({
-                        id: `${dateStr}-${nickname}`, title: `${nickname} (${totalQuantity}개)`,
-                        start: dateStr, allDay: true, extendedProps: { quantity: totalQuantity }
+                        id: `${dateStr}-${nickname}`, 
+                        title: `${nickname} (${totalQuantity}개)`,
+                        start: dateStr, 
+                        allDay: true, 
+                        extendedProps: { quantity: totalQuantity },
+                        // shadcn/ui 스타일에 맞게 이벤트 색상 변경
+                        className: 'bg-primary text-primary-foreground border-primary'
                     });
                 }
             }
@@ -81,30 +96,40 @@ export default function SellerDashboardPage() {
         const dailyEvents = events.filter(event => formatDate(new Date(event.start)) === dateStr);
         const totalQuantity = dailyEvents.reduce((sum, event) => sum + Number(event.extendedProps?.quantity || 0), 0);
         const remaining = capacity - totalQuantity;
-        const remainingColor = remaining > 0 ? 'text-blue-600' : 'text-red-500';
-        const remainingTextSize = 'text-xl'; 
+        const isReservable = remaining > 0 && capacity > 0;
+        const remainingColor = remaining > 0 ? 'text-blue-600' : 'text-destructive';
 
         return (
-            <div className="flex flex-col h-full justify-between">
-                <div className="text-right text-sm text-gray-500 pr-1 pt-1">{dayCellInfo.dayNumberText}</div>
+            <div className="flex flex-col h-full p-1">
+                <div className="text-right text-xs text-muted-foreground">{dayCellInfo.dayNumberText}</div>
                 <div className="flex flex-col items-center justify-center flex-grow">
-                    <div className="text-xs text-gray-500">잔여</div>
-                    {remaining > 0 && capacity > 0 ? (
-                        <Link to={`/seller/reservation?date=${dateStr}`}>
-                            <span className={`font-bold ${remainingTextSize} ${remainingColor} cursor-pointer hover:underline`}>{remaining}</span>
+                    <div className="text-[10px] text-muted-foreground">잔여</div>
+                    {isReservable ? (
+                        <Link 
+                            to={`/seller/reservation?date=${dateStr}`}
+                            className={cn(buttonVariants({ variant: "link", size: "sm" }), "h-auto p-0 text-lg font-bold", remainingColor)}
+                        >
+                            {remaining}
                         </Link>
                     ) : (
-                        <span className={`font-bold ${remainingTextSize} ${remainingColor}`}>{remaining}</span>
+                        <span className={`text-lg font-bold ${remainingColor}`}>{remaining}</span>
                     )}
                 </div>
             </div>
         );
     };
+    
+    if (isLoading) {
+        return <div className="flex justify-center items-center h-screen"><p>캘린더 데이터를 불러오는 중...</p></div>;
+    }
 
     return (
-        <>
-            <h2 className="text-2xl font-bold mb-4">체험단 예약 현황 (잔여 수량 클릭 시 예약 가능)</h2>
-            <div className="bg-white p-4 rounded-lg shadow-md">
+        <Card>
+            <CardHeader>
+                <CardTitle>체험단 예약 현황</CardTitle>
+                <CardDescription>잔여 수량을 클릭하여 해당 날짜로 바로 예약할 수 있습니다.</CardDescription>
+            </CardHeader>
+            <CardContent>
                 <FullCalendar
                     plugins={[dayGridPlugin, interactionPlugin]}
                     initialView="dayGridMonth"
@@ -112,14 +137,13 @@ export default function SellerDashboardPage() {
                     buttonText={{ today: '오늘' }}
                     events={events}
                     dayCellContent={renderSellerDayCell}
-                    dayCellClassNames="relative h-32" 
+                    dayCellClassNames="h-32" 
                     locale="ko"
                     height="auto"
                     timeZone='local'
-                    eventDisplay="list-item" 
-                    eventColor="#374151" 
+                    eventDisplay="list-item"
                 />
-            </div>
-        </>
+            </CardContent>
+        </Card>
     );
 }

@@ -1,15 +1,34 @@
-// src/pages/seller/SellerReservation.jsx (레이아웃 수정 및 UI 개선 최종본)
+// src/pages/seller/SellerReservation.jsx (shadcn/ui 리팩토링 풀코드)
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db, auth, onAuthStateChanged, signOut, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc } from '../../firebaseConfig';
 import { nanoid } from 'nanoid';
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { format } from "date-fns";
+import { ko } from 'date-fns/locale';
+import { Calendar as CalendarIcon, Trash2 } from "lucide-react";
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from "@fullcalendar/interaction";
 
+// --- shadcn/ui 컴포넌트 임포트 ---
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+
+
+// --- 상수 및 헬퍼 함수 ---
 const getBasePrice = (deliveryType, reviewType) => {
     if (deliveryType === '실배송') {
         switch (reviewType) {
@@ -28,21 +47,19 @@ const initialFormState = {
     productOption: '', productPrice: 0, productUrl: '', keywords: '', reviewGuide: '', remarks: ''
 };
 
-const formatDate = (date) => {
+const formatDateForCalendar = (date) => {
     if (!date || !(date instanceof Date)) return '';
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return format(date, "yyyy-MM-dd");
 };
 
 const formatDateWithDay = (date) => {
     if (!date || !(date instanceof Date)) return '';
-    const days = ['일', '월', '화', '수', '목', '금', '토'];
-    return `${formatDate(date)}(${days[date.getDay()]})`;
+    return format(date, 'yyyy.MM.dd(EEE)', { locale: ko });
 };
 
+
 export default function SellerReservationPage() {
+    // --- 기존 State 로직 (거의 동일) ---
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
@@ -50,7 +67,6 @@ export default function SellerReservationPage() {
 
     const [formState, setFormState] = useState(initialFormState);
     const [campaigns, setCampaigns] = useState([]);
-    const [totalAmount, setTotalAmount] = useState(0);
     const [savedCampaigns, setSavedCampaigns] = useState([]);
     const [deposit, setDeposit] = useState(0);
     const [useDeposit, setUseDeposit] = useState(false);
@@ -58,23 +74,48 @@ export default function SellerReservationPage() {
     const [calendarCampaigns, setCalendarCampaigns] = useState([]);
     const [sellersMap, setSellersMap] = useState({});
     const [capacities, setCapacities] = useState({});
+    
+    // --- UI 상태 State ---
     const [showDepositPopup, setShowDepositPopup] = useState(false);
     const [confirmCampaign, setConfirmCampaign] = useState(null);
-    const [quoteTotal, setQuoteTotal] = useState(0);
-    const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
 
+    // --- 계산된 값 (useMemo 사용) ---
+    const { basePrice, sundayExtraCharge, finalUnitPrice, quoteTotal, totalCommission, totalAmount, amountToUseFromDeposit, remainingPayment } = useMemo(() => {
+        const basePrice = getBasePrice(formState.deliveryType, formState.reviewType);
+        const sundayExtraCharge = formState.date.getDay() === 0 ? 600 : 0;
+        const finalUnitPrice = basePrice + sundayExtraCharge;
+
+        const currentQuoteTotal = campaigns.reduce((sum, campaign) => sum + campaign.itemTotal, 0);
+        const currentTotalAmount = campaigns.reduce((sum, campaign) => sum + Math.round(campaign.itemTotal * 1.10), 0);
+        const currentTotalCommission = currentTotalAmount - currentQuoteTotal;
+        
+        const currentAmountToUse = useDeposit ? Math.min(currentTotalAmount, deposit) : 0;
+        const currentRemainingPayment = currentTotalAmount - currentAmountToUse;
+
+        return {
+            basePrice,
+            sundayExtraCharge,
+            finalUnitPrice,
+            quoteTotal: currentQuoteTotal,
+            totalCommission: currentTotalCommission,
+            totalAmount: currentTotalAmount,
+            amountToUseFromDeposit: currentAmountToUse,
+            remainingPayment: currentRemainingPayment,
+        };
+    }, [formState, campaigns, useDeposit, deposit]);
+    
     const calendarEvents = useMemo(() => {
         if (Object.keys(sellersMap).length === 0 || calendarCampaigns.length === 0) return [];
         const dailyAggregates = {};
         calendarCampaigns.filter(c => c.status === '예약 확정').forEach(c => {
             const d = c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date);
-            const dateStr = formatDate(d);
+            const dateStr = formatDateForCalendar(d);
             if (!dateStr) return;
-            const nickname = sellersMap[c.sellerUid] || '판매자';
+            const nick = sellersMap[c.sellerUid] || '판매자';
             const qty = Number(c.quantity) || 0;
             if (!dailyAggregates[dateStr]) dailyAggregates[dateStr] = {};
-            if (!dailyAggregates[dateStr][nickname]) dailyAggregates[dateStr][nickname] = 0;
-            dailyAggregates[dateStr][nickname] += qty;
+            if (!dailyAggregates[dateStr][nick]) dailyAggregates[dateStr][nick] = 0;
+            dailyAggregates[dateStr][nick] += qty;
         });
 
         const events = [];
@@ -86,37 +127,12 @@ export default function SellerReservationPage() {
         return events;
     }, [calendarCampaigns, sellersMap]);
 
-    const renderDayCell = (info) => {
-        const dateStr = formatDate(info.date);
-        const capacity = capacities[dateStr] || 0;
-        const dayEvents = calendarEvents.filter(e => formatDate(new Date(e.start)) === dateStr);
-        const totalQty = dayEvents.reduce((s, e) => s + Number(e.extendedProps?.quantity || 0), 0);
-        const remaining = capacity - totalQty;
-        const color = remaining > 0 ? 'text-blue-600' : 'text-red-500';
-        return (
-            <div className="flex flex-col h-full">
-                <div className="text-right text-xs text-gray-500 pr-1 pt-1">{info.dayNumberText}일</div>
-                <div className="flex-grow flex flex-col items-center justify-center pb-1">
-                    <div className="text-[10px] text-gray-500">잔여</div>
-                    <span className={`text-xs font-bold ${color}`}>{remaining}</span>
-                </div>
-            </div>
-        );
-    };
-
-    const basePrice = getBasePrice(formState.deliveryType, formState.reviewType);
-    const sundayExtraCharge = formState.date.getDay() === 0 ? 600 : 0;
-    const finalUnitPrice = basePrice + sundayExtraCharge;
-    const amountToUseFromDeposit = useDeposit ? Math.min(totalAmount, deposit) : 0;
-    const remainingPayment = totalAmount - amountToUseFromDeposit;
-    const totalCommission = totalAmount - quoteTotal;
-
+    // --- useEffect 로직 (거의 동일) ---
     useEffect(() => {
         const dateFromQuery = searchParams.get('date');
         if (dateFromQuery) {
-            const parts = dateFromQuery.split('-').map(part => parseInt(part, 10));
-            if (parts.length === 3) {
-                const selectedDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            const selectedDate = new Date(dateFromQuery);
+            if (!isNaN(selectedDate.getTime())) {
                 setFormState(prev => ({ ...prev, date: selectedDate }));
             }
         }
@@ -129,19 +145,12 @@ export default function SellerReservationPage() {
     }, [formState.deliveryType, formState.reviewType]);
 
     useEffect(() => {
-        const currentQuoteTotal = campaigns.reduce((sum, campaign) => sum + campaign.itemTotal, 0);
-        const currentTotalAmount = campaigns.reduce((sum, campaign) => sum + Math.round(campaign.itemTotal * 1.10), 0);
-        setQuoteTotal(currentQuoteTotal);
-        setTotalAmount(currentTotalAmount);
-    }, [campaigns]);
-
-    useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
             if (currentUser) {
                 setUser(currentUser);
                 const listeners = [];
                 const q = query(collection(db, "campaigns"), where("sellerUid", "==", currentUser.uid));
-                listeners.push(onSnapshot(q, (snapshot) => { setSavedCampaigns(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); }));
+                listeners.push(onSnapshot(q, (snapshot) => { setSavedCampaigns(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))); }));
                 const sellerDocRef = doc(db, 'sellers', currentUser.uid);
                 listeners.push(onSnapshot(sellerDocRef, (doc) => {
                     if (doc.exists()) {
@@ -168,8 +177,9 @@ export default function SellerReservationPage() {
         return () => unsubscribeAuth();
     }, [navigate]);
 
-    const handleFormChange = (e) => {
-        const { name, value } = e.target;
+
+    // --- 핸들러 함수 ---
+    const handleFormChange = (name, value) => {
         setFormState(prev => ({ ...prev, [name]: value }));
     };
 
@@ -183,11 +193,6 @@ export default function SellerReservationPage() {
 
     const handleDeleteCampaign = (id) => {
         setCampaigns(campaigns.filter(c => c.id !== id));
-    };
-
-    const handleLogout = async () => {
-        await signOut(auth);
-        navigate('/seller-login');
     };
 
     const handleProcessPayment = async () => {
@@ -221,156 +226,272 @@ export default function SellerReservationPage() {
             alert('결제 처리 중 오류가 발생했습니다.');
         }
     };
-
+    
     const handleDepositChange = async (id, checked) => {
         try { await updateDoc(doc(db, 'campaigns', id), { paymentReceived: checked }); }
         catch (err) { console.error('입금 여부 업데이트 오류:', err); }
     };
-
+    
     const handleConfirmReservation = async () => {
         if (!confirmCampaign) return;
         try { await updateDoc(doc(db, 'campaigns', confirmCampaign.id), { status: '예약 확정', confirmedAt: serverTimestamp() }); }
         catch (err) { console.error('예약 확정 오류:', err); }
         setConfirmCampaign(null);
     };
-    
-    if (isLoading) return <p>로딩 중...</p>;
-    
-    const thClass = "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider";
-    const tdClass = "px-4 py-3 whitespace-nowrap text-sm text-gray-800";
-    const labelClass = "block text-sm font-medium text-gray-700 mb-1";
-    const inputClass = "w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500";
 
-    // <SellerLayout>을 제거하고, 최상위 태그를 <>로 변경
+    const renderDayCell = (info) => {
+        const dateStr = formatDateForCalendar(info.date);
+        const capacity = capacities[dateStr] || 0;
+        const dayEvents = calendarEvents.filter(e => formatDateForCalendar(new Date(e.start)) === dateStr);
+        const totalQty = dayEvents.reduce((s, e) => s + Number(e.extendedProps?.quantity || 0), 0);
+        const remaining = capacity - totalQty;
+        const color = remaining > 0 ? 'text-blue-600' : 'text-red-500';
+        return (
+            <div className="flex flex-col h-full text-xs">
+                <div className="text-right text-gray-500 pr-1 pt-1">{info.dayNumberText}</div>
+                <div className="flex-grow flex flex-col items-center justify-center pb-1">
+                    <div className="text-[10px] text-gray-500">잔여</div>
+                    <span className={`font-bold ${color}`}>{remaining}</span>
+                </div>
+            </div>
+        );
+    };
+
+    if (isLoading) return <div className="flex justify-center items-center h-screen"><p>데이터를 불러오는 중입니다...</p></div>;
+
     return (
-        <>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-800">리뷰 캠페인 대시보드</h1>
-                <div className="flex items-center">
-                    <span className="mr-4 text-gray-600"><strong>예치금:</strong> <span className="font-bold text-blue-600">{deposit.toLocaleString()}원</span></span>
-                    <span className="mr-4 text-gray-600">{nickname}</span>
-                    <button onClick={handleLogout} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">로그아웃</button>
-                </div>
-            </div>
+        <div className="space-y-8">
+            {/* --- 1. 새 작업 추가 섹션 --- */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>새 작업 추가</CardTitle>
+                    <CardDescription>진행할 리뷰 캠페인의 정보를 입력하고 견적에 추가하세요.</CardDescription>
+                </CardHeader>
+                <form onSubmit={handleAddCampaign}>
+                    <CardContent className="grid lg:grid-cols-3 gap-8">
+                        {/* 왼쪽: 캘린더 및 기본 정보 */}
+                        <div className="space-y-4">
+                            <div>
+                                <Label htmlFor="date">진행 일자</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            id="date"
+                                            variant={"outline"}
+                                            className={cn( "w-full justify-start text-left font-normal", !formState.date && "text-muted-foreground" )}>
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {formState.date ? format(formState.date, "PPP", {locale: ko}) : <span>날짜 선택</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Calendar mode="single" selected={formState.date} onSelect={(date) => handleFormChange('date', date)} initialFocus />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <div className="text-xs">
+                                <FullCalendar plugins={[dayGridPlugin, interactionPlugin]} initialView="dayGridMonth" headerToolbar={{ left: 'prev', center: 'title', right: 'next' }} events={calendarEvents} dayCellContent={renderDayCell} dayCellClassNames="h-16" locale="ko" height="auto" />
+                            </div>
+                        </div>
 
-            <form onSubmit={handleAddCampaign} className="p-6 bg-white rounded-xl shadow-lg mb-8">
-                <h2 className="text-2xl font-bold mb-6 text-gray-700">새 작업 추가</h2>
-                <div className="grid lg:grid-cols-3 gap-6">
+                        {/* 가운데: 상세 정보 입력 */}
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div><Label htmlFor="deliveryType">구분</Label><Select name="deliveryType" value={formState.deliveryType} onValueChange={(v) => handleFormChange('deliveryType', v)}><SelectTrigger id="deliveryType"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="실배송">실배송</SelectItem><SelectItem value="빈박스">빈박스</SelectItem></SelectContent></Select></div>
+                                <div><Label htmlFor="reviewType">리뷰 종류</Label><Select name="reviewType" value={formState.reviewType} onValueChange={(v) => handleFormChange('reviewType', v)}><SelectTrigger id="reviewType"><SelectValue/></SelectTrigger><SelectContent>{formState.deliveryType === '실배송' ? (<><SelectItem value="별점">별점</SelectItem><SelectItem value="텍스트">텍스트</SelectItem><SelectItem value="포토">포토</SelectItem><SelectItem value="프리미엄(포토)">프리미엄(포토)</SelectItem><SelectItem value="프리미엄(영상)">프리미엄(영상)</SelectItem></>) : (<><SelectItem value="별점">별점</SelectItem><SelectItem value="텍스트">텍스트</SelectItem></>)}</SelectContent></Select></div>
+                                <div><Label htmlFor="quantity">체험단 개수</Label><Input id="quantity" type="number" name="quantity" value={formState.quantity} onChange={(e) => handleFormChange(e.target.name, e.target.value)} min="1" required /></div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><Label htmlFor="productName">상품명</Label><Input id="productName" name="productName" value={formState.productName} onChange={(e) => handleFormChange(e.target.name, e.target.value)} required /></div>
+                                <div><Label htmlFor="productPrice">상품가</Label><Input id="productPrice" type="number" name="productPrice" value={formState.productPrice} onChange={(e) => handleFormChange(e.target.name, e.target.value)} placeholder="0" /></div>
+                            </div>
+                             <div className="grid grid-cols-2 gap-4">
+                                <div><Label htmlFor="productOption">옵션</Label><Input id="productOption" name="productOption" value={formState.productOption} onChange={(e) => handleFormChange(e.target.name, e.target.value)} /></div>
+                                <div><Label htmlFor="keywords">키워드 (1개)</Label><Input id="keywords" name="keywords" value={formState.keywords} onChange={(e) => handleFormChange(e.target.name, e.target.value)} /></div>
+                            </div>
+                            <div>
+                                <Label htmlFor="productUrl">상품 URL</Label><Input id="productUrl" type="url" name="productUrl" value={formState.productUrl} onChange={(e) => handleFormChange(e.target.name, e.target.value)} placeholder="https://..." />
+                            </div>
+                        </div>
+                        
+                        {/* 오른쪽: 리뷰 가이드 */}
+                        <div>
+                            <Label htmlFor="reviewGuide">리뷰 가이드</Label>
+                            <Textarea id="reviewGuide" name="reviewGuide" value={formState.reviewGuide} onChange={(e) => handleFormChange(e.target.name, e.target.value)} disabled={formState.reviewType === '별점'} className="h-48" />
+                        </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-between items-center flex-wrap gap-4">
+                        <div className="flex items-center space-x-2 text-sm">
+                            <span>단가: {basePrice.toLocaleString()}원</span>
+                            {sundayExtraCharge > 0 && <span className="text-destructive">+ 공휴일 {sundayExtraCharge.toLocaleString()}원</span>}
+                            <span className="font-semibold">= 최종 {finalUnitPrice.toLocaleString()}원</span>
+                            <PriceListDialog />
+                        </div>
+                        <Button type="submit">견적에 추가</Button>
+                    </CardFooter>
+                </form>
+            </Card>
+
+            {/* --- 2. 견적 목록 섹션 --- */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>견적 목록</CardTitle>
+                    <CardDescription>결제를 진행할 캠페인 목록입니다.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>{['일자', '구분', '리뷰', '수량', '상품명', '상품가', '견적상세', '총 견적', '삭제'].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {campaigns.length === 0 ? (
+                                    <TableRow><TableCell colSpan="9" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>
+                                ) : (
+                                    campaigns.map((c) => (
+                                        <TableRow key={c.id}>
+                                            <TableCell className={c.date.getDay() === 0 ? 'text-destructive font-semibold' : ''}>{formatDateWithDay(c.date)}</TableCell>
+                                            <TableCell><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
+                                            <TableCell><Badge>{c.reviewType}</Badge></TableCell>
+                                            <TableCell>{c.quantity}</TableCell>
+                                            <TableCell className="font-medium">{c.productName}</TableCell>
+                                            <TableCell className="text-right">{Number(c.productPrice).toLocaleString()}원</TableCell>
+                                            <TableCell className="text-xs text-muted-foreground">{`((리뷰${c.finalUnitPrice.toLocaleString()}+상품가${Number(c.productPrice).toLocaleString()})*${c.quantity})`}</TableCell>
+                                            <TableCell className="font-semibold text-right">{Math.round(c.itemTotal * 1.1).toLocaleString()}원</TableCell>
+                                            <TableCell><Button variant="ghost" size="icon" onClick={() => handleDeleteCampaign(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+                {campaigns.length > 0 && (
+                    <CardFooter className="flex flex-col items-end gap-2 text-right">
+                         <div className="text-sm text-muted-foreground">견적 합계: {quoteTotal.toLocaleString()}원</div>
+                         <div className="text-sm text-muted-foreground">수수료 (10%): {totalCommission.toLocaleString()}원</div>
+                         <div className="font-semibold">총 결제 금액: {totalAmount.toLocaleString()}원</div>
+                         <Separator className="my-2"/>
+                         <div className="flex items-center space-x-2">
+                            <Label htmlFor="use-deposit" className="text-sm">예치금 사용 ({deposit.toLocaleString()}원 보유):</Label>
+                            <input type="checkbox" id="use-deposit" checked={useDeposit} onChange={(e) => setUseDeposit(e.target.checked)} disabled={deposit === 0 || totalAmount === 0} className="h-4 w-4 accent-primary"/>
+                         </div>
+                         {useDeposit && <div className="text-destructive font-semibold">- {amountToUseFromDeposit.toLocaleString()}원</div>}
+                         <Separator className="my-2"/>
+                         <div className="text-xl font-bold">최종 결제 금액: <span className="text-primary">{remainingPayment.toLocaleString()}</span>원</div>
+                        <Button onClick={handleProcessPayment} size="lg" className="mt-4">
+                            {remainingPayment > 0 ? `${remainingPayment.toLocaleString()}원 입금하기` : `예치금으로 결제`}
+                        </Button>
+                    </CardFooter>
+                )}
+            </Card>
+
+            {/* --- 3. 나의 예약 내역 섹션 --- */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>나의 예약 내역</CardTitle>
+                    <CardDescription>과거에 예약한 모든 캠페인 내역입니다.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>{['일자', '상품명', '구분', '리뷰', '수량', '입금', '상태', '총 견적', '확정'].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {savedCampaigns.length === 0 ? (
+                                     <TableRow><TableCell colSpan="9" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
+                                ) : (
+                                    savedCampaigns.map(c => (
+                                        <TableRow key={c.id}>
+                                            <TableCell>{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</TableCell>
+                                            <TableCell className="font-medium">{c.productName}</TableCell>
+                                            <TableCell><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
+                                            <TableCell><Badge>{c.reviewType}</Badge></TableCell>
+                                            <TableCell>{c.quantity}</TableCell>
+                                            <TableCell><input type="checkbox" checked={!!c.paymentReceived} onChange={(e) => handleDepositChange(c.id, e.target.checked)} title="입금 완료 시 체크"/></TableCell>
+                                            <TableCell><Badge variant={c.status === '예약 확정' ? 'default' : 'secondary'}>{c.status}</Badge></TableCell>
+                                            <TableCell className="text-right">{Math.round((c.itemTotal || 0) * 1.1).toLocaleString()}원</TableCell>
+                                            <TableCell>
+                                                {c.depositConfirmed && c.status !== '예약 확정' && (
+                                                    <AlertDialog open={confirmCampaign?.id === c.id} onOpenChange={(open) => !open && setConfirmCampaign(null)}>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button variant="outline" size="sm" onClick={() => setConfirmCampaign(c)}>예약확정</Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader><AlertDialogTitle>예약을 확정하시겠습니까?</AlertDialogTitle><AlertDialogDescription>확정 후에는 수정이 불가능합니다.</AlertDialogDescription></AlertDialogHeader>
+                                                            <AlertDialogFooter><AlertDialogCancel>취소</AlertDialogCancel><AlertDialogAction onClick={handleConfirmReservation}>확인</AlertDialogAction></AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* --- 입금 안내 Dialog --- */}
+             <Dialog open={showDepositPopup} onOpenChange={setShowDepositPopup}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>입금 계좌 안내</DialogTitle>
+                        <DialogDescription>아래 계좌로 <strong className="text-primary">{remainingPayment.toLocaleString()}원</strong>을 입금해주세요.</DialogDescription>
+                    </DialogHeader>
+                    <div className="my-4 p-4 bg-muted rounded-md text-center">
+                        <p className="font-semibold">채종문 (아이언마운틴컴퍼니)</p>
+                        <p className="font-bold text-lg text-primary mt-1">국민은행 834702-04-290385</p>
+                    </div>
+                     <DialogFooter>
+                        <Button onClick={() => setShowDepositPopup(false)}>확인</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}
+
+
+// --- 페이지 내에서 사용하는 작은 컴포넌트들 ---
+function PriceListDialog() {
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-xs h-auto p-1">단가표 보기</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader><DialogTitle>리뷰 캠페인 단가표</DialogTitle></DialogHeader>
+                <div className="space-y-4">
                     <div>
-                        <label className={labelClass}>진행 일자</label>
-                        <DatePicker selected={formState.date} onChange={(date) => setFormState(p => ({ ...p, date }))} className={inputClass} />
-                        <div className="mt-4 text-xs">
-                            <FullCalendar plugins={[dayGridPlugin, interactionPlugin]} initialView="dayGridMonth" headerToolbar={{ left: 'prev,next', center: 'title', right: '' }} events={calendarEvents} dayCellContent={renderDayCell} dayCellClassNames="h-20" locale="ko" height={250} />
-                        </div>
+                        <h4 className="font-semibold mb-2">📦 실배송</h4>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>리뷰 종류</TableHead><TableHead className="text-right">단가</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                <TableRow><TableCell>별점</TableCell><TableCell className="text-right">1,600원</TableCell></TableRow>
+                                <TableRow><TableCell>텍스트</TableCell><TableCell className="text-right">1,700원</TableCell></TableRow>
+                                <TableRow><TableCell>포토</TableCell><TableCell className="text-right">1,800원</TableCell></TableRow>
+                                <TableRow><TableCell>프리미엄(포토)</TableCell><TableCell className="text-right">4,000원</TableCell></TableRow>
+                                <TableRow><TableCell>프리미엄(영상)</TableCell><TableCell className="text-right">5,000원</TableCell></TableRow>
+                            </TableBody>
+                        </Table>
                     </div>
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-3 gap-4">
-                            <div><label className={labelClass}>구분</label><select name="deliveryType" value={formState.deliveryType} onChange={handleFormChange} className={inputClass}><option>실배송</option><option>빈박스</option></select></div>
-                            <div><label className={labelClass}>리뷰 종류</label><select name="reviewType" value={formState.reviewType} onChange={handleFormChange} className={inputClass}>{formState.deliveryType === '실배송' ? (<><option>별점</option><option>텍스트</option><option>포토</option><option>프리미엄(포토)</option><option>프리미엄(영상)</option></>) : (<><option>별점</option><option>텍스트</option></>)}</select></div>
-                            <div><label className={labelClass}>체험단 개수</label><input type="number" name="quantity" value={formState.quantity} onChange={handleFormChange} className={inputClass} min="1" required /></div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-4">
-                            <div><label className={labelClass}>상품명</label><input type="text" name="productName" value={formState.productName} onChange={handleFormChange} className={inputClass} required /></div>
-                            <div><label className={labelClass}>상품가</label><input type="number" name="productPrice" value={formState.productPrice} onChange={handleFormChange} className={inputClass} placeholder="0" /></div>
-                            <div><label className={labelClass}>옵션</label><input type="text" name="productOption" value={formState.productOption} onChange={handleFormChange} className={inputClass} /></div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-4">
-                            <div><label className={labelClass}>키워드</label><input type="text" name="keywords" value={formState.keywords} onChange={handleFormChange} className={inputClass} placeholder="1개만 입력" /></div>
-                            <div className="col-span-2"><label className={labelClass}>상품 URL</label><input type="url" name="productUrl" value={formState.productUrl} onChange={handleFormChange} className={inputClass} placeholder="https://..." /></div>
-                        </div>
-                        <div className="flex justify-end"><button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-md">견적에 추가</button></div>
-                    </div>
-                    <div>
-                        <label className={labelClass}>리뷰 가이드</label>
-                        <textarea name="reviewGuide" value={formState.reviewGuide} onChange={handleFormChange} disabled={formState.reviewType === '별점'} className={inputClass + ' h-48'} />
+                     <div>
+                        <h4 className="font-semibold mb-2">👻 빈박스</h4>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>리뷰 종류</TableHead><TableHead className="text-right">단가</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                <TableRow><TableCell>별점</TableCell><TableCell className="text-right">5,400원</TableCell></TableRow>
+                                <TableRow><TableCell>텍스트</TableCell><TableCell className="text-right">5,400원</TableCell></TableRow>
+                            </TableBody>
+                        </Table>
                     </div>
                 </div>
-                <div className="mt-6 p-4 border-t border-gray-200 flex justify-end items-center space-x-6 flex-wrap">
-                    <div className="flex items-center"><span className="text-sm text-gray-500">{`${formState.deliveryType}/${formState.reviewType} 단가:`}</span><span className="ml-2 font-semibold">{basePrice.toLocaleString()}원</span><button type="button" onClick={() => setIsPriceModalOpen(true)} className="ml-4 text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-1 px-2 rounded">단가표 보기</button></div>
-                    <span className="text-gray-400">+</span><div><span className="text-sm text-gray-500">공휴일 가산금:</span><span className={`ml-2 font-semibold ${sundayExtraCharge > 0 ? 'text-red-500' : ''}`}>{sundayExtraCharge.toLocaleString()}원</span></div>
-                    <span className="text-gray-400">=</span><div><span className="text-sm text-gray-500">최종 개당 단가:</span><span className="ml-2 font-bold text-lg text-blue-600">{finalUnitPrice.toLocaleString()}원</span></div>
-                </div>
-            </form>
-
-            <div className="p-6 bg-white rounded-xl shadow-lg">
-                <h2 className="text-2xl font-bold mb-4 text-gray-700">견적 목록 (스프레드시트)</h2>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-100">
-                            <tr>{['순번', '진행일자', '구분', '리뷰 종류', '체험단 개수', '상품명', '상품가', '옵션', '키워드', '상품 URL', '견적 상세', '총 견적', '작업'].map(h => <th key={h} className={thClass}>{h}</th>)}</tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {campaigns.length === 0 ? (
-                                <tr><td colSpan="13" className="text-center py-10 text-gray-500">위에서 작업을 추가해주세요.</td></tr>
-                            ) : (
-                                campaigns.map((c, index) => {
-                                    const finalItemAmount = Math.round(c.itemTotal * 1.10);
-                                    const commission = finalItemAmount - c.itemTotal;
-                                    return (
-                                        <tr key={c.id}>
-                                            <td className={tdClass}>{index + 1}</td>
-                                            <td className={tdClass}><span className={c.date.getDay() === 0 ? 'text-red-500 font-bold' : ''}>{formatDateWithDay(new Date(c.date))}</span></td>
-                                            <td className={tdClass}>{c.deliveryType}</td>
-                                            <td className={tdClass}>{c.reviewType}</td>
-                                            <td className={tdClass}>{c.quantity}</td>
-                                            <td className={tdClass}>{c.productName}</td>
-                                            <td className={tdClass}>{Number(c.productPrice).toLocaleString()}원</td>
-                                            <td className={tdClass}>{c.productOption}</td>
-                                            <td className={tdClass}>{c.keywords}</td>
-                                            <td className={tdClass}><a href={c.productUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">링크</a></td>
-                                            <td className={tdClass + " text-xs text-gray-500"}>((리뷰 {c.basePrice.toLocaleString()}{c.sundayExtraCharge > 0 ? ` + 공휴일 ${c.sundayExtraCharge.toLocaleString()}` : ''}) + 상품가 {Number(c.productPrice).toLocaleString()}) * {c.quantity}개</td>
-                                            <td className={tdClass}><div className='font-bold'>{finalItemAmount.toLocaleString()}원</div><div className='text-xs text-gray-500'>(견적 {c.itemTotal.toLocaleString()} + 수수료 {commission.toLocaleString()})</div></td>
-                                            <td className={tdClass}><button onClick={() => handleDeleteCampaign(c.id)} className="text-red-600 hover:text-red-800 font-semibold">삭제</button></td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-                <div className="mt-6 pt-6 border-t border-gray-200 text-right">
-                    <div className="space-y-2 mb-4 text-gray-700"><p className="text-md">견적 합계: <span className="font-semibold">{quoteTotal.toLocaleString()}</span> 원</p><p className="text-md">세금계산서 (10%): <span className="font-semibold">{totalCommission.toLocaleString()}</span> 원</p><p className="text-lg font-bold">총 결제 금액: <span className="font-bold text-blue-600">{totalAmount.toLocaleString()}</span> 원</p><hr className="my-3"/><div className="flex justify-end items-center text-lg"><label htmlFor="use-deposit" className="mr-2">예치금 사용:</label><input type="checkbox" id="use-deposit" checked={useDeposit} onChange={(e) => setUseDeposit(e.target.checked)} disabled={deposit === 0 || totalAmount === 0} className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"/><span className={`ml-2 text-red-500 font-semibold ${!useDeposit && 'opacity-50'}`}>- {amountToUseFromDeposit.toLocaleString()} 원</span></div><hr className="my-3"/><p className="text-gray-800">최종 결제 금액:<span className="font-bold text-3xl text-green-600 ml-4">{remainingPayment.toLocaleString()}</span> 원</p></div>
-                    <button onClick={handleProcessPayment} disabled={campaigns.length === 0} className="mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed">입금하기</button>
-                </div>
-            </div>
-
-            <div className="mt-8 p-6 bg-white rounded-xl shadow-lg">
-                <h2 className="text-2xl font-bold mb-4 text-gray-700">나의 예약 내역</h2>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-100">
-                            <tr>{['진행일자', '구분', '리뷰 종류', '체험단 개수', '상품명', '상품가', '옵션', '키워드', '상품 URL', '입금여부*', '결제상태', '진행상태', '총 견적'].map(h => <th key={h} className={thClass}>{h}</th>)}</tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {savedCampaigns.length === 0 ? (
-                                <tr><td colSpan="13" className="text-center py-10 text-gray-500">예약 내역이 없습니다.</td></tr>
-                            ) : (
-                                savedCampaigns.map(c => (
-                                    <tr key={c.id}>
-                                        <td className={tdClass}>{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</td>
-                                        <td className={tdClass}>{c.deliveryType}</td>
-                                        <td className={tdClass}>{c.reviewType}</td>
-                                        <td className={tdClass}>{c.quantity}</td>
-                                        <td className={tdClass}>{c.productName}</td>
-                                        <td className={tdClass}>{Number(c.productPrice).toLocaleString()}원</td>
-                                        <td className={tdClass}>{c.productOption}</td>
-                                        <td className={tdClass}>{c.keywords}</td>
-                                        <td className={tdClass}><a href={c.productUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">링크</a></td>
-                                        <td className={tdClass}><input type="checkbox" checked={!!c.paymentReceived} onChange={(e) => handleDepositChange(c.id, e.target.checked)} title="입금을 완료하셨으면 체크박스를 클릭해 주세요"/></td>
-                                        <td className={tdClass}>{c.paymentReceived ? '입금완료' : '입금전'}</td>
-                                        <td className={tdClass}>{c.depositConfirmed ? (c.status === '예약 확정' ? (<span>예약확정</span>) : (<button onClick={() => setConfirmCampaign(c)} className="text-blue-600 underline">예약확정</button>)) : '담당자 확인중'}</td>
-                                        <td className={tdClass}>{c.itemTotal?.toLocaleString()}원</td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {isPriceModalOpen && (<div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50" onClick={() => setIsPriceModalOpen(false)}><div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}><h3 className="text-2xl font-bold mb-6 text-gray-800 text-center">리뷰 캠페인 단가표</h3><div className="mb-6"><h4 className="text-lg font-semibold mb-2 text-gray-700">📦 실배송</h4><table className="w-full text-sm text-left border-collapse"><thead><tr className="bg-gray-100"><th className="p-2 border">리뷰 종류</th><th className="p-2 border text-right">단가</th></tr></thead><tbody><tr><td className="p-2 border">별점</td><td className="p-2 border text-right">1,600원</td></tr><tr><td className="p-2 border">텍스트</td><td className="p-2 border text-right">1,700원</td></tr><tr><td className="p-2 border">포토</td><td className="p-2 border text-right">1,800원</td></tr><tr><td className="p-2 border">프리미엄(포토)</td><td className="p-2 border text-right">4,000원</td></tr><tr><td className="p-2 border">프리미엄(영상)</td><td className="p-2 border text-right">5,000원</td></tr></tbody></table></div><div><h4 className="text-lg font-semibold mb-2 text-gray-700">👻 빈박스</h4><table className="w-full text-sm text-left border-collapse"><thead><tr className="bg-gray-100"><th className="p-2 border">리뷰 종류</th><th className="p-2 border text-right">단가</th></tr></thead><tbody><tr><td className="p-2 border">별점</td><td className="p-2 border text-right">5,400원</td></tr><tr><td className="p-2 border">텍스트</td><td className="p-2 border text-right">5,400원</td></tr></tbody></table></div><p className="text-xs text-gray-500 mt-4">* 일요일/공휴일 진행 시 <strong className="text-red-500">600원</strong>의 가산금이 추가됩니다.</p><div className="mt-8 text-center"><button onClick={() => setIsPriceModalOpen(false)} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg">닫기</button></div></div></div>)}
-            {confirmCampaign && (<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setConfirmCampaign(null)}><div className="bg-white p-6 rounded shadow" onClick={(e) => e.stopPropagation()}><p className="mb-4">예약확정하겠습니까?</p><div className="flex justify-center space-x-4"><button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={handleConfirmReservation}>예</button><button className="px-4 py-2 bg-gray-300 rounded" onClick={() => setConfirmCampaign(null)}>아니오</button></div></div></div>)}
-            {showDepositPopup && (<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowDepositPopup(false)}><div className="bg-white p-6 rounded shadow" onClick={(e) => e.stopPropagation()}><p className="font-semibold text-lg mb-2">채종문(아이언마운틴컴퍼니)</p><p className="font-semibold text-lg">국민은행 834702-04-290385</p><button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setShowDepositPopup(false)}>확인</button></div></div>)}
-        </>
+                 <DialogFooter className="mt-4">
+                    <p className="text-xs text-muted-foreground">* 일요일/공휴일 진행 시 <strong className="text-destructive">600원</strong>의 가산금이 추가됩니다.</p>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
