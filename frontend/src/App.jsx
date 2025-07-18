@@ -1,9 +1,9 @@
-// src/App.jsx (단일 관리자 페이지 구조 최종본)
+// src/App.jsx (트래픽 관리 페이지 라우트 추가 최종본)
 
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 // --- 레이아웃 컴포넌트 ---
-import AdminLayout from './pages/AdminLayout'; // [수정] pages 폴더의 레이아웃 사용
+import AdminLayout from './pages/AdminLayout';
 import SellerLayout from './layouts/SellerLayout';
 import ReviewerLayout from './layouts/ReviewerLayout';
 
@@ -36,6 +36,8 @@ import SellerAdminProgressPage from './pages/admin/SellerAdminProgress';
 import SellerAdminSchedulePage from './pages/admin/SellerAdminSchedule';
 import SellerAdminSellerManagementPage from './pages/admin/SellerAdminSellerManagement';
 import SellerAdminTrafficPage from './pages/admin/SellerAdminTraffic';
+// [추가] 새로 만든 트래픽 관리 페이지 임포트
+import AdminTrafficManagementPage from './pages/admin/AdminTrafficManagement';
 
 // --- 판매자 페이지들 ---
 import SellerDashboardPage from './pages/seller/SellerDashboard'; 
@@ -92,6 +94,8 @@ function App() {
           {/* 신규 판매자/캠페인 관리 */}
           <Route path="seller-dashboard" element={<SellerAdminDashboardPage />} />
           <Route path="seller-products" element={<SellerAdminProductManagementPage />} />
+          {/* [수정] 새로운 트래픽 관리 페이지 라우트 추가 */}
+          <Route path="seller-traffic-management" element={<AdminTrafficManagementPage />} />
           <Route path="seller-list" element={<SellerAdminSellerManagementPage />} />
           <Route path="seller-schedule" element={<SellerAdminSchedulePage />} />
           <Route path="seller-progress" element={<SellerAdminProgressPage />} />

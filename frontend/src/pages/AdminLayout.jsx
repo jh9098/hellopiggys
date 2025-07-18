@@ -1,4 +1,4 @@
-// src/pages/AdminLayout.jsx (모든 관리 기능을 포함하는 최종본)
+// src/pages/AdminLayout.jsx (트래픽 관리 메뉴 추가)
 
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { auth, signOut } from '../firebaseConfig';
@@ -37,6 +37,8 @@ export default function AdminLayout() {
           <h3 className="menu-section-title">판매자/캠페인 관리</h3>
           <NavLink to="/admin/seller-dashboard">대시보드</NavLink>
           <NavLink to="/admin/seller-products">캠페인 관리</NavLink>
+          {/* [추가] 트래픽 관리 메뉴 */}
+          <NavLink to="/admin/seller-traffic-management">트래픽 관리</NavLink>
           <NavLink to="/admin/seller-list">판매자 목록</NavLink>
           <NavLink to="/admin/seller-schedule">예약 시트 관리</NavLink>
           <NavLink to="/admin/seller-progress">진행현황</NavLink>

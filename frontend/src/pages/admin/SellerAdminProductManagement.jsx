@@ -1,9 +1,25 @@
-// src/pages/admin/AdminProductManagement.jsx (프로세스 변경 최종본)
+// src/pages/admin/AdminProductManagement.jsx (요청사항 반영 최종본)
 
 import { useState, useEffect } from 'react';
-// [수정] serverTimestamp 임포트 추가
 import { db, collection, query, onSnapshot, doc, updateDoc, orderBy, writeBatch, increment, serverTimestamp } from '../../firebaseConfig';
 import Papa from 'papaparse';
+
+// [추가] 날짜 포맷팅을 위한 헬퍼 함수
+const formatDateTime = (date) => {
+  if (!date || !date.seconds) return 'N/A';
+  const d = new Date(date.seconds * 1000);
+  const pad = (num) => num.toString().padStart(2, '0');
+  
+  const year = d.getFullYear().toString().slice(-2);
+  const month = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+  const seconds = pad(d.getSeconds());
+
+  return `${year}.${month}.${day} ${hours}:${minutes}:${seconds}`;
+};
+
 
 export default function AdminProductManagementPage() {
   const [campaigns, setCampaigns] = useState([]);
@@ -109,9 +125,7 @@ export default function AdminProductManagementPage() {
     }
   };
 
-  // [수정] 입금 확인 시 예약 확정까지 처리하는 함수
   const handleConfirmDeposit = async (campaignId, isChecked) => {
-    // 체크를 해제하는 경우는 단순 데이터 수정으로 처리 (예: 실수로 눌렀을 때)
     if (!isChecked) {
         try {
             await updateDoc(doc(db, 'campaigns', campaignId), { depositConfirmed: false });
@@ -122,13 +136,12 @@ export default function AdminProductManagementPage() {
         return;
     }
 
-    // 체크하는 경우, 최종 확정 프로세스 진행
     if (window.confirm("이 캠페인의 입금을 확인하고 예약을 최종 확정하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")) {
         try {
             await updateDoc(doc(db, 'campaigns', campaignId), {
                 status: '예약 확정',
                 depositConfirmed: true,
-                confirmedAt: serverTimestamp() // 확정일시 기록
+                confirmedAt: serverTimestamp()
             });
             alert("캠페인이 '예약 확정' 상태로 변경되었습니다.");
         } catch (error) {
@@ -146,12 +159,8 @@ export default function AdminProductManagementPage() {
       const commission = c.itemTotal ? finalItemAmount - c.itemTotal : 0;
       return {
         '순번': index + 1,
-        '상품 등록일시': c.createdAt?.seconds
-          ? new Date(c.createdAt.seconds * 1000).toLocaleString('ko-KR')
-          : '',
-        '진행일자': c.date?.seconds
-          ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR')
-          : '',
+        '예약 등록 일시': c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleString('ko-KR') : '', // 엑셀은 기존 포맷 유지
+        '진행일자': c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '',
         '구분': c.deliveryType || '',
         '리뷰 종류': c.reviewType || '',
         '체험단 개수': c.quantity || '',
@@ -164,16 +173,8 @@ export default function AdminProductManagementPage() {
         '닉네임': sellersMap[c.sellerUid]?.nickname || '',
         '전화번호': toText(sellersMap[c.sellerUid]?.phone || ''),
         '입금확인': c.depositConfirmed ? 'Y' : 'N',
-        '견적 상세': `((리뷰 ${Number(c.basePrice || 0).toLocaleString()}${
-          c.sundayExtraCharge > 0
-            ? ` + 공휴일 ${Number(c.sundayExtraCharge).toLocaleString()}`
-            : ''}) + 상품가 ${Number(c.productPrice).toLocaleString()}) * ${
-          c.quantity
-        }개`,
-        '총 견적': `${finalItemAmount.toLocaleString()}원 (견적 ${Number(
-          c.itemTotal || 0
-        ).toLocaleString()} + 수수료 ${commission.toLocaleString()})`,
-        '결제유형/상품종류/리뷰종류/리뷰인증': '자율결제/실배송/별점/X',
+        '견적 상세': `((리뷰 ${Number(c.basePrice || 0).toLocaleString()}${ c.sundayExtraCharge > 0 ? ` + 공휴일 ${Number(c.sundayExtraCharge).toLocaleString()}` : ''}) + 상품가 ${Number(c.productPrice).toLocaleString()}) * ${ c.quantity }개`,
+        '총 견적': `${finalItemAmount.toLocaleString()}원 (견적 ${Number( c.itemTotal || 0 ).toLocaleString()} + 수수료 ${commission.toLocaleString()})`,
         '작업': '반려',
       };
     });
@@ -219,24 +220,27 @@ export default function AdminProductManagementPage() {
               <tr>
                 <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === filteredCampaigns.length && filteredCampaigns.length > 0} /></th>
                 <th className={thClass}>순번</th>
-                <th className={thClass}>상품 등록일시</th>
+                {/* [수정 1] 컬럼명 변경 */}
+                <th className={thClass}>예약 등록 일시</th>
                 <th className={thClass}>진행일자</th>
                 <th className={thClass}>구분</th>
                 <th className={thClass}>리뷰 종류</th>
                 <th className={thClass}>체험단 개수</th>
                 <th className={thClass}>상품명</th>
-                <th className={thClass}>상품가</th>
+                {/* [수정 3] 컬럼 순서 변경 */}
                 <th className={thClass}>옵션</th>
+                <th className={thClass}>상품가</th>
                 <th className={thClass}>키워드</th>
                 <th className={thClass}>상품 URL</th>
                 <th className={thClass}>상태</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-red-50">판매자<br/>입금체크</th>
                 <th className={thClass}>닉네임</th>
                 <th className={thClass}>전화번호</th>
-                <th className={thClass}>입금확인<br/>(최종확정)</th>
+                {/* [수정 2] 컬럼명 변경 */}
+                <th className={thClass}>입금확인<br/>(예약확정)</th>
                 <th className={thClass}>견적 상세</th>
                 <th className={thClass}>총 견적</th>
-                <th className={thClass}>결제유형/상품종류/리뷰종류/리뷰인증</th>
+                {/* [수정 4] 불필요한 컬럼 제거 */}
                 <th className={thClass}>작업</th>
               </tr>
             </thead>
@@ -248,14 +252,16 @@ export default function AdminProductManagementPage() {
                     <tr key={c.id} className="hover:bg-gray-50">
                       <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{index + 1}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleString('ko-KR') : 'N/A'}</td>
+                      {/* [수정 1] 날짜 포맷팅 적용 */}
+                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{formatDateTime(c.createdAt)}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '-'}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{c.deliveryType}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{c.reviewType}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{c.quantity}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.productName}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">{Number(c.productPrice).toLocaleString()}원</td>
+                      {/* [수정 3] 컬럼 순서 변경 */}
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{c.productOption}</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">{Number(c.productPrice).toLocaleString()}원</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{c.keywords}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm"><a href={c.productUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">링크</a></td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.status === '리뷰완료' ? 'bg-blue-100 text-blue-800' : c.status === '예약 확정' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{c.status}</span></td>
@@ -272,7 +278,7 @@ export default function AdminProductManagementPage() {
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-xs text-gray-500">((리뷰 {Number(c.basePrice || 0).toLocaleString()}{c.sundayExtraCharge > 0 ? ` + 공휴일 ${Number(c.sundayExtraCharge).toLocaleString()}` : ''}) + 상품가 {Number(c.productPrice).toLocaleString()}) * {c.quantity}개</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm"><div className='font-bold'>{finalItemAmount.toLocaleString()}원</div><div className='text-xs text-gray-500'>(견적 {Number(c.itemTotal || 0).toLocaleString()} + 수수료 {commission.toLocaleString()})</div></td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">자율결제/실배송/별점/X</td>
+                      {/* [수정 4] 불필요한 컬럼 제거 */}
                       <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
                     </tr>
                   );

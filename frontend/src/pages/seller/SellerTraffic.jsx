@@ -1,8 +1,8 @@
-// src/pages/seller/SellerTraffic.jsx (shadcn/ui 리팩토링 버전)
+// src/pages/seller/SellerTraffic.jsx (변경 없음 - 확인용)
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, getDoc } from '../../firebaseConfig';
+import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, getDoc, signOut } from '../../firebaseConfig';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Info } from "lucide-react";
@@ -130,7 +130,12 @@ export default function SellerTrafficPage() {
         }
         try {
             await batch.commit();
-            setShowDepositPopup(true);
+            if (remainingPayment > 0) {
+                setShowDepositPopup(true);
+            } else {
+                alert('예치금을 사용하여 예약이 접수되었습니다.');
+                handleClosePopupAndReset();
+            }
         } catch (error) {
             console.error('결제 처리 중 오류 발생:', error);
             alert('결제 처리 중 오류가 발생했습니다.');
@@ -143,11 +148,13 @@ export default function SellerTrafficPage() {
         setUseDeposit(false);
     };
 
+    // [중요] 이 함수가 판매자가 입금했음을 알리는 기능을 수행합니다.
     const handleDepositChange = async (id, checked) => {
         try { await updateDoc(doc(db, 'traffic_requests', id), { paymentReceived: checked }); } 
         catch (err) { console.error('입금 여부 업데이트 오류:', err); }
     };
 
+    // [참고] 이 부분은 판매자가 직접 확정할 때 사용하던 로직으로, 현재는 관리자만 확정합니다.
     const handleConfirmReservation = async () => {
         if (!confirmRequest) return;
         try {
@@ -160,6 +167,16 @@ export default function SellerTrafficPage() {
         setConfirmRequest(null);
     };
 
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            navigate('/seller-login');
+        } catch (error) {
+            console.error("로그아웃 실패:", error);
+            alert("로그아웃에 실패했습니다.");
+        }
+    };
+
     const quoteTotal = products.reduce((sum, p) => sum + (p.salePrice * p.quantity), 0);
     const totalCommission = Math.round(quoteTotal * 0.1);
     const totalAmount = quoteTotal + totalCommission;
@@ -170,6 +187,31 @@ export default function SellerTrafficPage() {
 
     return (
         <div className="space-y-8">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 p-4 bg-card border rounded-lg shadow-sm">
+                <div className="flex items-center space-x-4">
+                    <div className="text-sm font-semibold">
+                        <span className="text-muted-foreground">보유 예치금:</span>
+                        <span className="ml-2 text-lg text-primary">{deposit.toLocaleString()}원</span>
+                    </div>
+                    <div className="flex items-center space-x-2 border-l pl-4">
+                        <input 
+                            type="checkbox" 
+                            id="use-deposit-global" 
+                            checked={useDeposit} 
+                            onChange={(e) => setUseDeposit(e.target.checked)} 
+                            disabled={deposit === 0 || totalAmount === 0} 
+                            className="h-4 w-4 accent-primary"
+                        />
+                        <Label htmlFor="use-deposit-global" className="text-sm font-medium">
+                            견적 결제 시 예치금 사용
+                        </Label>
+                    </div>
+                </div>
+                <Button onClick={handleLogout} variant="outline" size="sm">
+                    로그아웃
+                </Button>
+            </div>
+            
             <h1 className="text-3xl font-bold text-gray-800">트래픽 요청서</h1>
             
             <Alert>
@@ -248,15 +290,22 @@ export default function SellerTrafficPage() {
                          <div className="text-sm text-muted-foreground">견적 합계: {quoteTotal.toLocaleString()}원</div>
                          <div className="text-sm text-muted-foreground">수수료 (10%): {totalCommission.toLocaleString()}원</div>
                          <div className="font-semibold">총 결제 금액: {totalAmount.toLocaleString()}원</div>
-                         <Separator className="my-2"/>
-                         <div className="flex items-center space-x-2">
-                            <Label htmlFor="use-deposit" className="text-sm">예치금 사용 ({deposit.toLocaleString()}원 보유):</Label>
-                            <input type="checkbox" id="use-deposit" checked={useDeposit} onChange={(e) => setUseDeposit(e.target.checked)} disabled={deposit === 0} className="h-4 w-4 accent-primary"/>
-                         </div>
-                         {useDeposit && <div className="text-destructive font-semibold">- {amountToUseFromDeposit.toLocaleString()}원</div>}
+                         
+                         {useDeposit && (
+                             <>
+                                <Separator className="my-2"/>
+                                <div className="text-sm">
+                                    <span className="text-muted-foreground">예치금 사용: </span>
+                                    <span className="font-semibold text-destructive">- {amountToUseFromDeposit.toLocaleString()}원</span>
+                                </div>
+                             </>
+                         )}
+                         
                          <Separator className="my-2"/>
                          <div className="text-xl font-bold">최종 결제 금액: <span className="text-primary">{remainingPayment.toLocaleString()}</span>원</div>
-                        <Button onClick={handleProcessPayment} size="lg" className="mt-4">입금하기</Button>
+                        <Button onClick={handleProcessPayment} size="lg" className="mt-4">
+                            {remainingPayment > 0 ? `${remainingPayment.toLocaleString()}원 입금하기` : `예치금으로 결제`}
+                        </Button>
                     </CardFooter>
                 )}
             </Card>
@@ -289,23 +338,10 @@ export default function SellerTrafficPage() {
                                             <TableCell>{req.requestDate?.seconds ? formatDateWithDay(new Date(req.requestDate.seconds * 1000)) : '-'}</TableCell>
                                             <TableCell className="font-medium">{req.name}</TableCell>
                                             <TableCell>{req.quantity}</TableCell>
+                                            {/* 여기 체크박스가 paymentReceived 필드를 업데이트 합니다 */}
                                             <TableCell><input type="checkbox" checked={!!req.paymentReceived} onChange={(e) => handleDepositChange(req.id, e.target.checked)} title="입금 완료 시 체크" /></TableCell>
                                             <TableCell><Badge variant={req.paymentReceived ? "default" : "outline"}>{req.paymentReceived ? '입금완료' : '입금전'}</Badge></TableCell>
-                                            <TableCell>
-                                                {req.paymentReceived ? (
-                                                    req.status === '예약 확정' ? <Badge>예약확정</Badge> : (
-                                                    <AlertDialog open={confirmRequest?.id === req.id} onOpenChange={(open) => !open && setConfirmRequest(null)}>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button variant="outline" size="sm" onClick={() => setConfirmRequest(req)}>예약확정</Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader><AlertDialogTitle>예약을 확정하시겠습니까?</AlertDialogTitle></AlertDialogHeader>
-                                                            <AlertDialogFooter><AlertDialogCancel>아니오</AlertDialogCancel><AlertDialogAction onClick={handleConfirmReservation}>예</AlertDialogAction></AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                    )
-                                                ) : <Badge variant="secondary">예약중</Badge>}
-                                            </TableCell>
+                                            <TableCell><Badge variant={req.status === '예약 확정' ? 'default' : 'secondary'}>{req.status}</Badge></TableCell>
                                             <TableCell className="text-right">{req.finalItemAmount?.toLocaleString()}원</TableCell>
                                         </TableRow>
                                     ))
@@ -316,7 +352,7 @@ export default function SellerTrafficPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={showDepositPopup} onOpenChange={handleClosePopupAndReset}>
+            <Dialog open={showDepositPopup} onOpenChange={(open) => !open && handleClosePopupAndReset()}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>입금 계좌 안내</DialogTitle>

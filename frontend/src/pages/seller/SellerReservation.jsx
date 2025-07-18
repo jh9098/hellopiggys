@@ -1,4 +1,4 @@
-// src/pages/seller/SellerReservation.jsx (프로세스 변경 최종본)
+// src/pages/seller/SellerReservation.jsx (입금 체크 시 팝업 추가 최종본)
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -6,7 +6,8 @@ import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where
 import { nanoid } from 'nanoid';
 import { format } from "date-fns";
 import { ko } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Trash2 } from "lucide-react";
+// [추가] 팝업에 사용할 아이콘 임포트
+import { Calendar as CalendarIcon, Trash2, CheckCircle } from "lucide-react";
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from "@fullcalendar/interaction";
@@ -22,7 +23,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -77,8 +77,8 @@ export default function SellerReservationPage() {
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [showDepositPopup, setShowDepositPopup] = useState(false);
     
-    // [수정] 예약확정 관련 state 제거
-    // const [confirmCampaign, setConfirmCampaign] = useState(null);
+    // [추가] 입금 확인 팝업을 위한 상태
+    const [confirmationDialogData, setConfirmationDialogData] = useState(null); // { id, checked } 형태
 
     const { 
         basePrice, sundayExtraCharge, finalUnitPrice,
@@ -264,15 +264,27 @@ export default function SellerReservationPage() {
         }
     };
     
-    // 이 함수는 판매자가 입금했다고 알리는 기능만 합니다. 최종 확정은 관리자가 합니다.
-    const handleDepositChange = async (id, checked) => {
-        try { await updateDoc(doc(db, 'campaigns', id), { paymentReceived: checked }); }
-        catch (err) { console.error('입금 여부 업데이트 오류:', err); }
+    // [수정] 체크박스 클릭 시 팝업을 띄우거나 바로 업데이트하는 핸들러
+    const handleDepositCheckboxChange = (id, checked) => {
+      if (checked) {
+        // 체크하는 경우, 팝업을 띄우기 위해 상태를 설정
+        setConfirmationDialogData({ id, checked });
+      } else {
+        // 체크를 해제하는 경우, 바로 DB 업데이트
+        updateDepositStatus(id, checked);
+      }
+    };
+
+    // [추가] 실제 DB를 업데이트하는 함수
+    const updateDepositStatus = async (id, checked) => {
+      try {
+        await updateDoc(doc(db, 'campaigns', id), { paymentReceived: checked });
+      } catch (err) {
+        console.error('입금 여부 업데이트 오류:', err);
+        alert('입금 상태 변경에 실패했습니다.');
+      }
     };
     
-    // [수정] 예약확정 함수 제거
-    // const handleConfirmReservation = async () => { ... };
-
     const handleLogout = async () => {
         try {
             await signOut(auth);
@@ -470,7 +482,6 @@ export default function SellerReservationPage() {
                         <div className="border rounded-md">
                             <Table>
                                 <TableHeader>
-                                    {/* [수정] '확정' 헤더 제거 */}
                                     <TableRow>{['일자', '상품명', '구분', '리뷰', '수량', '입금', '상태', '최종금액'].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -484,10 +495,17 @@ export default function SellerReservationPage() {
                                                 <TableCell><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
                                                 <TableCell><Badge>{c.reviewType}</Badge></TableCell>
                                                 <TableCell>{c.quantity}</TableCell>
-                                                <TableCell><input type="checkbox" checked={!!c.paymentReceived} onChange={(e) => handleDepositChange(c.id, e.target.checked)} title="입금 완료 시 체크"/></TableCell>
+                                                {/* [수정] 체크박스 핸들러 변경 */}
+                                                <TableCell>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={!!c.paymentReceived} 
+                                                        onChange={(e) => handleDepositCheckboxChange(c.id, e.target.checked)} 
+                                                        title="입금 완료 시 체크"
+                                                    />
+                                                </TableCell>
                                                 <TableCell><Badge variant={c.status === '예약 확정' ? 'default' : 'secondary'}>{c.status}</Badge></TableCell>
                                                 <TableCell className="text-right">{Math.round(c.finalTotalAmount || 0).toLocaleString()}원</TableCell>
-                                                {/* [수정] '확정' 버튼 셀 제거 */}
                                             </TableRow>
                                         ))
                                     )}
@@ -527,6 +545,35 @@ export default function SellerReservationPage() {
                         >
                             확인
                         </Button>
+                    </DialogContent>
+                </Dialog>
+
+                {/* [추가] 입금 확인 정보 팝업 */}
+                <Dialog open={!!confirmationDialogData} onOpenChange={() => setConfirmationDialogData(null)}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center space-x-2">
+                                <CheckCircle className="text-green-500" />
+                                <span>입금 확인 요청</span>
+                            </DialogTitle>
+                            <DialogDescription className="pt-4 text-base">
+                                입금 확인을 요청했습니다. <br/>
+                                관리자 승인 후 예약이 자동으로 확정됩니다.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="mt-4">
+                            <Button
+                                className="w-full"
+                                onClick={() => {
+                                    if (confirmationDialogData) {
+                                        updateDepositStatus(confirmationDialogData.id, confirmationDialogData.checked);
+                                    }
+                                    setConfirmationDialogData(null);
+                                }}
+                            >
+                                확인
+                            </Button>
+                        </DialogFooter>
                     </DialogContent>
                 </Dialog>
             </div>
