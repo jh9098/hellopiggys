@@ -283,9 +283,17 @@ export default function MyReviews() {
       }
       
       const finalUpdateData = { ...fieldsToUpdateInReview, ...imageUrlMap };
+      if (currentReview.status === 'uploading_images') {
+        finalUpdateData.status = 'submitted';
+      }
       await updateDoc(doc(db, 'reviews', currentReview.id), finalUpdateData);
 
-      const updatedReviewData = { ...currentReview, ...editableData, ...imageUrlMap };
+      const updatedReviewData = {
+        ...currentReview,
+        ...editableData,
+        ...imageUrlMap,
+        ...(currentReview.status === 'uploading_images' ? { status: 'submitted' } : {})
+      };
       const updatedRows = rows.map(row =>
         row.id === currentReview.id
           ? {
