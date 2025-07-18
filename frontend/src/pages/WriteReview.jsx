@@ -11,6 +11,11 @@ import LoginModal from '../components/LoginModal';
 import AccountModal from '../components/AccountModal';
 import './WriteReview.css';
 import imageCompression from 'browser-image-compression';
+// --- shadcn/ui 컴포넌트 임포트 ---
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const UPLOAD_FIELDS = [
   { key: 'keywordAndLikeImages', label: '1. 키워드 & 찜 인증', group: 'keyword-like', required: false },
@@ -335,22 +340,29 @@ export default function WriteReview() {
 
   return (
     <div className="page-wrap">
-      <h2 className="title">구매 폼 작성</h2>
-      {!currentUser && ( 
-        <div className="notice-box">
-        로그인 후 배정받은 상품을 선택해주세요.<br />
-        회원가입 시 전화번호는 숫자만 입력하세요.<br /><br />
-        회원가입은 지금 본인 이름과 전화번호로 가입하시고<br />
-        계정 추가 시 실제 진행 계정을 입력하셔서 등록하세요.<br />
-        * 타계정도 본인 이름과 전화번호로 가입하셔야합니다. *<br />
-        지금 가입하시는 하나의 이름과 전화번호로 전부 관리하는겁니다.
-        </div> )}
-      {isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} />}
-      {currentUser ? (
-        <button onClick={() => auth.signOut()} className="logout-btn">로그아웃</button>
-      ) : (
-        <button onClick={() => setIsLoginModalOpen(true)} className="login-open-btn">로그인 / 회원가입</button>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>구매 폼 작성</CardTitle>
+          {!currentUser && (
+            <CardDescription>
+              로그인 후 배정받은 상품을 선택해주세요.<br />
+              회원가입 시 전화번호는 숫자만 입력하세요.<br /><br />
+              회원가입은 지금 본인 이름과 전화번호로 가입하시고<br />
+              계정 추가 시 실제 진행 계정을 입력하셔서 등록하세요.<br />
+              * 타계정도 본인 이름과 전화번호로 가입하셔야합니다. *<br />
+              지금 가입하시는 하나의 이름과 전화번호로 전부 관리하는겁니다.
+            </CardDescription>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isLoginModalOpen && (
+            <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} />
+          )}
+          {currentUser ? (
+            <Button onClick={() => auth.signOut()} variant="outline" className="logout-btn">로그아웃</Button>
+          ) : (
+            <Button onClick={() => setIsLoginModalOpen(true)} className="login-open-btn">로그인 / 회원가입</Button>
+          )}
 
       {currentUser && !productIdFromUrl && (
         <div className="field">
@@ -397,51 +409,52 @@ export default function WriteReview() {
       </>)}
       
       {isAccountSelected && selectedSubAccountInfo && (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="field">
-            <label>구매자(수취인)</label>
-            <input name="name" value={form.name} onChange={onFormChange} required />
+            <Label htmlFor="name">구매자(수취인)</Label>
+            <Input id="name" name="name" value={form.name} onChange={onFormChange} required />
           </div>
           <div className="field">
-            <label>전화번호</label>
-            <input name="phoneNumber" value={form.phoneNumber} onChange={onFormChange} required />
+            <Label htmlFor="phoneNumber">전화번호</Label>
+            <Input id="phoneNumber" name="phoneNumber" value={form.phoneNumber} onChange={onFormChange} required />
           </div>
           <div className="field">
-            <label>주소</label>
+            <Label htmlFor="address">주소</Label>
             {addressOptions.length > 0 ? (
-              <select name="address" value={form.address} onChange={onFormChange} required>
+              <select name="address" value={form.address} onChange={onFormChange} required className="w-full border rounded-md p-2">
                 {addressOptions.map((addr, idx) => (
                   <option key={idx} value={addr}>{addr}</option>
                 ))}
               </select>
             ) : (
-              <input name="address" value={form.address} onChange={onFormChange} required />
+              <Input id="address" name="address" value={form.address} onChange={onFormChange} required />
             )}
           </div>
           <div className="field">
-            <label>은행</label>
-            <input name="bank" value={form.bank} onChange={onFormChange} required />
+            <Label htmlFor="bank">은행</Label>
+            <Input id="bank" name="bank" value={form.bank} onChange={onFormChange} required />
           </div>
           <div className="field">
-            <label>계좌번호</label>
-            <input name="bankNumber" value={form.bankNumber} onChange={onFormChange} required />
+            <Label htmlFor="bankNumber">계좌번호</Label>
+            <Input id="bankNumber" name="bankNumber" value={form.bankNumber} onChange={onFormChange} required />
           </div>
           <div className="field">
-            <label>예금주</label>
-            <input name="accountHolderName" value={form.accountHolderName} onChange={onFormChange} required />
+            <Label htmlFor="accountHolderName">예금주</Label>
+            <Input id="accountHolderName" name="accountHolderName" value={form.accountHolderName} onChange={onFormChange} required />
           </div>
           
           <div className="field">
-            <label>쿠팡 ID</label>
-            <input name="participantId" value={form.participantId} onChange={onFormChange} placeholder="쿠팡 ID를 입력하세요" required/>
+            <Label htmlFor="participantId">쿠팡 ID</Label>
+            <Input id="participantId" name="participantId" value={form.participantId} onChange={onFormChange} placeholder="쿠팡 ID를 입력하세요" required />
           </div>
           <div className="field">
-            <label>주문번호</label>
-            <input name="orderNumber" value={form.orderNumber} onChange={onFormChange} placeholder="주문번호를 그대로 복사하세요" required/>
+            <Label htmlFor="orderNumber">주문번호</Label>
+            <Input id="orderNumber" name="orderNumber" value={form.orderNumber} onChange={onFormChange} placeholder="주문번호를 그대로 복사하세요" required />
           </div>
           <div className="field">
-            <label>금액</label>
-            <input
+            <Label htmlFor="rewardAmount">금액</Label>
+            <Input
+              id="rewardAmount"
               name="rewardAmount"
               value={form.rewardAmount ? Number(form.rewardAmount).toLocaleString() : ''}
               onChange={onFormChange}
@@ -450,22 +463,22 @@ export default function WriteReview() {
             />
           </div>
           <div className="field">
-            <label>결제유형(선택하세요)</label>
-            <select name="paymentType" value={form.paymentType} onChange={onFormChange}>
+            <Label htmlFor="paymentType">결제유형(선택하세요)</Label>
+            <select id="paymentType" name="paymentType" value={form.paymentType} onChange={onFormChange} className="w-full border rounded-md p-2">
               <option value="현영">현영</option>
               <option value="자율결제">자율결제</option>
             </select>
           </div>
           <div className="field">
-            <label>상품종류(선택하세요)</label>
-            <select name="productType" value={form.productType} onChange={onFormChange}>
+            <Label htmlFor="productType">상품종류(선택하세요)</Label>
+            <select id="productType" name="productType" value={form.productType} onChange={onFormChange} className="w-full border rounded-md p-2">
               <option value="실배송">실배송</option>
               <option value="빈박스">빈박스</option>
             </select>
           </div>
           <div className="field">
-            <label>리뷰종류(선택하세요)</label>
-            <select name="reviewOption" value={form.reviewOption} onChange={onFormChange}>
+            <Label htmlFor="reviewOption">리뷰종류(선택하세요)</Label>
+            <select id="reviewOption" name="reviewOption" value={form.reviewOption} onChange={onFormChange} className="w-full border rounded-md p-2">
               {form.productType === '빈박스' ? (
                 <>
                   <option value="별점">별점</option>
@@ -575,6 +588,8 @@ export default function WriteReview() {
           </button>
         </form>
       )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
