@@ -1,4 +1,4 @@
-// src/firebaseConfig.js (누락된 함수들 모두 추가한 최종본)
+// src/firebaseConfig.js (httpsCallable 추가 최종본)
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
@@ -26,7 +26,7 @@ import {
   onSnapshot,
   writeBatch,
   increment,
-  arrayRemove, // [추가] Firestore 배열 요소 삭제 함수
+  arrayRemove,
 } from 'firebase/firestore';
 import {
   getStorage,
@@ -34,7 +34,9 @@ import {
   uploadBytes,
   getDownloadURL,
 } from 'firebase/storage';
-import { getFunctions } from 'firebase/functions';
+
+// [1. 수정] firebase/functions에서 httpsCallable를 추가로 임포트합니다.
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const firebaseConfig = {
   apiKey:             import.meta.env.VITE_FIREBASE_API_KEY,
@@ -77,10 +79,13 @@ export {
   onSnapshot,
   writeBatch,
   increment,
-  arrayRemove, // [추가] 다른 파일에서 사용할 수 있도록 export
+  arrayRemove,
 
   // Storage
   ref,
   uploadBytes,
   getDownloadURL,
+
+  // [2. 수정] Functions 관련 함수를 export 목록에 추가합니다.
+  httpsCallable,
 };
