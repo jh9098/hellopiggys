@@ -176,7 +176,7 @@ export default function SellerTrafficPage() {
       <div className="bg-white rounded-xl shadow-lg mb-8">
           <h2 className="text-2xl font-bold mb-4 text-gray-700 p-6">트래픽 견적 요청 (스프레드시트)</h2>
           <div className="overflow-x-auto">
-              <table className="min-w-full">
+              <table className="min-w-max">
                   <thead><tr><th className={`${thClass} w-40`}>구분</th><th className={thClass}>상품명</th><th className={thClass}>설명</th><th className={`${thClass} w-48`}>가격</th><th className={`${thClass} w-28`}>구매 개수</th><th className={`${thClass} w-40`}>요청일자</th><th className={`${thClass} w-32`}>시작일자</th><th className={`${thClass} w-32`}>종료일자</th><th className={`${thClass} w-36 border-r-0`}>트래픽 견적</th></tr></thead>
                   <tbody className="bg-white">
                   {products.map((p, index) => {
@@ -214,7 +214,7 @@ export default function SellerTrafficPage() {
       <div className="mt-8 p-6 bg-white rounded-xl shadow-lg">
           <h2 className="text-2xl font-bold mb-4 text-gray-700">나의 트래픽 예약 내역 (DB 저장 완료)</h2>
           <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-100"><tr><th className={thClass}>요청일자</th><th className={thClass} title="입금을 완료하셨으면 체크박스를 클릭해 주세요">입금여부*</th><th className={thClass}>결제상태</th><th className={thClass}>진행상태</th><th className={thClass}>상품명</th><th className={thClass}>개수</th><th className={thClass}>총 견적</th></tr></thead>
+              <table className="min-w-max divide-y divide-gray-200"><thead className="bg-gray-100"><tr><th className={thClass}>요청일자</th><th className={thClass} title="입금을 완료하셨으면 체크박스를 클릭해 주세요">입금여부*</th><th className={thClass}>결제상태</th><th className={thClass}>진행상태</th><th className={thClass}>상품명</th><th className={thClass}>개수</th><th className={thClass}>총 견적</th></tr></thead>
                   <tbody className="bg-white divide-y divide-gray-200">{savedRequests.length === 0 ? (<tr><td colSpan="7" className="text-center py-10 text-gray-500">예약 내역이 없습니다.</td></tr>) : (savedRequests.map(req => (<tr key={req.id}><td className={tdClass}>{req.requestDate?.seconds ? formatDateWithDay(new Date(req.requestDate.seconds * 1000)) : '-'}</td><td className={tdClass}><input type="checkbox" checked={!!req.paymentReceived} onChange={(e) => handleDepositChange(req.id, e.target.checked)} title="입금을 완료하셨으면 체크박스를 클릭해 주세요"/></td><td className={tdClass}>{req.paymentReceived ? '입금완료' : '입금전'}</td><td className={tdClass}>{req.paymentReceived ? (req.status === '예약 확정' ? (<span>예약확정</span>) : (<button onClick={() => setConfirmRequest(req)} className="text-blue-600 underline">예약확정</button>)) : '예약중'}</td><td className={tdClass}>{req.name}</td><td className={tdClass}>{req.quantity}</td><td className={tdClass}>{req.finalItemAmount?.toLocaleString()}원</td></tr>)))}</tbody>
               </table>
           </div>
