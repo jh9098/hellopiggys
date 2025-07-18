@@ -1,4 +1,4 @@
-// src/pages/seller/SellerTraffic.jsx (변경 없음 - 확인용)
+// src/pages/seller/SellerTraffic.jsx (입금 팝업 디자인 수정 최종본)
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -148,13 +148,11 @@ export default function SellerTrafficPage() {
         setUseDeposit(false);
     };
 
-    // [중요] 이 함수가 판매자가 입금했음을 알리는 기능을 수행합니다.
     const handleDepositChange = async (id, checked) => {
         try { await updateDoc(doc(db, 'traffic_requests', id), { paymentReceived: checked }); } 
         catch (err) { console.error('입금 여부 업데이트 오류:', err); }
     };
 
-    // [참고] 이 부분은 판매자가 직접 확정할 때 사용하던 로직으로, 현재는 관리자만 확정합니다.
     const handleConfirmReservation = async () => {
         if (!confirmRequest) return;
         try {
@@ -338,7 +336,6 @@ export default function SellerTrafficPage() {
                                             <TableCell>{req.requestDate?.seconds ? formatDateWithDay(new Date(req.requestDate.seconds * 1000)) : '-'}</TableCell>
                                             <TableCell className="font-medium">{req.name}</TableCell>
                                             <TableCell>{req.quantity}</TableCell>
-                                            {/* 여기 체크박스가 paymentReceived 필드를 업데이트 합니다 */}
                                             <TableCell><input type="checkbox" checked={!!req.paymentReceived} onChange={(e) => handleDepositChange(req.id, e.target.checked)} title="입금 완료 시 체크" /></TableCell>
                                             <TableCell><Badge variant={req.paymentReceived ? "default" : "outline"}>{req.paymentReceived ? '입금완료' : '입금전'}</Badge></TableCell>
                                             <TableCell><Badge variant={req.status === '예약 확정' ? 'default' : 'secondary'}>{req.status}</Badge></TableCell>
@@ -352,20 +349,37 @@ export default function SellerTrafficPage() {
                 </CardContent>
             </Card>
 
+            {/* --- [수정] 입금 안내 Dialog --- */}
             <Dialog open={showDepositPopup} onOpenChange={(open) => !open && handleClosePopupAndReset()}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>입금 계좌 안내</DialogTitle>
-                        <DialogDescription>아래 계좌로 <strong className="text-primary">{remainingPayment.toLocaleString()}원</strong>을 입금해주세요.</DialogDescription>
+                        <DialogTitle className="text-2xl text-center font-bold">입금 계좌 안내</DialogTitle>
+                        <DialogDescription className="text-center pt-2">
+                            아래 계좌로 <strong className="text-primary">{remainingPayment.toLocaleString()}원</strong>을 입금해주세요.
+                        </DialogDescription>
                     </DialogHeader>
-                    <div className="my-4 p-4 bg-muted rounded-md text-center">
-                        <p className="font-semibold">채종문 (아이언마운틴컴퍼니)</p>
-                        <p className="font-bold text-lg text-primary mt-1">국민은행 834702-04-290385</p>
+
+                    <div className="my-6 p-6 bg-muted rounded-lg space-y-4 text-base sm:text-lg">
+                        <div className="flex items-center">
+                            <span className="w-28 font-semibold text-muted-foreground">은 행</span>
+                            <span>국민은행</span>
+                        </div>
+                        <div className="flex items-center">
+                            <span className="w-28 font-semibold text-muted-foreground">계좌번호</span>
+                            <span className="font-mono tracking-wider">289537-00-006049</span>
+                        </div>
+                        <div className="flex items-center">
+                            <span className="w-28 font-semibold text-muted-foreground">예금주</span>
+                            <span>아이언마운틴컴퍼니</span>
+                        </div>
                     </div>
-                    <p className="text-sm text-center text-muted-foreground">입금 확인 후 '나의 트래픽 예약 내역'에서 상태가 변경됩니다.</p>
-                     <DialogFooter>
-                        <Button onClick={handleClosePopupAndReset} className="w-full">확인</Button>
-                    </DialogFooter>
+                    
+                    <Button 
+                        onClick={handleClosePopupAndReset} 
+                        className="w-full h-12 text-lg mt-2"
+                    >
+                        확인
+                    </Button>
                 </DialogContent>
             </Dialog>
         </div>
