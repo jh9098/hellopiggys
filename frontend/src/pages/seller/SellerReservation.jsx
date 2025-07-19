@@ -1,12 +1,12 @@
-// src/pages/seller/SellerReservation.jsx (사용자 요청 사항 최종 반영 버전)
+// src/pages/seller/SellerReservation.jsx (좌표 동적 계산 로직 추가 완료)
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react'; // useRef 임포트 추가
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, signOut, deleteDoc } from '../../firebaseConfig';
 import { nanoid } from 'nanoid';
 import { format } from "date-fns";
 import { ko } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Trash2, CheckCircle, Search, AlertTriangle } from "lucide-react";
+import { Calendar as CalendarIcon, Trash2, CheckCircle, Search, AlertTriangle, MousePointer2 } from "lucide-react";
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from "@fullcalendar/interaction";
@@ -58,7 +58,7 @@ const formatDateWithDay = (date) => {
     return format(date, 'yyyy.MM.dd(EEE)', { locale: ko });
 };
 
-// [수정] CoupangSearchResults 컴포넌트 문구 변경
+// CoupangSearchResults 컴포넌트 문구 변경
 function CoupangSearchResults({ results, isLoading, error }) {
     if (isLoading) return <div className="p-4 text-center text-muted-foreground">검색 중입니다...</div>;
     if (error) return <div className="p-4 text-center text-destructive">{error}</div>;
@@ -134,6 +134,11 @@ export default function SellerReservationPage() {
     const [paymentAmountInPopup, setPaymentAmountInPopup] = useState(0);
     const [saveTemplate, setSaveTemplate] = useState(false);
     
+    // [추가] 애니메이션을 위한 ref와 state
+    const animationContainerRef = useRef(null);
+    const searchButtonRef = useRef(null);
+    const [animationStyle, setAnimationStyle] = useState({});
+
     const calculateTotals = (currentCampaigns) => {
         let totalSubtotal = 0;
         currentCampaigns.forEach(c => {
@@ -232,6 +237,30 @@ export default function SellerReservationPage() {
         });
         return () => unsubscribeAuth();
     }, [navigate]);
+
+    // [추가] 애니메이션 좌표 계산을 위한 useEffect
+    useEffect(() => {
+        if (searchKeyword.trim() && !isSearching && animationContainerRef.current && searchButtonRef.current) {
+            const containerRect = animationContainerRef.current.getBoundingClientRect();
+            const buttonRect = searchButtonRef.current.getBoundingClientRect();
+
+            // 시작점: 컨테이너 좌측 바깥, 수직 중앙
+            const startX = -20;
+            const startY = containerRect.height / 2;
+
+            // 끝점: 버튼의 중앙 (컨테이너 기준 상대 좌표)
+            const targetX = (buttonRect.left - containerRect.left) + (buttonRect.width / 2);
+            const targetY = (buttonRect.top - containerRect.top) + (buttonRect.height / 2);
+
+            setAnimationStyle({
+                '--mouse-start-x': `${startX}px`,
+                '--mouse-start-y': `${startY}px`,
+                '--mouse-end-x': `${targetX}px`,
+                '--mouse-end-y': `${targetY}px`,
+            });
+        }
+    }, [searchKeyword, isSearching]);
+
 
     const handleFormChange = (name, value) => setFormState(prev => ({ ...prev, [name]: value }));
     const handleDateSelect = (date) => { handleFormChange('date', date); setIsDatePickerOpen(false); };
@@ -373,6 +402,40 @@ export default function SellerReservationPage() {
 
     return (
         <>
+            {/* [수정] CSS 변수를 사용하도록 @keyframes 수정 */}
+            <style>
+                {`
+                @keyframes moveAndClick {
+                  0% {
+                    opacity: 0;
+                    transform: translate(var(--mouse-start-x, -150px), var(--mouse-start-y, 0px)) scale(1);
+                  }
+                  10% {
+                    opacity: 1;
+                    transform: translate(var(--mouse-start-x, -150px), var(--mouse-start-y, 0px)) scale(1);
+                  }
+                  60% {
+                    opacity: 1;
+                    transform: translate(var(--mouse-end-x, 115px), var(--mouse-end-y, 0px)) scale(1);
+                  }
+                  75% {
+                    transform: translate(var(--mouse-end-x, 115px), var(--mouse-end-y, 0px)) scale(0.85);
+                  }
+                  90% {
+                    opacity: 1;
+                    transform: translate(var(--mouse-end-x, 115px), var(--mouse-end-y, 0px)) scale(1);
+                  }
+                  100% {
+                    opacity: 0;
+                    transform: translate(var(--mouse-end-x, 115px), var(--mouse-end-y, 0px)) scale(1);
+                  }
+                }
+                .animate-mouse-pointer {
+                  animation: moveAndClick 2.5s ease-in-out forwards;
+                }
+              `}
+            </style>
+
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4 p-4 bg-card border rounded-lg shadow-sm">
                 <div className="flex items-center space-x-4">
                     <div className="text-sm font-semibold">
@@ -402,9 +465,7 @@ export default function SellerReservationPage() {
                                 </div>
                             </div>
                         </CardHeader>
-                        {/* --- [핵심 수정] CardContent 전체 레이아웃 구조 변경 --- */}
                         <CardContent className="grid lg:grid-cols-3 gap-8">
-                            {/* --- 왼쪽 컬럼: 달력 --- */}
                             <div className="space-y-4">
                                 <div>
                                     <Label htmlFor="date">진행 일자</Label>
@@ -448,7 +509,6 @@ export default function SellerReservationPage() {
                                 </div>
                             </div>
 
-                            {/* --- 가운데 컬럼: 상품 정보 (박스로 감싸기) --- */}
                             <div className="space-y-4 p-4 border rounded-lg h-full">
                                 <div className="grid grid-cols-3 gap-4">
                                     <div><Label htmlFor="deliveryType">구분</Label><Select name="deliveryType" value={formState.deliveryType} onValueChange={(v) => handleFormChange('deliveryType', v)}><SelectTrigger id="deliveryType"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="실배송">실배송</SelectItem><SelectItem value="빈박스">빈박스</SelectItem></SelectContent></Select></div>
@@ -471,9 +531,11 @@ export default function SellerReservationPage() {
                                 </div>
                                 <div className="p-4 border rounded-lg bg-muted/40 space-y-3">
                                     <Label htmlFor="coupangSearch" className="font-semibold">해당 키워드로 대표님 상품이 검색이 되는지 확인해 보셨나요?</Label>
-                                    <div className="flex space-x-2">
+                                    {/* [수정] ref를 컨테이너와 버튼에 연결 */}
+                                    <div ref={animationContainerRef} className="relative flex space-x-2">
                                         <Input id="coupangSearch" placeholder="키워드 입력 후 검색" value={searchKeyword} onChange={e => setSearchKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleKeywordSearch())} />
                                         <Button
+                                            ref={searchButtonRef}
                                             type="button"
                                             onClick={handleKeywordSearch}
                                             disabled={isSearching}
@@ -481,12 +543,20 @@ export default function SellerReservationPage() {
                                         >
                                             <Search className="h-4 w-4"/>
                                         </Button>
+                                        {/* [수정] 동적 스타일 적용 및 초기 위치 수정 */}
+                                        <MousePointer2
+                                            className={cn(
+                                                "w-5 h-5 absolute text-primary-foreground bg-primary p-1 rounded-full shadow-lg pointer-events-none",
+                                                "opacity-0", 
+                                                searchKeyword.trim() && !isSearching && "animate-mouse-pointer"
+                                            )}
+                                            style={{ ...animationStyle, left: 0, top: 0, transformOrigin: 'top left' }}
+                                        />
                                     </div>
                                     <CoupangSearchResults results={searchResults} isLoading={isSearching} error={searchError} />
                                 </div>
                             </div>
 
-                            {/* --- 오른쪽 컬럼: 리뷰 가이드, 비고 --- */}
                             <div className="space-y-4 h-full flex flex-col">
                                 <div className="flex-grow flex flex-col">
                                     <div className="flex justify-between items-baseline mb-1">
@@ -532,6 +602,7 @@ export default function SellerReservationPage() {
                     </form>
                 </Card>
 
+                {/* --- 이하 코드는 변경사항 없음 --- */}
                 <Card>
                     <CardHeader><CardTitle>견적 목록(스프레드시트)</CardTitle><CardDescription>결제를 진행할 캠페인 목록입니다.<br/>- 품절 등으로 진행 불가 시 상품가만 예치금으로 전환됩니다.<br/>- 대표님 귀책 사유로 세금계산서 변경 시 수수료 10,000원 부과됩니다.<br/>- 견적 상세 = [체험단 진행비 + 상품가 × (1 + 대행수수료 10%)] × 수량 {isVatApplied && "× (1 + 부가세 10%)"}</CardDescription></CardHeader>
                     <CardContent><div className="border rounded-md"><Table><TableHeader><TableRow>{['일자', '구분', '리뷰', '수량', '상품명', '상품가', '견적상세', '최종금액', '삭제'].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow></TableHeader><TableBody>{campaigns.length === 0 ? (<TableRow><TableCell colSpan="9" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>) : (campaigns.map((c) => {
