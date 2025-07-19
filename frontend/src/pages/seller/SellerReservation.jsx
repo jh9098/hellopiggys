@@ -62,7 +62,34 @@ const formatDateWithDay = (date) => {
 function CoupangSearchResults({ results, isLoading, error }) {
     if (isLoading) return <div className="p-4 text-center text-muted-foreground">검색 중입니다...</div>;
     if (error) return <div className="p-4 text-center text-destructive">{error}</div>;
-    if (results.length === 0) return <div className="p-4 text-center text-muted-foreground">해당 키워드로 대표님 상품이 검색이 되는지 확인해 보셨나요?</div>;
+
+    if (results.length === 0) {
+        return (
+            <div className="p-4 mt-4 text-left text-sm text-muted-foreground bg-muted/30 rounded-lg border space-y-3">
+                <p className="font-semibold text-base text-foreground">💡 대표님, 키워드 검색 이렇게 활용해 보세요!</p>
+                <ul className="space-y-2 pl-1">
+                    <li className="flex items-start">
+                        <span className="font-bold text-primary mr-2">1.</span>
+                        <div>
+                            <strong>상세 필터로 정확하게!</strong><br />
+                            가격검색 필터와 상세 필터를 적용하면 대표님 상품을 더 쉽게 찾을 수 있습니다.
+                        </div>
+                    </li>
+                    <li className="flex items-start">
+                        <span className="font-bold text-primary mr-2">2.</span>
+                        <div>
+                            <strong>키워드 랭킹 1위를 향한 첫걸음!</strong><br />
+                            대표님 상품이 검색된다면, 저희와 함께 키워드 랭킹 최상단에 도전해보세요!
+                        </div>
+                    </li>
+                </ul>
+                <p className="text-center pt-2 font-medium">
+                    우선, 위 검색창에서 대표님의 상품이 노출되는지 확인해 보세요.
+                </p>
+            </div>
+        );
+    }
+
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4 max-h-96 overflow-y-auto p-1">
             {results.map((item, index) => (
@@ -443,10 +470,17 @@ export default function SellerReservationPage() {
                                     <Input id="keywords" name="keywords" value={formState.keywords} onChange={handleKeywordSync} />
                                 </div>
                                 <div className="p-4 border rounded-lg bg-muted/40 space-y-3">
-                                    <Label htmlFor="coupangSearch" className="font-semibold">쿠팡 파트너스 키워드 검색</Label>
+                                    <Label htmlFor="coupangSearch" className="font-semibold">해당 키워드로 대표님 상품이 검색이 되는지 확인해 보셨나요?</Label>
                                     <div className="flex space-x-2">
                                         <Input id="coupangSearch" placeholder="키워드 입력 후 검색" value={searchKeyword} onChange={e => setSearchKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleKeywordSearch())} />
-                                        <Button type="button" onClick={handleKeywordSearch} disabled={isSearching}><Search className="h-4 w-4"/></Button>
+                                        <Button
+                                            type="button"
+                                            onClick={handleKeywordSearch}
+                                            disabled={isSearching}
+                                            className={cn(searchKeyword.trim() && !isSearching && 'animate-pulse')}
+                                        >
+                                            <Search className="h-4 w-4"/>
+                                        </Button>
                                     </div>
                                     <CoupangSearchResults results={searchResults} isLoading={isSearching} error={searchError} />
                                 </div>
