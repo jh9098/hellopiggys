@@ -1,4 +1,4 @@
-// src/pages/seller/SellerReservation.jsx (최종 안정화 버전 - Traffic 페이지 로직 적용)
+// src/pages/seller/SellerReservation.jsx (사용자 요청 사항 최종 반영 버전)
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
@@ -58,11 +58,11 @@ const formatDateWithDay = (date) => {
     return format(date, 'yyyy.MM.dd(EEE)', { locale: ko });
 };
 
-
+// [수정] CoupangSearchResults 컴포넌트 문구 변경
 function CoupangSearchResults({ results, isLoading, error }) {
     if (isLoading) return <div className="p-4 text-center text-muted-foreground">검색 중입니다...</div>;
     if (error) return <div className="p-4 text-center text-destructive">{error}</div>;
-    if (results.length === 0) return <div className="p-4 text-center text-muted-foreground">검색 결과가 없습니다.</div>;
+    if (results.length === 0) return <div className="p-4 text-center text-muted-foreground">해당 키워드로 대표님 상품이 검색이 되는지 확인해 보셨나요?</div>;
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4 max-h-96 overflow-y-auto p-1">
             {results.map((item, index) => (
@@ -105,8 +105,8 @@ export default function SellerReservationPage() {
     const [selectedSavedCampaigns, setSelectedSavedCampaigns] = useState([]);
     const [deleteConfirmation, setDeleteConfirmation] = useState(null);
     const [paymentAmountInPopup, setPaymentAmountInPopup] = useState(0);
+    const [saveTemplate, setSaveTemplate] = useState(false);
     
-    // --- [핵심 수정] useMemo 제거하고, 필요할 때마다 직접 계산하는 함수로 변경 ---
     const calculateTotals = (currentCampaigns) => {
         let totalSubtotal = 0;
         currentCampaigns.forEach(c => {
@@ -210,6 +210,9 @@ export default function SellerReservationPage() {
     const handleDateSelect = (date) => { handleFormChange('date', date); setIsDatePickerOpen(false); };
     const handleAddCampaign = (e) => {
         e.preventDefault();
+        if (saveTemplate) {
+            console.log("템플릿으로 저장:", formState);
+        }
         const newCampaign = { id: nanoid(), ...formState };
         if (!formState.productOption.trim()) { setPendingCampaign(newCampaign); } 
         else { setCampaigns(prev => [...prev, newCampaign]); setFormState(initialFormState); }
@@ -223,22 +226,17 @@ export default function SellerReservationPage() {
     };
     const handleDeleteCampaign = (id) => setCampaigns(campaigns.filter(c => c.id !== id));
     
-    // --- [핵심 수정] 입금하기 버튼 핸들러 ---
-const handleProcessPayment = async () => {
+    const handleProcessPayment = async () => {
         if (campaigns.length === 0 || !user) { alert('견적에 추가된 캠페인이 없습니다.'); return; }
         
-        // 결제 직전에 최신 상태로 최종 금액을 다시 계산
         const { remainingPayment, amountToUseFromDeposit } = calculateTotals(campaigns);
-
         const batch = writeBatch(db);
         const sellerDocRef = doc(db, 'sellers', user.uid);
-        
         const isFullDepositPayment = remainingPayment <= 0;
 
         campaigns.forEach(campaign => {
             const campaignRef = doc(collection(db, 'campaigns'));
             const { id, ...campaignData } = campaign;
-
             const cDate = campaign.date instanceof Date ? campaign.date : new Date();
             const reviewFee = getBasePrice(campaign.deliveryType, campaign.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
             const productPriceWithAgencyFee = Number(campaign.productPrice) * 1.1;
@@ -265,14 +263,13 @@ const handleProcessPayment = async () => {
 
         try {
             await batch.commit();
-            
             if (!isFullDepositPayment) { 
-                setPaymentAmountInPopup(remainingPayment); // 팝업에 표시할 금액 저장
+                setPaymentAmountInPopup(remainingPayment);
                 setShowDepositPopup(true); 
             } else { 
                 alert('예치금으로 결제가 완료되어 예약이 접수되었습니다.');
             }
-            setCampaigns([]); // DB 저장 후 견적 목록 비우기
+            setCampaigns([]);
         } catch (error) { console.error("결제 처리 중 오류 발생: ", error); alert('오류가 발생하여 결제를 완료하지 못했습니다.'); }
     };
 
@@ -303,6 +300,12 @@ const handleProcessPayment = async () => {
         finally { setIsSearching(false); }
     };
     
+    const handleKeywordSync = (e) => {
+        const { value } = e.target;
+        handleFormChange('keywords', value);
+        setSearchKeyword(value);
+    };
+
     const renderDayCell = (dayCellInfo) => {
         const dateStr = formatDateForCalendar(dayCellInfo.date);
         const capacity = capacities[dateStr] || 0;
@@ -339,9 +342,7 @@ const handleProcessPayment = async () => {
 
     if (isLoading) return <div className="flex justify-center items-center h-screen"><p>데이터를 불러오는 중입니다...</p></div>;
     
-    // --- [핵심 수정] CardFooter에서 직접 계산된 값을 사용 ---
     const { totalSubtotal, totalVat, totalAmount, amountToUseFromDeposit, remainingPayment } = calculateTotals(campaigns);
-
 
     return (
         <>
@@ -363,10 +364,20 @@ const handleProcessPayment = async () => {
                 <Card>
                     <form onSubmit={handleAddCampaign}>
                         <CardHeader>
-                            <CardTitle>새 작업 추가</CardTitle>
-                            <CardDescription>진행할 리뷰 캠페인의 정보를 입력하고 견적에 추가하세요.</CardDescription>
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <CardTitle>새 작업 추가</CardTitle>
+                                    <CardDescription>진행할 리뷰 캠페인의 정보를 입력하고 견적에 추가하세요.</CardDescription>
+                                </div>
+                                <div className="flex items-center space-x-2 pt-1 flex-shrink-0">
+                                    <Checkbox id="saveTemplate" checked={saveTemplate} onCheckedChange={setSaveTemplate} />
+                                    <Label htmlFor="saveTemplate">지금 작성하는 상품 저장하기</Label>
+                                </div>
+                            </div>
                         </CardHeader>
+                        {/* --- [핵심 수정] CardContent 전체 레이아웃 구조 변경 --- */}
                         <CardContent className="grid lg:grid-cols-3 gap-8">
+                            {/* --- 왼쪽 컬럼: 달력 --- */}
                             <div className="space-y-4">
                                 <div>
                                     <Label htmlFor="date">진행 일자</Label>
@@ -392,9 +403,7 @@ const handleProcessPayment = async () => {
                                             const dailyEvents = calendarCampaigns.filter(c => c.status === '예약 확정' && formatDateForCalendar(c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date)) === dateStr);
                                             const totalQuantity = dailyEvents.reduce((sum, event) => sum + Number(event.quantity || 0), 0);
                                             const remaining = capacity - totalQuantity;
-                                            if (remaining > 0 && capacity > 0) {
-                                                return 'cursor-pointer hover:bg-muted';
-                                            }
+                                            if (remaining > 0 && capacity > 0) return 'cursor-pointer hover:bg-muted';
                                             return '';
                                         }}
                                         dateClick={(info) => {
@@ -403,47 +412,78 @@ const handleProcessPayment = async () => {
                                             const dailyEvents = calendarCampaigns.filter(c => c.status === '예약 확정' && formatDateForCalendar(c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date)) === dateStr);
                                             const totalQuantity = dailyEvents.reduce((sum, event) => sum + Number(event.quantity || 0), 0);
                                             const remaining = capacity - totalQuantity;
-                                            
-                                            if (remaining > 0 && capacity > 0) {
-                                                setFormState(prev => ({ ...prev, date: info.date }));
-                                            } else {
-                                                alert('해당 날짜는 예약이 마감되었습니다.');
-                                            }
+                                            if (remaining > 0 && capacity > 0) setFormState(prev => ({ ...prev, date: info.date }));
+                                            else alert('해당 날짜는 예약이 마감되었습니다.');
                                         }}
                                         locale="ko" 
                                         height="auto" 
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-4">
+
+                            {/* --- 가운데 컬럼: 상품 정보 (박스로 감싸기) --- */}
+                            <div className="space-y-4 p-4 border rounded-lg h-full">
                                 <div className="grid grid-cols-3 gap-4">
                                     <div><Label htmlFor="deliveryType">구분</Label><Select name="deliveryType" value={formState.deliveryType} onValueChange={(v) => handleFormChange('deliveryType', v)}><SelectTrigger id="deliveryType"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="실배송">실배송</SelectItem><SelectItem value="빈박스">빈박스</SelectItem></SelectContent></Select></div>
                                     <div><Label htmlFor="reviewType">리뷰 종류</Label><Select name="reviewType" value={formState.reviewType} onValueChange={(v) => handleFormChange('reviewType', v)}><SelectTrigger id="reviewType"><SelectValue/></SelectTrigger><SelectContent>{formState.deliveryType === '실배송' ? (<><SelectItem value="별점">별점</SelectItem><SelectItem value="텍스트">텍스트</SelectItem><SelectItem value="포토">포토</SelectItem><SelectItem value="프리미엄(포토)">프리미엄(포토)</SelectItem><SelectItem value="프리미엄(영상)">프리미엄(영상)</SelectItem></>) : (<><SelectItem value="별점">별점</SelectItem><SelectItem value="텍스트">텍스트</SelectItem></>)}</SelectContent></Select></div>
                                     <div><Label htmlFor="quantity">체험단 개수</Label><Input id="quantity" type="number" name="quantity" value={formState.quantity} onChange={(e) => handleFormChange('quantity', e.target.value)} min="1" required /></div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div><Label htmlFor="productName">상품명</Label><Input id="productName" name="productName" value={formState.productName} onChange={(e) => handleFormChange('productName', e.target.value)} required /></div>
-                                    <div><Label htmlFor="productPrice">상품가</Label><Input id="productPrice" type="number" name="productPrice" value={formState.productPrice} onChange={(e) => handleFormChange('productPrice', e.target.value)} placeholder="0" /></div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div><Label htmlFor="productOption">옵션</Label><Input id="productOption" name="productOption" value={formState.productOption} onChange={(e) => handleFormChange('productOption', e.target.value)} /></div>
-                                    <div><Label htmlFor="keywords">키워드 (1개)</Label><Input id="keywords" name="keywords" value={formState.keywords} onChange={(e) => handleFormChange('keywords', e.target.value)} /></div>
-                                </div>
                                 <div>
                                     <Label htmlFor="productUrl">상품 URL</Label><Input id="productUrl" type="url" name="productUrl" value={formState.productUrl} onChange={(e) => handleFormChange('productUrl', e.target.value)} placeholder="https://..." />
+                                </div>
+                                <div>
+                                    <Label htmlFor="productName">상품명</Label><Input id="productName" name="productName" value={formState.productName} onChange={(e) => handleFormChange('productName', e.target.value)} required />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><Label htmlFor="productPrice">상품가</Label><Input id="productPrice" type="number" name="productPrice" value={formState.productPrice} onChange={(e) => handleFormChange('productPrice', e.target.value)} placeholder="0" /></div>
+                                    <div><Label htmlFor="productOption">옵션</Label><Input id="productOption" name="productOption" value={formState.productOption} onChange={(e) => handleFormChange('productOption', e.target.value)} /></div>
+                                </div>
+                                <div>
+                                    <Label htmlFor="keywords">키워드 (1개)</Label>
+                                    <Input id="keywords" name="keywords" value={formState.keywords} onChange={handleKeywordSync} />
                                 </div>
                                 <div className="p-4 border rounded-lg bg-muted/40 space-y-3">
                                     <Label htmlFor="coupangSearch" className="font-semibold">쿠팡 파트너스 키워드 검색</Label>
                                     <div className="flex space-x-2">
-                                        <Input id="coupangSearch" placeholder="키워드를 입력하여 상품 노출 확인" value={searchKeyword} onChange={e => setSearchKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleKeywordSearch()} />
+                                        <Input id="coupangSearch" placeholder="키워드 입력 후 검색" value={searchKeyword} onChange={e => setSearchKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleKeywordSearch())} />
                                         <Button type="button" onClick={handleKeywordSearch} disabled={isSearching}><Search className="h-4 w-4"/></Button>
                                     </div>
                                     <CoupangSearchResults results={searchResults} isLoading={isSearching} error={searchError} />
                                 </div>
                             </div>
-                            <div>
-                                <Label htmlFor="reviewGuide">리뷰 가이드</Label>
-                                <Textarea id="reviewGuide" name="reviewGuide" value={formState.reviewGuide} onChange={(e) => handleFormChange('reviewGuide', e.target.value)} disabled={formState.reviewType === '별점'} className="h-48" />
+
+                            {/* --- 오른쪽 컬럼: 리뷰 가이드, 비고 --- */}
+                            <div className="space-y-4 h-full flex flex-col">
+                                <div className="flex-grow flex flex-col">
+                                    <div className="flex justify-between items-baseline mb-1">
+                                        <Label htmlFor="reviewGuide">리뷰 가이드</Label>
+                                        <span className="text-xs text-muted-foreground">{formState.reviewGuide.length} / 200</span>
+                                    </div>
+                                    <Textarea 
+                                        id="reviewGuide" 
+                                        name="reviewGuide" 
+                                        value={formState.reviewGuide} 
+                                        onChange={(e) => handleFormChange('reviewGuide', e.target.value)} 
+                                        disabled={formState.reviewType === '별점'} 
+                                        className="flex-grow" 
+                                        maxLength="200"
+                                        placeholder="경우에 따라 가이드 내용이 반려될 수 있습니다"
+                                    />
+                                </div>
+                                <div className="flex-grow flex flex-col">
+                                    <div className="flex justify-between items-baseline mb-1">
+                                        <Label htmlFor="remarks">비고</Label>
+                                        <span className="text-xs text-muted-foreground">{formState.remarks.length} / 200</span>
+                                    </div>
+                                    <Textarea 
+                                        id="remarks" 
+                                        name="remarks" 
+                                        value={formState.remarks} 
+                                        onChange={(e) => handleFormChange('remarks', e.target.value)} 
+                                        className="flex-grow" 
+                                        maxLength="200" 
+                                    />
+                                </div>
                             </div>
                         </CardContent>
                         <CardFooter className="flex justify-between items-center flex-wrap gap-4">
