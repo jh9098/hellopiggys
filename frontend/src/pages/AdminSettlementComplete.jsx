@@ -144,7 +144,7 @@ export default function AdminSettlementCompletePage() {
               <TableHead>리뷰 인증</TableHead>
               <TableHead onClick={() => requestSort('rewardAmount')} className="sortable">정산 금액<SortIndicator columnKey="rewardAmount" /></TableHead>
             </TableRow>
-            <tr className="filter-row">
+            <TableRow className="filter-row">
               <TableHead></TableHead><TableHead></TableHead><TableHead></TableHead>
               <TableHead><input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></TableHead>
               <TableHead><input type="text" name="mainAccountName" value={filters.mainAccountName} onChange={handleFilterChange} /></TableHead>
@@ -158,7 +158,7 @@ export default function AdminSettlementCompletePage() {
           </TableHeader>
           <TableBody>
             {processedRows.map((r) => (
-              <tr key={r.id}>
+              <TableRow key={r.id}>
                 <TableCell><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></TableCell>
                 {/* [수정] 헬퍼 함수 사용 */}
                 <TableCell>{formatTimestamp24h(r.settledAt)}</TableCell>
