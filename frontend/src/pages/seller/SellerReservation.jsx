@@ -1,7 +1,7 @@
-// src/pages/seller/SellerReservation.jsx (요청사항 반영 최종 수정본)
+// src/pages/seller/SellerReservation.jsx (최종 안정화 버전 - Traffic 페이지 로직 적용)
 
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, signOut, deleteDoc } from '../../firebaseConfig';
 import { nanoid } from 'nanoid';
 import { format } from "date-fns";
@@ -15,7 +15,7 @@ import axios from 'axios';
 import hmacSHA256 from 'crypto-js/hmac-sha256';
 
 // --- shadcn/ui 컴포넌트 임포트 ---
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +28,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox"; // [추가] Checkbox 임포트
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 
@@ -101,56 +101,42 @@ export default function SellerReservationPage() {
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState('');
     
-    // [추가] 상태 변수
     const [isVatApplied, setIsVatApplied] = useState(true);
     const [selectedSavedCampaigns, setSelectedSavedCampaigns] = useState([]);
-    const [deleteConfirmation, setDeleteConfirmation] = useState(null); // 삭제 확인용: { type: 'single' | 'multiple', ids: string[] }
+    const [deleteConfirmation, setDeleteConfirmation] = useState(null);
+    const [paymentAmountInPopup, setPaymentAmountInPopup] = useState(0);
+    
+    // --- [핵심 수정] useMemo 제거하고, 필요할 때마다 직접 계산하는 함수로 변경 ---
+    const calculateTotals = (currentCampaigns) => {
+        let totalSubtotal = 0;
+        currentCampaigns.forEach(c => {
+            const cDate = c.date instanceof Date ? c.date : new Date();
+            const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
+            const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
+            const subtotalPerItem = reviewFee + productPriceWithAgencyFee;
+            totalSubtotal += subtotalPerItem * Number(c.quantity);
+        });
 
-    // [수정] 가격 계산 useMemo
-    const { 
-        basePrice, sundayExtraCharge, finalUnitPrice,
-        totalSubtotal, totalVat, totalAmount, 
-        amountToUseFromDeposit, remainingPayment 
-    } = useMemo(() => {
+        const totalAmount = isVatApplied ? totalSubtotal * 1.1 : totalSubtotal;
+        const totalVat = totalAmount - totalSubtotal;
+        const amountToUseFromDeposit = useDeposit ? Math.min(totalAmount, deposit) : 0;
+        const remainingPayment = Math.ceil(totalAmount - amountToUseFromDeposit);
+
+        return {
+            totalSubtotal: Math.round(totalSubtotal),
+            totalVat: Math.round(totalVat),
+            totalAmount: Math.round(totalAmount),
+            amountToUseFromDeposit: Math.round(amountToUseFromDeposit),
+            remainingPayment,
+        };
+    };
+
+    const { basePrice, sundayExtraCharge, finalUnitPrice } = useMemo(() => {
         const basePrice = getBasePrice(formState.deliveryType, formState.reviewType);
         const sundayExtraCharge = formState.date.getDay() === 0 ? 600 : 0;
         const finalUnitPrice = basePrice + sundayExtraCharge;
-
-        const updatedCampaigns = campaigns.map(c => {
-            const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (c.date.getDay() === 0 ? 600 : 0);
-            const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
-            const subtotalPerItem = reviewFee + productPriceWithAgencyFee;
-            const totalSubtotal = subtotalPerItem * Number(c.quantity);
-            
-            const finalTotalAmount = isVatApplied ? totalSubtotal * 1.1 : totalSubtotal;
-
-            return {
-                ...c,
-                reviewFee,
-                subtotal: totalSubtotal,
-                vat: finalTotalAmount - totalSubtotal,
-                finalTotalAmount: finalTotalAmount
-            };
-        });
-
-        const currentTotalSubtotal = updatedCampaigns.reduce((sum, c) => sum + c.subtotal, 0);
-        const currentTotalAmount = updatedCampaigns.reduce((sum, c) => sum + c.finalTotalAmount, 0);
-        const currentTotalVat = currentTotalAmount - currentTotalSubtotal;
-
-        const currentAmountToUse = useDeposit ? Math.min(currentTotalAmount, deposit) : 0;
-        const currentRemainingPayment = Math.ceil(currentTotalAmount - currentAmountToUse); // [수정] 소수점 올림
-
-        return {
-            basePrice,
-            sundayExtraCharge,
-            finalUnitPrice,
-            totalSubtotal: Math.round(currentTotalSubtotal),
-            totalVat: Math.round(currentTotalVat),
-            totalAmount: Math.round(currentTotalAmount),
-            amountToUseFromDeposit: Math.round(currentAmountToUse),
-            remainingPayment: currentRemainingPayment,
-        };
-    }, [formState, campaigns, useDeposit, deposit, isVatApplied]);
+        return { basePrice, sundayExtraCharge, finalUnitPrice };
+    }, [formState.deliveryType, formState.reviewType, formState.date]);
     
     const calendarEvents = useMemo(() => {
         if (Object.keys(sellersMap).length === 0 || calendarCampaigns.length === 0) return [];
@@ -200,9 +186,7 @@ export default function SellerReservationPage() {
                 listeners.push(onSnapshot(q, (snapshot) => { setSavedCampaigns(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))); }));
                 const sellerDocRef = doc(db, 'sellers', currentUser.uid);
                 listeners.push(onSnapshot(sellerDocRef, (doc) => {
-                    if (doc.exists()) {
-                        const data = doc.data(); setDeposit(data.deposit || 0); setNickname(data.nickname || currentUser.email);
-                    }
+                    if (doc.exists()) { const data = doc.data(); setDeposit(data.deposit || 0); setNickname(data.nickname || currentUser.email); }
                 }));
                 listeners.push(onSnapshot(collection(db, 'sellers'), (snap) => {
                     const map = {}; snap.forEach(d => { const data = d.data(); if (data.uid) map[data.uid] = data.nickname || '이름없음'; });
@@ -216,32 +200,19 @@ export default function SellerReservationPage() {
                 setIsLoading(false);
                 return () => listeners.forEach(unsub => unsub());
             } else {
-                setUser(null);
-                setIsLoading(false);
-                navigate('/seller-login');
+                setUser(null); setIsLoading(false); navigate('/seller-login');
             }
         });
         return () => unsubscribeAuth();
     }, [navigate]);
 
     const handleFormChange = (name, value) => setFormState(prev => ({ ...prev, [name]: value }));
-    const handleDateSelect = (date) => {
-        handleFormChange('date', date);
-        setIsDatePickerOpen(false);
-    };
+    const handleDateSelect = (date) => { handleFormChange('date', date); setIsDatePickerOpen(false); };
     const handleAddCampaign = (e) => {
         e.preventDefault();
-        const newCampaign = { 
-            id: nanoid(), 
-            ...formState, 
-        };
-
-        if (!formState.productOption.trim()) {
-            setPendingCampaign(newCampaign);
-        } else {
-            setCampaigns(prev => [...prev, newCampaign]);
-            setFormState(initialFormState);
-        }
+        const newCampaign = { id: nanoid(), ...formState };
+        if (!formState.productOption.trim()) { setPendingCampaign(newCampaign); } 
+        else { setCampaigns(prev => [...prev, newCampaign]); setFormState(initialFormState); }
     };
     const handleConfirmAddCampaign = () => {
         if (pendingCampaign) {
@@ -252,63 +223,59 @@ export default function SellerReservationPage() {
     };
     const handleDeleteCampaign = (id) => setCampaigns(campaigns.filter(c => c.id !== id));
     
-    // [수정] 입금하기 버튼 핸들러
-    const handleProcessPayment = async () => {
-        if (campaigns.length === 0 || !user) {
-            alert('견적에 추가된 캠페인이 없습니다.');
-            return;
-        }
+    // --- [핵심 수정] 입금하기 버튼 핸들러 ---
+const handleProcessPayment = async () => {
+        if (campaigns.length === 0 || !user) { alert('견적에 추가된 캠페인이 없습니다.'); return; }
+        
+        // 결제 직전에 최신 상태로 최종 금액을 다시 계산
+        const { remainingPayment, amountToUseFromDeposit } = calculateTotals(campaigns);
 
         const batch = writeBatch(db);
         const sellerDocRef = doc(db, 'sellers', user.uid);
         
-        // useMemo에서 계산된 최신 값들을 참조하여 각 캠페인 저장
-        const updatedCampaigns = campaigns.map(c => {
-             const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (c.date.getDay() === 0 ? 600 : 0);
-             const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
-             const subtotalPerItem = reviewFee + productPriceWithAgencyFee;
-             const totalSubtotal = subtotalPerItem * Number(c.quantity);
-             const finalTotalAmount = isVatApplied ? totalSubtotal * 1.1 : totalSubtotal;
- 
-             return {
-                 ...c,
-                 reviewFee,
-                 productPriceWithAgencyFee: productPriceWithAgencyFee,
-                 subtotal: totalSubtotal,
-                 vat: finalTotalAmount - totalSubtotal,
-                 finalTotalAmount: finalTotalAmount,
-             };
-        });
+        const isFullDepositPayment = remainingPayment <= 0;
 
-        updatedCampaigns.forEach(campaign => {
+        campaigns.forEach(campaign => {
             const campaignRef = doc(collection(db, 'campaigns'));
-            const { id, ...campaignData } = campaign; // 임시 id는 제거
+            const { id, ...campaignData } = campaign;
+
+            const cDate = campaign.date instanceof Date ? campaign.date : new Date();
+            const reviewFee = getBasePrice(campaign.deliveryType, campaign.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
+            const productPriceWithAgencyFee = Number(campaign.productPrice) * 1.1;
+            const subtotalPerItem = reviewFee + productPriceWithAgencyFee;
+            const totalSubtotal = subtotalPerItem * Number(campaign.quantity);
+            const finalTotalAmount = isVatApplied ? totalSubtotal * 1.1 : totalSubtotal;
+
             batch.set(campaignRef, {
                 ...campaignData,
                 sellerUid: user.uid,
                 createdAt: serverTimestamp(),
-                status: '예약 대기', // 초기 상태
-                paymentReceived: remainingPayment <= 0,
+                status: '예약 대기',
+                paymentReceived: isFullDepositPayment,
                 isVatApplied,
+                reviewFee,
+                productPriceWithAgencyFee,
+                subtotal: Math.round(totalSubtotal),
+                vat: Math.round(finalTotalAmount - totalSubtotal),
+                finalTotalAmount: Math.round(finalTotalAmount),
             });
         });
 
-        if (useDeposit && amountToUseFromDeposit > 0) {
-            batch.update(sellerDocRef, { deposit: increment(-amountToUseFromDeposit) });
-        }
+        if (useDeposit && finalAmountToUse > 0) { batch.update(sellerDocRef, { deposit: increment(-finalAmountToUse) }); }
 
         try {
             await batch.commit();
-            setCampaigns([]); // 견적 목록 비우기
-            if (remainingPayment > 0) {
-                setShowDepositPopup(true);
-            } else {
+            
+            // ▼▼▼ 이 부분을 수정해주세요 ▼▼▼
+            if (!isFullDepositPayment) { 
+                setPaymentAmountInPopup(remainingPayment); // 팝업에 표시할 금액 저장
+                setShowDepositPopup(true); 
+            } else { 
                 alert('예치금으로 결제가 완료되어 예약이 접수되었습니다.');
             }
-        } catch (error) {
-            console.error("결제 처리 중 오류 발생: ", error);
-            alert('오류가 발생하여 결제를 완료하지 못했습니다.');
-        }
+            setCampaigns([]); // DB 저장 후 견적 목록 비우기
+            // ▲▲▲ 이 부분을 수정해주세요 ▲▲▲
+        } catch (error) { console.error("결제 처리 중 오류 발생: ", error); alert('오류가 발생하여 결제를 완료하지 못했습니다.'); }
     };
 
     const handleDepositCheckboxChange = (id, checked) => {
@@ -317,46 +284,66 @@ export default function SellerReservationPage() {
     const updateDepositStatus = async (id, checked) => {
       try { await updateDoc(doc(db, 'campaigns', id), { paymentReceived: checked }); } catch (err) { console.error('입금 여부 업데이트 오류:', err); }
     };
-    const handleLogout = async () => {
-        try { await signOut(auth); navigate('/seller-login'); } catch (error) { console.error("로그아웃 실패:", error); }
-    };
-    const handleKeywordSearch = async () => { /* 기존과 동일 */ };
-    const renderDayCell = (info) => { /* 기존과 동일 */ };
-
-    // [추가] 예약 내역 삭제 관련 핸들러
-    const handleDeleteSavedCampaigns = async () => {
-        if (!deleteConfirmation || !deleteConfirmation.ids || deleteConfirmation.ids.length === 0) return;
-        
-        const idsToDelete = deleteConfirmation.ids;
-        const batch = writeBatch(db);
-        idsToDelete.forEach(id => {
-            const docRef = doc(db, 'campaigns', id);
-            batch.delete(docRef);
-        });
-
+    const handleLogout = async () => { try { await signOut(auth); navigate('/seller-login'); } catch (error) { console.error("로그아웃 실패:", error); } };
+    const handleKeywordSearch = async () => {
+        if (!searchKeyword.trim()) { setSearchError("검색어를 입력해주세요."); setSearchResults([]); return; }
+        setIsSearching(true); setSearchError(''); setSearchResults([]);
+        const ACCESS_KEY = import.meta.env.VITE_COUPANG_ACCESS_KEY;
+        const SECRET_KEY = import.meta.env.VITE_COUPANG_SECRET_KEY;
+        if (!ACCESS_KEY || !SECRET_KEY) { setSearchError("API 키가 설정되지 않았습니다."); setIsSearching(false); return; }
+        const API_METHOD = "GET", API_PATH = "/v2/providers/affiliate_open_api/apis/openapi/v1/products/search", DOMAIN = "https://api-gateway.coupang.com";
+        const datetime = (new Date()).toISOString().substr(0, 19) + "Z";
+        const query = `keyword=${encodeURIComponent(searchKeyword)}&limit=10`;
+        const stringToSign = datetime + API_METHOD + API_PATH.replace(/\?/g, "") + query;
+        const signature = hmacSHA256(stringToSign, SECRET_KEY).toString();
+        const authorization = `CEA algorithm=HmacSHA256, access-key=${ACCESS_KEY}, signed-date=${datetime}, signature=${signature}`;
+        const url = `${DOMAIN}${API_PATH}?${query}`;
         try {
-            await batch.commit();
-            // 삭제 성공 후 선택 상태 초기화
-            setSelectedSavedCampaigns(prev => prev.filter(id => !idsToDelete.includes(id)));
-            setDeleteConfirmation(null);
-        } catch (error) {
-            console.error("캠페인 삭제 중 오류 발생:", error);
-            alert("삭제 중 오류가 발생했습니다.");
-        }
+            const response = await axios.get(url, { headers: { "Authorization": authorization } });
+            if (response.data?.rData?.productData) { setSearchResults(response.data.rData.productData); } else { setSearchResults([]); }
+        } catch (error) { console.error("Coupang API error:", error); setSearchError("검색 중 오류가 발생했습니다."); } 
+        finally { setIsSearching(false); }
     };
+    
+    const renderDayCell = (dayCellInfo) => {
+        const dateStr = formatDateForCalendar(dayCellInfo.date);
+        const capacity = capacities[dateStr] || 0;
+        const dailyEvents = calendarCampaigns.filter(c => c.status === '예약 확정' && formatDateForCalendar(c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date)) === dateStr);
+        const totalQuantity = dailyEvents.reduce((sum, event) => sum + Number(event.quantity || 0), 0);
+        const remaining = capacity - totalQuantity;
+        const remainingColor = remaining > 0 ? 'text-blue-600' : 'text-destructive';
 
-    const handleSelectSavedCampaign = (id, checked) => {
-        setSelectedSavedCampaigns(prev => 
-            checked ? [...prev, id] : prev.filter(item => item !== id)
+        return (
+            <div className="flex flex-col h-full p-1">
+                <div className="text-right text-xs text-muted-foreground">{dayCellInfo.dayNumberText}</div>
+                <div className="flex flex-col items-center justify-center flex-grow">
+                    <div className="text-[10px] text-muted-foreground">잔여</div>
+                    <span className={`text-lg font-bold ${remainingColor}`}>{remaining}</span>
+                </div>
+            </div>
         );
     };
 
-    const handleSelectAllSavedCampaigns = (checked) => {
-        setSelectedSavedCampaigns(checked ? savedCampaigns.map(c => c.id) : []);
+    const handleDeleteSavedCampaigns = async () => {
+        if (!deleteConfirmation || !deleteConfirmation.ids || deleteConfirmation.ids.length === 0) return;
+        const idsToDelete = deleteConfirmation.ids;
+        const batch = writeBatch(db);
+        idsToDelete.forEach(id => { batch.delete(doc(db, 'campaigns', id)); });
+        try {
+            await batch.commit();
+            setSelectedSavedCampaigns(prev => prev.filter(id => !idsToDelete.includes(id)));
+            setDeleteConfirmation(null);
+        } catch (error) { console.error("캠페인 삭제 오류:", error); alert("삭제 중 오류 발생."); }
     };
 
+    const handleSelectSavedCampaign = (id, checked) => { setSelectedSavedCampaigns(prev => checked ? [...prev, id] : prev.filter(item => item !== id)); };
+    const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(checked ? savedCampaigns.map(c => c.id) : []); };
 
     if (isLoading) return <div className="flex justify-center items-center h-screen"><p>데이터를 불러오는 중입니다...</p></div>;
+    
+    // --- [핵심 수정] CardFooter에서 직접 계산된 값을 사용 ---
+    const { totalSubtotal, totalVat, totalAmount, amountToUseFromDeposit, remainingPayment } = calculateTotals(campaigns);
+
 
     return (
         <>
@@ -367,7 +354,7 @@ export default function SellerReservationPage() {
                         <span className="ml-2 text-lg text-primary">{deposit.toLocaleString()}원</span>
                     </div>
                     <div className="flex items-center space-x-2 border-l pl-4">
-                        <input type="checkbox" id="use-deposit-global" checked={useDeposit} onChange={(e) => setUseDeposit(e.target.checked)} disabled={deposit === 0 || totalAmount === 0} className="h-4 w-4 accent-primary" />
+                        <Checkbox id="use-deposit-global" checked={useDeposit} onCheckedChange={setUseDeposit} disabled={deposit === 0 || totalAmount === 0} />
                         <Label htmlFor="use-deposit-global" className="text-sm font-medium">견적 결제 시 예치금 사용</Label>
                     </div>
                 </div>
@@ -376,25 +363,113 @@ export default function SellerReservationPage() {
 
             <div className="space-y-8">
                 <Card>
-                    {/* ... 새 작업 추가 폼은 기존과 동일 ... */}
-                    <CardHeader>
-                        <CardTitle>새 작업 추가</CardTitle>
-                        <CardDescription>진행할 리뷰 캠페인의 정보를 입력하고 견적에 추가하세요.</CardDescription>
-                    </CardHeader>
                     <form onSubmit={handleAddCampaign}>
-                        <CardContent className="grid lg:grid-cols-3 gap-8">{/* ... */}</CardContent>
-                        <CardFooter className="flex justify-between items-center flex-wrap gap-4">{/* ... */}</CardFooter>
+                        <CardHeader>
+                            <CardTitle>새 작업 추가</CardTitle>
+                            <CardDescription>진행할 리뷰 캠페인의 정보를 입력하고 견적에 추가하세요.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid lg:grid-cols-3 gap-8">
+                            <div className="space-y-4">
+                                <div>
+                                    <Label htmlFor="date">진행 일자</Label>
+                                    <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button id="date" variant={"outline"} className={cn( "w-full justify-start text-left font-normal", !formState.date && "text-muted-foreground" )}>
+                                                <CalendarIcon className="mr-2 h-4 w-4" />{formState.date ? format(formState.date, "PPP", {locale: ko}) : <span>날짜 선택</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={formState.date} onSelect={handleDateSelect} initialFocus /></PopoverContent>
+                                    </Popover>
+                                </div>
+                                <div className="text-xs">
+                                    <FullCalendar 
+                                        plugins={[dayGridPlugin, interactionPlugin]} 
+                                        initialView="dayGridMonth" 
+                                        headerToolbar={{ left: 'prev', center: 'title', right: 'next' }} 
+                                        events={calendarEvents} 
+                                        dayCellContent={renderDayCell}
+                                        dayCellClassNames={(arg) => {
+                                            const dateStr = formatDateForCalendar(arg.date);
+                                            const capacity = capacities[dateStr] || 0;
+                                            const dailyEvents = calendarCampaigns.filter(c => c.status === '예약 확정' && formatDateForCalendar(c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date)) === dateStr);
+                                            const totalQuantity = dailyEvents.reduce((sum, event) => sum + Number(event.quantity || 0), 0);
+                                            const remaining = capacity - totalQuantity;
+                                            if (remaining > 0 && capacity > 0) {
+                                                return 'cursor-pointer hover:bg-muted';
+                                            }
+                                            return '';
+                                        }}
+                                        dateClick={(info) => {
+                                            const dateStr = info.dateStr;
+                                            const capacity = capacities[dateStr] || 0;
+                                            const dailyEvents = calendarCampaigns.filter(c => c.status === '예약 확정' && formatDateForCalendar(c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date)) === dateStr);
+                                            const totalQuantity = dailyEvents.reduce((sum, event) => sum + Number(event.quantity || 0), 0);
+                                            const remaining = capacity - totalQuantity;
+                                            
+                                            if (remaining > 0 && capacity > 0) {
+                                                setFormState(prev => ({ ...prev, date: info.date }));
+                                            } else {
+                                                alert('해당 날짜는 예약이 마감되었습니다.');
+                                            }
+                                        }}
+                                        locale="ko" 
+                                        height="auto" 
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div><Label htmlFor="deliveryType">구분</Label><Select name="deliveryType" value={formState.deliveryType} onValueChange={(v) => handleFormChange('deliveryType', v)}><SelectTrigger id="deliveryType"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="실배송">실배송</SelectItem><SelectItem value="빈박스">빈박스</SelectItem></SelectContent></Select></div>
+                                    <div><Label htmlFor="reviewType">리뷰 종류</Label><Select name="reviewType" value={formState.reviewType} onValueChange={(v) => handleFormChange('reviewType', v)}><SelectTrigger id="reviewType"><SelectValue/></SelectTrigger><SelectContent>{formState.deliveryType === '실배송' ? (<><SelectItem value="별점">별점</SelectItem><SelectItem value="텍스트">텍스트</SelectItem><SelectItem value="포토">포토</SelectItem><SelectItem value="프리미엄(포토)">프리미엄(포토)</SelectItem><SelectItem value="프리미엄(영상)">프리미엄(영상)</SelectItem></>) : (<><SelectItem value="별점">별점</SelectItem><SelectItem value="텍스트">텍스트</SelectItem></>)}</SelectContent></Select></div>
+                                    <div><Label htmlFor="quantity">체험단 개수</Label><Input id="quantity" type="number" name="quantity" value={formState.quantity} onChange={(e) => handleFormChange('quantity', e.target.value)} min="1" required /></div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><Label htmlFor="productName">상품명</Label><Input id="productName" name="productName" value={formState.productName} onChange={(e) => handleFormChange('productName', e.target.value)} required /></div>
+                                    <div><Label htmlFor="productPrice">상품가</Label><Input id="productPrice" type="number" name="productPrice" value={formState.productPrice} onChange={(e) => handleFormChange('productPrice', e.target.value)} placeholder="0" /></div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><Label htmlFor="productOption">옵션</Label><Input id="productOption" name="productOption" value={formState.productOption} onChange={(e) => handleFormChange('productOption', e.target.value)} /></div>
+                                    <div><Label htmlFor="keywords">키워드 (1개)</Label><Input id="keywords" name="keywords" value={formState.keywords} onChange={(e) => handleFormChange('keywords', e.target.value)} /></div>
+                                </div>
+                                <div>
+                                    <Label htmlFor="productUrl">상품 URL</Label><Input id="productUrl" type="url" name="productUrl" value={formState.productUrl} onChange={(e) => handleFormChange('productUrl', e.target.value)} placeholder="https://..." />
+                                </div>
+                                <div className="p-4 border rounded-lg bg-muted/40 space-y-3">
+                                    <Label htmlFor="coupangSearch" className="font-semibold">쿠팡 파트너스 키워드 검색</Label>
+                                    <div className="flex space-x-2">
+                                        <Input id="coupangSearch" placeholder="키워드를 입력하여 상품 노출 확인" value={searchKeyword} onChange={e => setSearchKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleKeywordSearch()} />
+                                        <Button type="button" onClick={handleKeywordSearch} disabled={isSearching}><Search className="h-4 w-4"/></Button>
+                                    </div>
+                                    <CoupangSearchResults results={searchResults} isLoading={isSearching} error={searchError} />
+                                </div>
+                            </div>
+                            <div>
+                                <Label htmlFor="reviewGuide">리뷰 가이드</Label>
+                                <Textarea id="reviewGuide" name="reviewGuide" value={formState.reviewGuide} onChange={(e) => handleFormChange('reviewGuide', e.target.value)} disabled={formState.reviewType === '별점'} className="h-48" />
+                            </div>
+                        </CardContent>
+                        <CardFooter className="flex justify-between items-center flex-wrap gap-4">
+                            <div className="flex items-center space-x-2 text-sm">
+                                <span>단가: {basePrice.toLocaleString()}원</span>
+                                {sundayExtraCharge > 0 && <span className="text-destructive">+ 공휴일 {sundayExtraCharge.toLocaleString()}원</span>}
+                                <span className="font-semibold">= 체험단 진행비 {finalUnitPrice.toLocaleString()}원</span>
+                                <PriceListDialog />
+                            </div>
+                            <Button type="submit">견적에 추가</Button>
+                        </CardFooter>
                     </form>
                 </Card>
 
                 <Card>
                     <CardHeader><CardTitle>견적 목록(스프레드시트)</CardTitle><CardDescription>결제를 진행할 캠페인 목록입니다.<br/>- 품절 등으로 진행 불가 시 상품가만 예치금으로 전환됩니다.<br/>- 대표님 귀책 사유로 세금계산서 변경 시 수수료 10,000원 부과됩니다.<br/>- 견적 상세 = [체험단 진행비 + 상품가 × (1 + 대행수수료 10%)] × 수량 {isVatApplied && "× (1 + 부가세 10%)"}</CardDescription></CardHeader>
                     <CardContent><div className="border rounded-md"><Table><TableHeader><TableRow>{['일자', '구분', '리뷰', '수량', '상품명', '상품가', '견적상세', '최종금액', '삭제'].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow></TableHeader><TableBody>{campaigns.length === 0 ? (<TableRow><TableCell colSpan="9" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>) : (campaigns.map((c) => {
-                        const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (c.date.getDay() === 0 ? 600 : 0);
-                        const subtotal = (reviewFee + Number(c.productPrice) * 1.1) * Number(c.quantity);
+                        const cDate = c.date instanceof Date ? c.date : new Date();
+                        const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
+                        const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
+                        const subtotal = (reviewFee + productPriceWithAgencyFee) * Number(c.quantity);
                         const finalAmount = isVatApplied ? subtotal * 1.1 : subtotal;
                         
-                        return (<TableRow key={c.id}><TableCell className={c.date.getDay() === 0 ? 'text-destructive font-semibold' : ''}>{formatDateWithDay(c.date)}</TableCell><TableCell><Badge variant="outline">{c.deliveryType}</Badge></TableCell><TableCell><Badge>{c.reviewType}</Badge></TableCell><TableCell>{c.quantity}</TableCell><TableCell className="font-medium">{c.productName}</TableCell><TableCell className="text-right">{Number(c.productPrice).toLocaleString()}원</TableCell><TableCell className="text-xs text-muted-foreground font-mono">{`( ${reviewFee.toLocaleString()} + ${Number(c.productPrice).toLocaleString()} × 1.1 ) × ${c.quantity} ${isVatApplied ? '× 1.1' : ''}`}</TableCell><TableCell className="font-semibold text-right">{Math.round(finalAmount).toLocaleString()}원</TableCell><TableCell><Button variant="ghost" size="icon" onClick={() => handleDeleteCampaign(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell></TableRow>);
+                        return (<TableRow key={c.id}><TableCell className={cDate.getDay() === 0 ? 'text-destructive font-semibold' : ''}>{formatDateWithDay(cDate)}</TableCell><TableCell><Badge variant="outline">{c.deliveryType}</Badge></TableCell><TableCell><Badge>{c.reviewType}</Badge></TableCell><TableCell>{c.quantity}</TableCell><TableCell className="font-medium">{c.productName}</TableCell><TableCell className="text-right">{Number(c.productPrice).toLocaleString()}원</TableCell><TableCell className="text-xs text-muted-foreground font-mono">{`( ${reviewFee.toLocaleString()} + ${(productPriceWithAgencyFee).toLocaleString()} ) × ${c.quantity} ${isVatApplied ? '× 1.1' : ''}`}</TableCell><TableCell className="font-semibold text-right">{Math.round(finalAmount).toLocaleString()}원</TableCell><TableCell><Button variant="ghost" size="icon" onClick={() => handleDeleteCampaign(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell></TableRow>);
                     }))}</TableBody></Table></div></CardContent>
                     {campaigns.length > 0 && (<CardFooter className="flex flex-col items-end gap-2 text-right">
                         <div className="text-sm text-muted-foreground">공급가액 합계: {totalSubtotal.toLocaleString()}원</div>
@@ -403,7 +478,6 @@ export default function SellerReservationPage() {
                         {useDeposit && (<><Separator className="my-2"/><div className="text-sm"><span className="text-muted-foreground">예치금 사용: </span><span className="font-semibold text-destructive">- {amountToUseFromDeposit.toLocaleString()}원</span></div></>)}
                         <Separator className="my-2"/>
                         <div className="text-xl font-bold">최종 결제 금액: <span className="text-primary">{remainingPayment.toLocaleString()}</span>원</div>
-                        {/* [수정] 부가세 체크박스 추가 */}
                         <div className="flex items-center space-x-2 mt-2">
                             <Checkbox id="vat-checkbox" checked={isVatApplied} onCheckedChange={setIsVatApplied} />
                             <label htmlFor="vat-checkbox" className="text-sm font-bold text-green-600 cursor-pointer">
@@ -419,7 +493,6 @@ export default function SellerReservationPage() {
                             <CardTitle>나의 예약 내역</CardTitle>
                             <CardDescription>과거에 예약한 모든 캠페인 내역입니다. 입금 완료 후 '입금'란을 체크해주세요.</CardDescription>
                         </div>
-                        {/* [추가] 선택항목 삭제 버튼 */}
                         <Button variant="destructive" onClick={() => setDeleteConfirmation({ type: 'multiple', ids: selectedSavedCampaigns })} disabled={selectedSavedCampaigns.length === 0}>
                             <Trash2 className="mr-2 h-4 w-4" />
                             선택 항목 삭제 ({selectedSavedCampaigns.length})
@@ -431,11 +504,7 @@ export default function SellerReservationPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="w-[50px]">
-                                            <Checkbox 
-                                                onCheckedChange={handleSelectAllSavedCampaigns}
-                                                checked={savedCampaigns.length > 0 && selectedSavedCampaigns.length === savedCampaigns.length}
-                                                aria-label="모두 선택"
-                                            />
+                                            <Checkbox onCheckedChange={handleSelectAllSavedCampaigns} checked={savedCampaigns.length > 0 && selectedSavedCampaigns.length === savedCampaigns.length} aria-label="모두 선택" />
                                         </TableHead>
                                         {['일자', '상품명', '구분', '리뷰', '수량', '입금', '상태', '최종금액', '관리'].map(h => <TableHead key={h}>{h}</TableHead>)}
                                     </TableRow>
@@ -446,19 +515,19 @@ export default function SellerReservationPage() {
                                     ) : (
                                         savedCampaigns.map(c => (
                                             <TableRow key={c.id}>
-                                                <TableCell>
-                                                    <Checkbox
-                                                        checked={selectedSavedCampaigns.includes(c.id)}
-                                                        onCheckedChange={(checked) => handleSelectSavedCampaign(c.id, checked)}
-                                                        aria-label={`${c.productName} 선택`}
-                                                    />
-                                                </TableCell>
+                                                <TableCell><Checkbox checked={selectedSavedCampaigns.includes(c.id)} onCheckedChange={(checked) => handleSelectSavedCampaign(c.id, checked)} aria-label={`${c.productName} 선택`} /></TableCell>
                                                 <TableCell>{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</TableCell>
                                                 <TableCell className="font-medium">{c.productName}</TableCell>
                                                 <TableCell><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
                                                 <TableCell><Badge>{c.reviewType}</Badge></TableCell>
                                                 <TableCell>{c.quantity}</TableCell>
-                                                <TableCell><input type="checkbox" checked={!!c.paymentReceived} onChange={(e) => handleDepositCheckboxChange(c.id, e.target.checked)} title="입금 완료 시 체크"/></TableCell>
+                                                <TableCell>
+                                                    <Checkbox 
+                                                        checked={!!c.paymentReceived} 
+                                                        onCheckedChange={(checked) => handleDepositCheckboxChange(c.id, checked)} 
+                                                        title="입금 완료 시 체크"
+                                                    />
+                                                </TableCell>
                                                 <TableCell><Badge variant={c.status === '예약 확정' ? 'default' : c.status === '예약 대기' ? 'secondary' : 'destructive'}>{c.status}</Badge></TableCell>
                                                 <TableCell className="text-right">{Math.round(c.finalTotalAmount || 0).toLocaleString()}원</TableCell>
                                                 <TableCell>
@@ -475,12 +544,19 @@ export default function SellerReservationPage() {
                     </CardContent>
                 </Card>
                 
-                {/* ... 기존 Dialog 컴포넌트들 ... */}
-                <Dialog open={showDepositPopup} onOpenChange={setShowDepositPopup}><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle className="text-2xl text-center font-bold">입금 계좌 안내</DialogTitle><DialogDescription className="text-center pt-2">예약이 접수되었습니다. 아래 계좌로 <strong className="text-primary">{remainingPayment.toLocaleString()}원</strong>을 입금해주세요.</DialogDescription></DialogHeader><div className="my-6 p-6 bg-muted rounded-lg space-y-4 text-base sm:text-lg"><div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">은 행</span><span>국민은행</span></div><div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">계좌번호</span><span className="font-mono tracking-wider">289537-00-006049</span></div><div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">예금주</span><span>아이언마운틴컴퍼니</span></div></div><Button onClick={() => setShowDepositPopup(false)} className="w-full h-12 text-lg mt-2">확인</Button></DialogContent></Dialog>
+                <Dialog open={showDepositPopup} onOpenChange={setShowDepositPopup}>
+                    <DialogContent className="sm:max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl text-center font-bold">입금 계좌 안내</DialogTitle>
+                            <DialogDescription className="text-center pt-2">
+                                예약이 접수되었습니다. 아래 계좌로 <strong className="text-primary">{paymentAmountInPopup.toLocaleString()}원</strong>을 입금해주세요.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="my-6 p-6 bg-muted rounded-lg space-y-4 text-base sm:text-lg">
+                        <div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">은 행</span><span>국민은행</span></div><div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">계좌번호</span><span className="font-mono tracking-wider">289537-00-006049</span></div><div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">예금주</span><span>아이언마운틴컴퍼니</span></div></div><Button onClick={() => setShowDepositPopup(false)} className="w-full h-12 text-lg mt-2">확인</Button></DialogContent></Dialog>
                 <Dialog open={!!confirmationDialogData} onOpenChange={() => setConfirmationDialogData(null)}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle className="flex items-center space-x-2"><CheckCircle className="text-green-500" /><span>입금 확인 요청</span></DialogTitle><DialogDescription className="pt-4 text-base">입금 확인을 요청했습니다. <br/>관리자 승인 후 예약이 자동으로 확정됩니다.</DialogDescription></DialogHeader><DialogFooter className="mt-4"><Button className="w-full" onClick={() => { if (confirmationDialogData) { updateDepositStatus(confirmationDialogData.id, confirmationDialogData.checked); } setConfirmationDialogData(null); }}>확인</Button></DialogFooter></DialogContent></Dialog>
                 <AlertDialog open={!!pendingCampaign} onOpenChange={() => setPendingCampaign(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>옵션 미입력 확인</AlertDialogTitle><AlertDialogDescription>옵션이 입력되지 않았습니다. 이대로 견적에 추가하시겠습니까?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>취소</AlertDialogCancel><AlertDialogAction onClick={handleConfirmAddCampaign}>추가</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
                 
-                {/* [추가] 삭제 확인 AlertDialog */}
                 <AlertDialog open={!!deleteConfirmation} onOpenChange={() => setDeleteConfirmation(null)}>
                     <AlertDialogContent>
                         <AlertDialogHeader>

@@ -180,7 +180,8 @@ export default function AdminReviewManagementPage() {
       <div className="toolbar">
         <Button variant="outline" size="sm" onClick={handleVerify} disabled={selected.size === 0}>선택 항목 리뷰 인증</Button>
         <Button variant="destructive" size="sm" onClick={handleDelete} disabled={selected.size === 0}>선택 항목 삭제</Button>
-        <Button variant="outline" size="sm" onClick={resetFilters}>필터 초기화</Button>
+        {/* [수정] variant를 "secondary"로 변경 */}
+        <Button variant="secondary" size="sm" onClick={resetFilters}>필터 초기화</Button>
         <Button variant="outline" size="sm" onClick={downloadCsv}>엑셀 다운로드</Button>
       </div>
       <div className="table-container">

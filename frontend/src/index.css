@@ -81,3 +81,22 @@ body {
     @apply bg-background text-foreground;
   }
 }
+/* ======================================================================== */
+/* [추가] 관리자 페이지 비활성화 버튼 가독성 개선 (파일 하단에 추가) */
+/* ======================================================================== */
+
+/* 기본, 아웃라인 등 일반 버튼이 비활성화될 때의 스타일 */
+button:disabled,
+button[disabled] {
+  cursor: not-allowed;
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--muted-foreground)) !important;
+  opacity: 1 !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+/* 2. 활성화된 'destructive' 버튼: 선명한 붉은 배경에 흰 글씨로 강제 지정 (핵심 해결 코드) */
+.bg-destructive:not(:disabled) {
+  background-color: hsl(var(--destructive)) !important;
+  color: hsl(var(--destructive-foreground)) !important;
+}

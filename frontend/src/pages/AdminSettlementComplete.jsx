@@ -123,8 +123,10 @@ export default function AdminSettlementCompletePage() {
     <>
       <h2>정산 완료 ({processedRows.length})</h2>
       <div className="toolbar">
-        <Button onClick={handleDelete} disabled={selected.size === 0}>선택삭제</Button>
-        <Button onClick={resetFilters}>필터 초기화</Button>
+        {/* ▼▼▼▼▼▼▼▼▼▼▼ 이 부분만 수정하면 됩니다 ▼▼▼▼▼▼▼▼▼▼▼ */}
+        <Button variant="destructive" onClick={handleDelete} disabled={selected.size === 0}>선택삭제</Button>
+        {/* ▲▲▲▲▲▲▲▲▲▲▲ 이 부분만 수정하면 됩니다 ▲▲▲▲▲▲▲▲▲▲▲ */}
+        <Button variant="secondary" onClick={resetFilters}>필터 초기화</Button>
       </div>
       <div className="table-container">
         <Table className="admin-table">

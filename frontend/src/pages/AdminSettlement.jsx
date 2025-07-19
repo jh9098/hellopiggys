@@ -163,7 +163,8 @@ export default function AdminSettlementPage() {
       <div className="toolbar">
         <Button variant="destructive" size="sm" onClick={handleDelete} disabled={selected.size === 0}>선택삭제</Button>
         <Button variant="outline" size="sm" onClick={handleSettle} disabled={selected.size === 0}>정산완료</Button>
-        <Button variant="outline" size="sm" onClick={resetFilters}>필터 초기화</Button>
+        {/* [수정] variant를 "secondary"로 변경 */}
+        <Button variant="secondary" size="sm" onClick={resetFilters}>필터 초기화</Button>
         <Button variant="outline" size="sm" onClick={downloadCsvForInfo} disabled={processedRows.length === 0}>정보 파일 다운로드</Button>
       </div>
       <div className="table-container">
