@@ -261,12 +261,11 @@ const handleProcessPayment = async () => {
             });
         });
 
-        if (useDeposit && finalAmountToUse > 0) { batch.update(sellerDocRef, { deposit: increment(-finalAmountToUse) }); }
+        if (useDeposit && amountToUseFromDeposit > 0) { batch.update(sellerDocRef, { deposit: increment(-amountToUseFromDeposit) }); }
 
         try {
             await batch.commit();
             
-            // ▼▼▼ 이 부분을 수정해주세요 ▼▼▼
             if (!isFullDepositPayment) { 
                 setPaymentAmountInPopup(remainingPayment); // 팝업에 표시할 금액 저장
                 setShowDepositPopup(true); 
@@ -274,7 +273,6 @@ const handleProcessPayment = async () => {
                 alert('예치금으로 결제가 완료되어 예약이 접수되었습니다.');
             }
             setCampaigns([]); // DB 저장 후 견적 목록 비우기
-            // ▲▲▲ 이 부분을 수정해주세요 ▲▲▲
         } catch (error) { console.error("결제 처리 중 오류 발생: ", error); alert('오류가 발생하여 결제를 완료하지 못했습니다.'); }
     };
 
@@ -506,7 +504,15 @@ const handleProcessPayment = async () => {
                                         <TableHead className="w-[50px]">
                                             <Checkbox onCheckedChange={handleSelectAllSavedCampaigns} checked={savedCampaigns.length > 0 && selectedSavedCampaigns.length === savedCampaigns.length} aria-label="모두 선택" />
                                         </TableHead>
-                                        {['일자', '상품명', '구분', '리뷰', '수량', '입금', '상태', '최종금액', '관리'].map(h => <TableHead key={h}>{h}</TableHead>)}
+                                        <TableHead className="w-[140px] text-center">일자</TableHead>
+                                        <TableHead>상품명</TableHead>
+                                        <TableHead className="w-[80px] text-center">구분</TableHead>
+                                        <TableHead className="w-[120px] text-center">리뷰</TableHead>
+                                        <TableHead className="w-[60px] text-center">수량</TableHead>
+                                        <TableHead className="w-[60px] text-center">입금</TableHead>
+                                        <TableHead className="w-[100px] text-center">상태</TableHead>
+                                        <TableHead className="w-[120px] text-center">최종금액</TableHead>
+                                        <TableHead className="w-[80px] text-center">관리</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -515,22 +521,24 @@ const handleProcessPayment = async () => {
                                     ) : (
                                         savedCampaigns.map(c => (
                                             <TableRow key={c.id}>
-                                                <TableCell><Checkbox checked={selectedSavedCampaigns.includes(c.id)} onCheckedChange={(checked) => handleSelectSavedCampaign(c.id, checked)} aria-label={`${c.productName} 선택`} /></TableCell>
-                                                <TableCell>{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</TableCell>
-                                                <TableCell className="font-medium">{c.productName}</TableCell>
-                                                <TableCell><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
-                                                <TableCell><Badge>{c.reviewType}</Badge></TableCell>
-                                                <TableCell>{c.quantity}</TableCell>
                                                 <TableCell>
+                                                    <Checkbox checked={selectedSavedCampaigns.includes(c.id)} onCheckedChange={(checked) => handleSelectSavedCampaign(c.id, checked)} aria-label={`${c.productName} 선택`} />
+                                                </TableCell>
+                                                <TableCell className="text-center">{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</TableCell>
+                                                <TableCell className="font-medium">{c.productName}</TableCell>
+                                                <TableCell className="text-center"><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
+                                                <TableCell className="text-center"><Badge>{c.reviewType}</Badge></TableCell>
+                                                <TableCell className="text-center">{c.quantity}</TableCell>
+                                                <TableCell className="text-center">
                                                     <Checkbox 
                                                         checked={!!c.paymentReceived} 
                                                         onCheckedChange={(checked) => handleDepositCheckboxChange(c.id, checked)} 
                                                         title="입금 완료 시 체크"
                                                     />
                                                 </TableCell>
-                                                <TableCell><Badge variant={c.status === '예약 확정' ? 'default' : c.status === '예약 대기' ? 'secondary' : 'destructive'}>{c.status}</Badge></TableCell>
-                                                <TableCell className="text-right">{Math.round(c.finalTotalAmount || 0).toLocaleString()}원</TableCell>
-                                                <TableCell>
+                                                <TableCell className="text-center"><Badge variant={c.status === '예약 확정' ? 'default' : c.status === '예약 대기' ? 'secondary' : 'destructive'}>{c.status}</Badge></TableCell>
+                                                <TableCell className="text-center">{Math.round(c.finalTotalAmount || 0).toLocaleString()}원</TableCell>
+                                                <TableCell className="text-center">
                                                     <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmation({ type: 'single', ids: [c.id] })}>
                                                         <Trash2 className="h-4 w-4 text-destructive" />
                                                     </Button>
