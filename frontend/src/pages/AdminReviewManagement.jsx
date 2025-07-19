@@ -4,6 +4,16 @@ import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, getDoc, deleteDoc } from '../firebaseConfig';
 import Papa from 'papaparse';
 import ReviewDetailModal from '../components/ReviewDetailModal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
 
 // [추가] 24시간제 날짜 포맷 함수
 const formatTimestamp24h = (timestamp) => {
@@ -168,60 +178,60 @@ export default function AdminReviewManagementPage() {
     <>
       <h2>리뷰 관리 ({processedRows.length})</h2>
       <div className="toolbar">
-        <button onClick={handleVerify} disabled={selected.size === 0}>선택 항목 리뷰 인증</button>
-        <button onClick={handleDelete} disabled={selected.size === 0}>선택 항목 삭제</button>
-        <button onClick={resetFilters}>필터 초기화</button>
-        <button onClick={downloadCsv}>엑셀 다운로드</button>
+        <Button variant="outline" size="sm" onClick={handleVerify} disabled={selected.size === 0}>선택 항목 리뷰 인증</Button>
+        <Button variant="destructive" size="sm" onClick={handleDelete} disabled={selected.size === 0}>선택 항목 삭제</Button>
+        <Button variant="outline" size="sm" onClick={resetFilters}>필터 초기화</Button>
+        <Button variant="outline" size="sm" onClick={downloadCsv}>엑셀 다운로드</Button>
       </div>
       <div className="table-container">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th><input type="checkbox" checked={selected.size === processedRows.length && processedRows.length > 0} onChange={toggleSelectAll} /></th>
-              <th onClick={() => requestSort('createdAt')} className="sortable">구매폼 등록일시<SortIndicator columnKey="createdAt" /></th>
-              <th onClick={() => requestSort('status')} className="sortable">상태<SortIndicator columnKey="status" /></th>
-              <th onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></th>
-              <th onClick={() => requestSort('mainAccountName')} className="sortable">본계정<SortIndicator columnKey="mainAccountName" /></th>
-              <th onClick={() => requestSort('name')} className="sortable">타계정<SortIndicator columnKey="name" /></th>
-              <th onClick={() => requestSort('phoneNumber')} className="sortable">전화번호<SortIndicator columnKey="phoneNumber" /></th>
-              <th onClick={() => requestSort('paymentType')} className="sortable">결제유형<SortIndicator columnKey="paymentType" /></th>
-              <th onClick={() => requestSort('productType')} className="sortable">상품종류<SortIndicator columnKey="productType" /></th>
-              <th onClick={() => requestSort('reviewOption')} className="sortable">리뷰종류<SortIndicator columnKey="reviewOption" /></th>
-              <th>리뷰 인증</th>
-              <th>작업</th>
-            </tr>
-            <tr className="filter-row">
-              <th></th><th></th>
-              <th><select name="status" value={filters.status} onChange={handleFilterChange}><option value="all">전체</option>{Object.values(statusMap).map(s => <option key={s} value={s}>{s}</option>)}</select></th>
-              <th><input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></th>
-              <th><input type="text" name="mainAccountName" value={filters.mainAccountName} onChange={handleFilterChange} /></th>
-              <th><input type="text" name="name" value={filters.name} onChange={handleFilterChange} /></th>
-              <th><input type="text" name="phoneNumber" value={filters.phoneNumber} onChange={handleFilterChange} /></th>
-              <th></th><th></th><th></th>
-              <th><select name="reviewConfirm" value={filters.reviewConfirm} onChange={handleFilterChange}><option value="all">전체</option><option value="O">O</option><option value="X">X</option></select></th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table className="admin-table">
+          <TableHeader>
+            <TableRow>
+              <TableHead><input type="checkbox" checked={selected.size === processedRows.length && processedRows.length > 0} onChange={toggleSelectAll} /></TableHead>
+              <TableHead onClick={() => requestSort('createdAt')} className="sortable">구매폼 등록일시<SortIndicator columnKey="createdAt" /></TableHead>
+              <TableHead onClick={() => requestSort('status')} className="sortable">상태<SortIndicator columnKey="status" /></TableHead>
+              <TableHead onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></TableHead>
+              <TableHead onClick={() => requestSort('mainAccountName')} className="sortable">본계정<SortIndicator columnKey="mainAccountName" /></TableHead>
+              <TableHead onClick={() => requestSort('name')} className="sortable">타계정<SortIndicator columnKey="name" /></TableHead>
+              <TableHead onClick={() => requestSort('phoneNumber')} className="sortable">전화번호<SortIndicator columnKey="phoneNumber" /></TableHead>
+              <TableHead onClick={() => requestSort('paymentType')} className="sortable">결제유형<SortIndicator columnKey="paymentType" /></TableHead>
+              <TableHead onClick={() => requestSort('productType')} className="sortable">상품종류<SortIndicator columnKey="productType" /></TableHead>
+              <TableHead onClick={() => requestSort('reviewOption')} className="sortable">리뷰종류<SortIndicator columnKey="reviewOption" /></TableHead>
+              <TableHead>리뷰 인증</TableHead>
+              <TableHead>작업</TableHead>
+            </TableRow>
+            <TableRow className="filter-row">
+              <TableHead></TableHead><TableHead></TableHead>
+              <TableHead><select name="status" value={filters.status} onChange={handleFilterChange}><option value="all">전체</option>{Object.values(statusMap).map(s => <option key={s} value={s}>{s}</option>)}</select></TableHead>
+              <TableHead><Input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></TableHead>
+              <TableHead><Input type="text" name="mainAccountName" value={filters.mainAccountName} onChange={handleFilterChange} /></TableHead>
+              <TableHead><Input type="text" name="name" value={filters.name} onChange={handleFilterChange} /></TableHead>
+              <TableHead><Input type="text" name="phoneNumber" value={filters.phoneNumber} onChange={handleFilterChange} /></TableHead>
+              <TableHead></TableHead><TableHead></TableHead><TableHead></TableHead>
+              <TableHead><select name="reviewConfirm" value={filters.reviewConfirm} onChange={handleFilterChange}><option value="all">전체</option><option value="O">O</option><option value="X">X</option></select></TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {processedRows.map((r) => (
-              <tr key={r.id}>
-                <td><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></td>
+              <TableRow key={r.id}>
+                <TableCell><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></TableCell>
                 {/* [수정] 헬퍼 함수 사용 */}
-                <td>{formatTimestamp24h(r.createdAt)}</td>
-                <td>{statusMap[r.status] || r.status}</td>
-                <td className="product-name-cell">{r.productName || '-'}</td>
-                <td>{r.mainAccountName || '-'}</td>
-                <td>{r.name || '-'}</td>
-                <td>{r.phoneNumber || '-'}</td>
-                <td>{r.paymentType || '-'}</td>
-                <td>{r.productType || '-'}</td>
-                <td>{r.reviewOption || '-'}</td>
-                <td><button className={`link-button ${r.confirmImageUrls?.length > 0 ? 'completed' : ''}`} onClick={() => openDetailModal(r)}>{r.confirmImageUrls?.length > 0 ? 'O' : 'X'}</button></td>
-                <td><button onClick={() => handleReject(r.id)} className="reject-button">반려</button></td>
-              </tr>
+                <TableCell>{formatTimestamp24h(r.createdAt)}</TableCell>
+                <TableCell>{statusMap[r.status] || r.status}</TableCell>
+                <TableCell className="product-name-cell">{r.productName || '-'}</TableCell>
+                <TableCell>{r.mainAccountName || '-'}</TableCell>
+                <TableCell>{r.name || '-'}</TableCell>
+                <TableCell>{r.phoneNumber || '-'}</TableCell>
+                <TableCell>{r.paymentType || '-'}</TableCell>
+                <TableCell>{r.productType || '-'}</TableCell>
+                <TableCell>{r.reviewOption || '-'}</TableCell>
+                <TableCell><Button variant="link" size="sm" className={`link-button ${r.confirmImageUrls?.length > 0 ? 'completed' : ''}`} onClick={() => openDetailModal(r)}>{r.confirmImageUrls?.length > 0 ? 'O' : 'X'}</Button></TableCell>
+                <TableCell><Button variant="destructive" size="sm" onClick={() => handleReject(r.id)} className="reject-button">반려</Button></TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
       {isModalOpen && <ReviewDetailModal review={selectedReview} onClose={closeDetailModal} />}
     </>

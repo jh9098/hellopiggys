@@ -3,6 +3,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, getDoc, doc, where, writeBatch } from '../firebaseConfig';
 import MemberDetailModal from '../components/MemberDetailModal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
 
 const formatDate = (date) => {
     if (!date) return 'N/A';
@@ -141,41 +151,50 @@ export default function AdminMemberManagementPage() {
         <>
             <h2>회원 관리 ({processedMembers.length}명)</h2>
             <div className="toolbar">
-                <input type="text" placeholder="이름 검색" value={searchName} onChange={(e) => setSearchName(e.target.value)} />
-                <input type="text" placeholder="전화번호 검색" value={searchPhone} onChange={(e) => setSearchPhone(e.target.value)} />
+                <Input type="text" placeholder="이름 검색" value={searchName} onChange={(e) => setSearchName(e.target.value)} />
+                <Input type="text" placeholder="전화번호 검색" value={searchPhone} onChange={(e) => setSearchPhone(e.target.value)} />
             </div>
             <div className="table-container">
-                <table className="admin-table">
-                    <thead>
-                        <tr>
-                            <th onClick={() => requestSort('mainAccountName')} className="sortable">본계정 이름<SortIndicator columnKey="mainAccountName" /></th>
-                            <th onClick={() => requestSort('mainAccountPhone')} className="sortable">본계정 전화번호<SortIndicator columnKey="mainAccountPhone" /></th>
-                            <th onClick={() => requestSort('reviewCount')} className="sortable">총 참여횟수<SortIndicator columnKey="reviewCount" /></th>
-                            <th>최근 참여일</th>
-                            <th>정보 보기</th>
-                            <th>회원 탈퇴</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <Table className="admin-table">
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead onClick={() => requestSort('mainAccountName')} className="sortable">본계정 이름<SortIndicator columnKey="mainAccountName" /></TableHead>
+                            <TableHead onClick={() => requestSort('mainAccountPhone')} className="sortable">본계정 전화번호<SortIndicator columnKey="mainAccountPhone" /></TableHead>
+                            <TableHead onClick={() => requestSort('reviewCount')} className="sortable">총 참여횟수<SortIndicator columnKey="reviewCount" /></TableHead>
+                            <TableHead>최근 참여일</TableHead>
+                            <TableHead>정보 보기</TableHead>
+                            <TableHead>회원 탈퇴</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {paginatedMembers.map(member => (
-                            <tr key={member.id}>
-                                <td>{member.mainAccountName}</td>
-                                <td>{member.mainAccountPhone}</td>
-                                <td>{member.reviews.length}회</td>
-                                <td>{formatDate(member.lastSubmissionDate)}</td>
-                                <td><button onClick={() => handleOpenModal(member)}>보기</button></td>
-                                <td><button onClick={() => handleDeleteMember(member)}>탈퇴</button></td>
-                            </tr>
+                            <TableRow key={member.id}>
+                                <TableCell>{member.mainAccountName}</TableCell>
+                                <TableCell>{member.mainAccountPhone}</TableCell>
+                                <TableCell>{member.reviews.length}회</TableCell>
+                                <TableCell>{formatDate(member.lastSubmissionDate)}</TableCell>
+                                <TableCell><Button variant="outline" size="sm" onClick={() => handleOpenModal(member)}>보기</Button></TableCell>
+                                <TableCell><Button variant="destructive" size="sm" onClick={() => handleDeleteMember(member)}>탈퇴</Button></TableCell>
+                            </TableRow>
                         ))}
-                    </tbody>
-                </table>
+                    </TableBody>
+                </Table>
             </div>
             <div className="pagination">
-                <button onClick={() => goToPage(1)} disabled={currentPage === 1}>{'<<'}</button>
-                <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>{'<'}</button>
-                {[...Array(totalPages).keys()].map(num => (<button key={num + 1} onClick={() => goToPage(num + 1)} className={currentPage === num + 1 ? 'active' : ''}>{num + 1}</button>))}
-                <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>{'>'}</button>
-                <button onClick={() => goToPage(totalPages)} disabled={currentPage === totalPages}>{'>>'}</button>
+                <Button variant="outline" size="sm" onClick={() => goToPage(1)} disabled={currentPage === 1}>{'<<'}</Button>
+                <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>{'<'}</Button>
+                {[...Array(totalPages).keys()].map(num => (
+                    <Button
+                        key={num + 1}
+                        variant={currentPage === num + 1 ? 'secondary' : 'outline'}
+                        size="sm"
+                        onClick={() => goToPage(num + 1)}
+                    >
+                        {num + 1}
+                    </Button>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>{'>'}</Button>
+                <Button variant="outline" size="sm" onClick={() => goToPage(totalPages)} disabled={currentPage === totalPages}>{'>>'}</Button>
             </div>
             {isModalOpen && (
                 <MemberDetailModal

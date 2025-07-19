@@ -4,6 +4,16 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { db, collection, getDocs, query, orderBy, deleteDoc, doc, updateDoc } from '../firebaseConfig';
 import Papa from 'papaparse';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
 
 const formatDate = (date) => date ? new Date(date.seconds * 1000).toLocaleDateString() : 'N/A';
 const progressStatusOptions = ['진행전', '진행중', '진행완료', '일부완료', '보류'];
@@ -167,111 +177,112 @@ export default function AdminProductManagementPage() {
     <>
       <div className="toolbar" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>상품 관리 ({processedProducts.length})</h2>
-        <Link to="/admin/products/new" className="action-button">상품 생성</Link>
+        <Button asChild>
+          <Link to="/admin/products/new">상품 생성</Link>
+        </Button>
       </div>
       <div className="toolbar">
-        <button onClick={resetFilters}>필터 초기화</button>
-        <button onClick={downloadCsv}>엑셀 다운로드</button>
+        <Button variant="outline" size="sm" onClick={resetFilters}>필터 초기화</Button>
+        <Button variant="outline" size="sm" onClick={downloadCsv}>엑셀 다운로드</Button>
       </div>
       <div className="toolbar">
-        <button onClick={deleteSelected}>선택 삭제</button>
+        <Button variant="destructive" size="sm" onClick={deleteSelected}>선택 삭제</Button>
       </div>
       <div className="table-container">
-        <table className="admin-table">
-          <thead>
-          <tr>
-            <th><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === processedProducts.length && processedProducts.length > 0} /></th>
-            <th onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></th>
-            <th onClick={() => requestSort('reviewType')} className="sortable">결제 종류<SortIndicator columnKey="reviewType" /></th>
-            <th onClick={() => requestSort('productType')} className="sortable">상품 종류<SortIndicator columnKey="productType" /></th>
-            <th onClick={() => requestSort('reviewOption')} className="sortable">리뷰 종류<SortIndicator columnKey="reviewOption" /></th>
-            <th onClick={() => requestSort('reviewDate')} className="sortable">진행일자<SortIndicator columnKey="reviewDate" /></th>
-            <th onClick={() => requestSort('progressStatus')} className="sortable">진행 상태<SortIndicator columnKey="progressStatus" /></th>
-            <th onClick={() => requestSort('createdAt')} className="sortable">등록날짜<SortIndicator columnKey="createdAt" /></th>
-            <th>관리</th>
-          </tr>
-          <tr className="bulk-row">
-            <th></th>
-            <th></th>
-            <th>
-              <div className="bulk-control">
-                <select value={bulkReviewType} onChange={(e) => setBulkReviewType(e.target.value)}>
-                  <option value="">결제 종류 일괄 변경</option>
-                  {reviewTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <button onClick={() => { bulkUpdate('reviewType', bulkReviewType); setBulkReviewType(''); }}>적용</button>
-              </div>
-            </th>
-            <th>
-              <div className="bulk-control">
-                <select value={bulkProductType} onChange={(e) => setBulkProductType(e.target.value)}>
-                  <option value="">상품 종류 일괄 변경</option>
-                  {productTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <button onClick={() => { bulkUpdate('productType', bulkProductType); setBulkProductType(''); }}>적용</button>
-              </div>
-            </th>
-            <th>
-              <div className="bulk-control">
-                <select value={bulkReviewOption} onChange={(e) => setBulkReviewOption(e.target.value)}>
-                  <option value="">리뷰 종류 일괄 변경</option>
-                  {fullReviewOptions.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-                <button onClick={() => { bulkUpdate('reviewOption', bulkReviewOption); setBulkReviewOption(''); }}>적용</button>
-              </div>
-            </th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-          </tr>
-          <tr className="filter-row">
-            <th></th>
-            <th><input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></th>
-              <th><input type="text" name="reviewType" value={filters.reviewType} onChange={handleFilterChange} /></th>
-              <th><input type="text" name="productType" value={filters.productType} onChange={handleFilterChange} /></th>
-              <th><input type="text" name="reviewOption" value={filters.reviewOption} onChange={handleFilterChange} /></th>
-              <th><input type="text" name="reviewDate" value={filters.reviewDate} onChange={handleFilterChange} /></th>
-              <th><select name="progressStatus" value={filters.progressStatus} onChange={handleFilterChange}><option value="all">전체</option>{progressStatusOptions.map(s => <option key={s} value={s}>{s}</option>)}</select></th>
-              <th></th><th></th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table className="admin-table">
+          <TableHeader>
+            <TableRow>
+              <TableHead><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === processedProducts.length && processedProducts.length > 0} /></TableHead>
+              <TableHead onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></TableHead>
+              <TableHead onClick={() => requestSort('reviewType')} className="sortable">결제 종류<SortIndicator columnKey="reviewType" /></TableHead>
+              <TableHead onClick={() => requestSort('productType')} className="sortable">상품 종류<SortIndicator columnKey="productType" /></TableHead>
+              <TableHead onClick={() => requestSort('reviewOption')} className="sortable">리뷰 종류<SortIndicator columnKey="reviewOption" /></TableHead>
+              <TableHead onClick={() => requestSort('reviewDate')} className="sortable">진행일자<SortIndicator columnKey="reviewDate" /></TableHead>
+              <TableHead onClick={() => requestSort('progressStatus')} className="sortable">진행 상태<SortIndicator columnKey="progressStatus" /></TableHead>
+              <TableHead onClick={() => requestSort('createdAt')} className="sortable">등록날짜<SortIndicator columnKey="createdAt" /></TableHead>
+              <TableHead>관리</TableHead>
+            </TableRow>
+            <TableRow className="bulk-row">
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead>
+                <div className="bulk-control">
+                  <select value={bulkReviewType} onChange={(e) => setBulkReviewType(e.target.value)}>
+                    <option value="">결제 종류 일괄 변경</option>
+                    {reviewTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <Button size="sm" onClick={() => { bulkUpdate('reviewType', bulkReviewType); setBulkReviewType(''); }}>적용</Button>
+                </div>
+              </TableHead>
+              <TableHead>
+                <div className="bulk-control">
+                  <select value={bulkProductType} onChange={(e) => setBulkProductType(e.target.value)}>
+                    <option value="">상품 종류 일괄 변경</option>
+                    {productTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <Button size="sm" onClick={() => { bulkUpdate('productType', bulkProductType); setBulkProductType(''); }}>적용</Button>
+                </div>
+              </TableHead>
+              <TableHead>
+                <div className="bulk-control">
+                  <select value={bulkReviewOption} onChange={(e) => setBulkReviewOption(e.target.value)}>
+                    <option value="">리뷰 종류 일괄 변경</option>
+                    {fullReviewOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                  <Button size="sm" onClick={() => { bulkUpdate('reviewOption', bulkReviewOption); setBulkReviewOption(''); }}>적용</Button>
+                </div>
+              </TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+            <TableRow className="filter-row">
+              <TableHead></TableHead>
+              <TableHead><Input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></TableHead>
+              <TableHead><Input type="text" name="reviewType" value={filters.reviewType} onChange={handleFilterChange} /></TableHead>
+              <TableHead><Input type="text" name="productType" value={filters.productType} onChange={handleFilterChange} /></TableHead>
+              <TableHead><Input type="text" name="reviewOption" value={filters.reviewOption} onChange={handleFilterChange} /></TableHead>
+              <TableHead><Input type="text" name="reviewDate" value={filters.reviewDate} onChange={handleFilterChange} /></TableHead>
+              <TableHead><select name="progressStatus" value={filters.progressStatus} onChange={handleFilterChange}><option value="all">전체</option>{progressStatusOptions.map(s => <option key={s} value={s}>{s}</option>)}</select></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
           {processedProducts.length > 0 ? processedProducts.map(p => (
-              <tr key={p.id}>
-                <td><input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => handleSelectOne(p.id)} /></td>
-                <td style={{textAlign: 'left'}}>{p.productName}</td>
-                <td>
+              <TableRow key={p.id}>
+                <TableCell><input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => handleSelectOne(p.id)} /></TableCell>
+                <TableCell style={{textAlign: 'left'}}>{p.productName}</TableCell>
+                <TableCell>
                   <select value={p.reviewType || '현영'} onChange={(e) => handleFieldChange(p.id, 'reviewType', e.target.value)}>
                     {reviewTypeOptions.map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
-                </td>
-                <td>
+                </TableCell>
+                <TableCell>
                   <select value={p.productType || '실배송'} onChange={(e) => handleFieldChange(p.id, 'productType', e.target.value)}>
                     {productTypeOptions.map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
-                </td>
-                <td>
+                </TableCell>
+                <TableCell>
                   <select value={p.reviewOption || '별점'} onChange={(e) => handleFieldChange(p.id, 'reviewOption', e.target.value)}>
                     {(p.productType === '빈박스' ? limitedReviewOptions : fullReviewOptions).map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
-                </td>
-                <td>{p.reviewDate}</td>
-                <td><select value={p.progressStatus || '진행전'} onChange={(e) => handleStatusChange(p.id, e.target.value)}><option value="">선택</option>{progressStatusOptions.map(s => (<option key={s} value={s}>{s}</option>))}</select></td>
-                <td>{formatDate(p.createdAt)}</td>
-                <td className="actions-cell">
-                  {/* ▼▼▼ 관리 버튼 그룹 수정 ▼▼▼ */}
-                  <button className="table-edit-btn" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>수정</button>
-                  <button className="table-copy-btn" onClick={() => handleCopyGuide(p.guide)}>가이드복사</button>
-                  <button onClick={() => handleDelete(p.id)} className="table-delete-btn">삭제</button>
-                  {/* ▲▲▲ 수정 완료 ▲▲▲ */}
-                </td>
-              </tr>
+                </TableCell>
+                <TableCell>{p.reviewDate}</TableCell>
+                <TableCell><select value={p.progressStatus || '진행전'} onChange={(e) => handleStatusChange(p.id, e.target.value)}><option value="">선택</option>{progressStatusOptions.map(s => (<option key={s} value={s}>{s}</option>))}</select></TableCell>
+                <TableCell>{formatDate(p.createdAt)}</TableCell>
+                <TableCell className="actions-cell">
+                  <Button size="sm" className="table-edit-btn" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>수정</Button>
+                  <Button size="sm" className="table-copy-btn" onClick={() => handleCopyGuide(p.guide)}>가이드복사</Button>
+                  <Button size="sm" variant="destructive" onClick={() => handleDelete(p.id)} className="table-delete-btn">삭제</Button>
+                </TableCell>
+              </TableRow>
             )) : (
-              <tr><td colSpan="9" style={{ padding: '50px', textAlign: 'center' }}>생성된 상품이 없습니다.</td></tr>
+              <TableRow><TableCell colSpan="9" style={{ padding: '50px', textAlign: 'center' }}>생성된 상품이 없습니다.</TableCell></TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </>
   );
