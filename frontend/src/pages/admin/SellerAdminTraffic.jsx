@@ -3,6 +3,7 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { ko } from 'date-fns/locale';
 import { db, doc, getDoc, setDoc } from '../../firebaseConfig';
+import { Button } from '@/components/ui/button';
 
 const DEFAULT_PRODUCT = { category: '', name: '', description: '', retailPrice: 0, salePrice: 0, discountRate: 0 };
 
@@ -161,8 +162,8 @@ export default function SellerAdminTrafficPage() {
                 <p className="text-lg font-bold">총 결제 금액: <span className="font-bold text-blue-600">{totalAmount.toLocaleString()}</span> 원</p>
               </div>
               <div className="space-x-2">
-                <button onClick={addRow} className="bg-gray-200 px-4 py-2 rounded">행 추가</button>
-                <button onClick={saveProducts} className="bg-blue-600 text-white px-4 py-2 rounded">저장</button>
+                <Button onClick={addRow} className="bg-gray-200 px-4 py-2 rounded">행 추가</Button>
+                <Button onClick={saveProducts} className="bg-blue-600 text-white px-4 py-2 rounded">저장</Button>
               </div>
           </div>
       </div>

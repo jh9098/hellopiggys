@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; // [추가] axios 라이브러리를 직접 임포트해야 합니다.
+import { Button } from '@/components/ui/button';
 
 // [수정] 우리 프로젝트의 중앙 firebaseConfig.js 에서 필요한 것만 가져옵니다.
 import {
@@ -110,9 +111,9 @@ export default function SellerSignupPage() {
         <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="PW" required style={{ width:'100%', padding:'8px', marginBottom:'10px' }} />
         <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="PW 재입력" required style={{ width:'100%', padding:'8px', marginBottom:'10px' }} />
         <input value={referrerId} onChange={e => setReferrerId(e.target.value)} placeholder="추천인 ID (선택)" style={{ width:'100%', padding:'8px', marginBottom:'10px' }} />
-        <button type="submit" disabled={isVerifying} style={{ width:'100%', padding:'10px' }}>
+        <Button type="submit" disabled={isVerifying} style={{ width:'100%', padding:'10px' }}>
           {isVerifying ? '인증 중...' : '가입하기'}
-        </button>
+        </Button>
       </form>
     </div>
   );

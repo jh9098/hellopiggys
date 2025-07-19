@@ -395,7 +395,7 @@ export default function WriteReview() {
             {selectedProduct.guide && (<div className="guide-content"><strong>가이드:</strong><p style={{whiteSpace: 'pre-line'}}>{selectedProduct.guide}</p></div>)}
           </div>
           <div className="account-selection-action">
-            <button type="button" onClick={handleMainButtonClick}>{isAccountSelected ? '✓ 계정 선택 완료 (변경하기)' : '구매 폼 작성하기'}</button>
+            <Button type="button" onClick={handleMainButtonClick}>{isAccountSelected ? '✓ 계정 선택 완료 (변경하기)' : '구매 폼 작성하기'}</Button>
           </div>
           {isAccountModalOpen && (
             <AccountModal
@@ -498,13 +498,13 @@ export default function WriteReview() {
 
           <hr className="section-divider" />
           {!showImageUpload && (
-            <button
+            <Button
               type="button"
               className="upload-toggle-btn"
               onClick={() => setShowImageUpload(true)}
             >
               이미지 지금 등록하기
-            </button>
+            </Button>
           )}
           <p className="upload-note">이미지 등록 생략하고 제출 후, 리뷰관리에서 업로드 하셔도 됩니다</p>
 
@@ -577,15 +577,15 @@ export default function WriteReview() {
               /> 개인정보 이용에 동의합니다.
             </label>
           </div>
-          <button 
-            className="submit-btn" 
-            type="submit" 
+          <Button
+            className="submit-btn"
+            type="submit"
             disabled={!isFormValid || submitting}
           >
             {/* ▼▼▼ [수정] 버튼 텍스트를 제출 상태에 따라 동적으로 변경 ▼▼▼ */}
             {submitting ? submissionStatus : '제출하기'}
             {/* ▲▲▲ [수정] 완료 ▲▲▲ */}
-          </button>
+          </Button>
         </form>
       )}
         </CardContent>

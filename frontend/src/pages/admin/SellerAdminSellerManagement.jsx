@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { db, collection, onSnapshot, doc, query, where, getDocs, writeBatch } from '../../firebaseConfig';
+import { Button } from '@/components/ui/button';
 
 export default function SellerAdminSellerManagementPage() {
   const [sellers, setSellers] = useState([]);
@@ -70,7 +71,7 @@ export default function SellerAdminSellerManagementPage() {
                   <td className="px-6 py-4 whitespace-nowrap">{seller.referrerId || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{(seller.deposit ?? 0).toLocaleString()}원</td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <button onClick={() => handleDeleteSeller(seller)} className="bg-red-600 hover:bg-red-800 text-white font-bold py-2 px-4 rounded">강제 탈퇴</button>
+                    <Button onClick={() => handleDeleteSeller(seller)} className="bg-red-600 hover:bg-red-800 text-white font-bold py-2 px-4 rounded">강제 탈퇴</Button>
                   </td>
                 </tr>
               ))}

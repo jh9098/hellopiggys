@@ -6,6 +6,7 @@ import {
 } from 'firebase/auth';
 import { auth, db, doc, setDoc, getDoc } from '../firebaseConfig';
 import './ReviewerLogin.css';
+import { Button } from '@/components/ui/button';
 
 export default function ReviewerLogin() {
   const navigate = useNavigate();
@@ -131,20 +132,20 @@ export default function ReviewerLogin() {
             />
           </div>
         )}
-        <button className="login-btn" type="submit" disabled={submitting}>
+        <Button className="login-btn" type="submit" disabled={submitting}>
           {submitting ? '처리 중...' : isLoginView ? '로그인' : '회원가입'}
-        </button>
+        </Button>
         {error && <p style={{color:'red', marginTop:'10px'}}>{error}</p>}
       </form>
       <div className="view-toggle" style={{ marginTop: '20px' }}>
         {isLoginView ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'}
-        <button onClick={() => { setIsLoginView(!isLoginView); setError(''); }} style={{ marginLeft: '10px' }}>
+        <Button onClick={() => { setIsLoginView(!isLoginView); setError(''); }} style={{ marginLeft: '10px' }} variant="link">
           {isLoginView ? '회원가입' : '로그인'}
-        </button>
+        </Button>
       </div>
-      <button onClick={handleKakaoLogin} style={{ marginTop: '20px' }}>
+      <Button onClick={handleKakaoLogin} style={{ marginTop: '20px' }}>
         카카오 로그인
-      </button>
+      </Button>
     </div>
   );
 }
