@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { httpsCallable } from 'firebase/functions';
+import { Button } from '@/components/ui/button';
 import { 
   auth, db, functions, 
   signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -116,8 +117,8 @@ export default function SellerLoginPage() {
       {user ? (
         <div style={{ border: '1px solid #ccc', padding: '20px', marginBottom: '20px', textAlign: 'center' }}>
           <p>{user.email}님, 환영합니다.</p>
-          <button onClick={() => navigate('/seller/dashboard')} style={{ width: '100%', padding: '10px', marginTop: '10px' }}>대시보드로 이동</button>
-          <button onClick={handleLogout} style={{ width: '100%', padding: '10px', marginTop: '10px', backgroundColor: 'grey', color: 'white' }}>로그아웃</button>
+          <Button onClick={() => navigate('/seller/dashboard')} style={{ width: '100%', padding: '10px', marginTop: '10px' }}>대시보드로 이동</Button>
+          <Button onClick={handleLogout} style={{ width: '100%', padding: '10px', marginTop: '10px' }} variant="secondary">로그아웃</Button>
         </div>
       ) : (
         <>
@@ -125,8 +126,8 @@ export default function SellerLoginPage() {
             <h2>로그인</h2>
             <input value={loginId} onChange={(e) => setLoginId(e.target.value)} placeholder="ID" style={{ width: '100%', padding: '8px', marginBottom: '10px' }} />
             <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="비밀번호" style={{ width: '100%', padding: '8px', marginBottom: '10px' }} />
-            <button onClick={handleLogin} style={{ width: '100%', padding: '10px', marginBottom: '10px' }}>로그인</button>
-            <button onClick={() => navigate('/seller-signup')} style={{ width: '100%', padding: '10px' }}>회원가입</button>
+            <Button onClick={handleLogin} style={{ width: '100%', padding: '10px', marginBottom: '10px' }}>로그인</Button>
+            <Button onClick={() => navigate('/seller-signup')} style={{ width: '100%', padding: '10px' }}>회원가입</Button>
           </div>
         </>
       )}

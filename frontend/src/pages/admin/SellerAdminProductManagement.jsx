@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { db, collection, query, onSnapshot, doc, updateDoc, orderBy, writeBatch, increment, serverTimestamp } from '../../firebaseConfig';
 import Papa from 'papaparse';
+import { Button } from '@/components/ui/button';
 
 // [추가] 날짜 포맷팅을 위한 헬퍼 함수
 const formatDateTime = (date) => {
@@ -195,9 +196,9 @@ export default function AdminProductManagementPage() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">캠페인 관리 ({filteredCampaigns.length})</h2>
         <div className="flex items-center space-x-2">
-            <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">선택 항목 인증</button>
-            <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">삭제</button>
-            <button onClick={handleDownloadExcel} className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700">엑셀 다운로드</button>
+            <Button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">선택 항목 인증</Button>
+            <Button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">삭제</Button>
+            <Button onClick={handleDownloadExcel} className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700">엑셀 다운로드</Button>
         </div>
       </div>
 

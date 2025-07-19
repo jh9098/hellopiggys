@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom'; // [수정] useSearchParams, useNavigate 임포트
 import { nanoid } from 'nanoid';
+import { Button } from '@/components/ui/button';
 import { db, auth, doc, getDoc, onAuthStateChanged } from '../../firebaseConfig'; // [수정] 경로 변경
 
 // [주의] 이 클라이언트 키는 테스트용 키입니다. 실제 운영 시에는 발급받은 라이브 키로 교체해야 합니다.
@@ -100,12 +101,12 @@ export default function PaymentPage() {
         <div style={{ padding: '20px', maxWidth: '600px', margin: 'auto' }}>
             <h1>캠페인 결제</h1>
             <div id="payment-method" />
-            <button 
-                onClick={handlePayment} 
-                style={{ marginTop: '20px', padding: '10px 20px', width: '100%', fontSize: '1.2rem', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+            <Button
+                onClick={handlePayment}
+                style={{ marginTop: '20px', padding: '10px 20px', width: '100%', fontSize: '1.2rem' }}
             >
                 {paymentAmount.toLocaleString()}원 결제하기
-            </button>
+            </Button>
         </div>
     );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import imageCompression from 'browser-image-compression';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import {
   auth,
   onAuthStateChanged,
@@ -42,9 +43,9 @@ function GuideToggle({ text }) {
       <strong>가이드:</strong>
       <p style={{ whiteSpace: 'pre-line' }}>{expanded || !hasMore ? text : preview}</p>
       {hasMore && (
-        <button className="toggle-btn" onClick={() => setExpanded(!expanded)}>
+        <Button className="toggle-btn" onClick={() => setExpanded(!expanded)}>
           {expanded ? '접기 ▲' : '더보기 ▼'}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -347,9 +348,9 @@ export default function MyReviews() {
       <div className="my-wrap" style={{ textAlign: 'center', paddingTop: '50px' }}>
         <h2>내 리뷰 목록</h2>
         <p>리뷰를 확인하려면 로그인이 필요합니다.</p>
-        <button className="login-open-btn" onClick={() => setIsLoginModalOpen(true)}>
+        <Button className="login-open-btn" onClick={() => setIsLoginModalOpen(true)}>
           로그인 / 회원가입
-        </button>
+        </Button>
         {isLoginModalOpen && (
           <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} />
         )}
@@ -364,13 +365,13 @@ export default function MyReviews() {
         <h2>내 리뷰 목록</h2>
         <div className="header-actions">
           {/* ▼▼▼ "구매폼 작성" 버튼의 navigate 경로를 수정합니다 ▼▼▼ */}
-          <button className="action-btn" onClick={() => navigate('/reviewer/link')}>
+          <Button className="action-btn" onClick={() => navigate('/reviewer/link')}>
             구매폼 작성
-          </button>
+          </Button>
           {/* ▲▲▲ 수정 완료 ▲▲▲ */}
-          <button className="logout" onClick={handleLogout}>
+          <Button className="logout" onClick={handleLogout}>
             로그아웃 ➡
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -395,9 +396,9 @@ export default function MyReviews() {
             {statusInfo.reason && <div className="rejection-reason"><strong>반려 사유:</strong> {statusInfo.reason}</div>}
             <div className="price">{Number(r.rewardAmount || 0).toLocaleString()}원</div>
             <div className="btn-wrap">
-              <button onClick={() => openModal('detail', r)}>제출 내역 상세(수정)</button>
-              <button className="outline" onClick={() => openModal('upload', r)} disabled={r.status !== 'submitted' && r.status !== 'rejected'}>리뷰 인증하기</button>
-              <button className="delete" onClick={() => handleDeleteReview(r.id)}>삭제</button>
+              <Button onClick={() => openModal('detail', r)}>제출 내역 상세(수정)</Button>
+              <Button className="outline" onClick={() => openModal('upload', r)} disabled={r.status !== 'submitted' && r.status !== 'rejected'}>리뷰 인증하기</Button>
+              <Button className="delete" onClick={() => handleDeleteReview(r.id)}>삭제</Button>
             </div>
           </div>
         );
@@ -406,7 +407,7 @@ export default function MyReviews() {
       {modalType && (
         <div className="modal-back">
           <div className="modal">
-            <button className="close" onClick={closeModal}>✖</button>
+            <Button className="close" onClick={closeModal}>✖</Button>
             {modalType === 'detail' && currentReview && (
               <div className="detail-view">
                 <h3>제출 내역 상세(수정)</h3>
@@ -484,12 +485,12 @@ export default function MyReviews() {
                               style={{ cursor: 'pointer' }}
                             />
                             {isEditing && (
-                              <button 
-                                className="delete-image-btn" 
+                              <Button
+                                className="delete-image-btn"
                                 onClick={() => handleDeleteExistingImage(key, url)}
                               >
                                 ✖
-                              </button>
+                              </Button>
                             )}
                           </div>
                         ))}
@@ -501,13 +502,13 @@ export default function MyReviews() {
                 <div className="modal-actions">
                   {isEditing ? (
                     <>
-                      <button onClick={handleSave} disabled={uploading}>{uploading ? '저장 중...' : '저장'}</button>
-                      <button onClick={handleCancelEdit} className="secondary">취소</button>
+                      <Button onClick={handleSave} disabled={uploading}>{uploading ? '저장 중...' : '저장'}</Button>
+                      <Button onClick={handleCancelEdit} className="secondary">취소</Button>
                     </>
                   ) : (
                     <>
-                      <button onClick={handleEdit} disabled={currentReview?.status === 'verified' || currentReview?.status === 'settled'}>수정</button>
-                      <button onClick={closeModal} className="secondary">닫기</button>
+                      <Button onClick={handleEdit} disabled={currentReview?.status === 'verified' || currentReview?.status === 'settled'}>수정</Button>
+                      <Button onClick={closeModal} className="secondary">닫기</Button>
                     </>
                   )}
                 </div>
@@ -517,7 +518,7 @@ export default function MyReviews() {
               <>
                 <h3>리뷰 인증 이미지 업로드</h3>
                 <input type="file" accept="image/*" multiple onChange={onFile} />
-                <button onClick={uploadConfirm} disabled={uploading || files.length === 0} style={{ marginTop: 16 }}>{uploading ? '업로드 중…' : '완료'}</button>
+                <Button onClick={uploadConfirm} disabled={uploading || files.length === 0} style={{ marginTop: 16 }}>{uploading ? '업로드 중…' : '완료'}</Button>
               </>
             )}
           </div>
@@ -527,7 +528,7 @@ export default function MyReviews() {
     {imagePreview && (
       <div className="modal-back" onClick={closeImagePreview}>
         <div className="modal" onClick={(e) => e.stopPropagation()}>
-          <button className="close" onClick={closeImagePreview}>✖</button>
+          <Button className="close" onClick={closeImagePreview}>✖</Button>
           <img src={imagePreview} alt="미리보기" style={{ width: '100%' }} />
         </div>
       </div>

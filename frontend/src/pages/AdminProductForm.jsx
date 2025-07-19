@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db, collection, serverTimestamp, updateDoc, doc, getDoc, setDoc } from '../firebaseConfig';
+import { Button } from '@/components/ui/button';
 
 const progressStatusOptions = ['진행전', '진행중', '진행완료', '일부완료', '보류'];
 const productTypeOptions = ['실배송', '빈박스'];
@@ -117,8 +118,8 @@ export default function AdminProductFormPage() {
         <div className="form-field"><label>진행일자</label><input type="date" name="reviewDate" value={form.reviewDate} onChange={handleChange} required /></div>
         <div><label style={{ display: 'block', marginBottom: '8px' }}>가이드</label><textarea name="guide" value={form.guide} onChange={handleChange} placeholder="리뷰 작성 시 필요한 상세 안내 내용을 입력하세요." style={{ width: '100%', minHeight: '300px' }}></textarea></div>
         <div className="form-actions">
-            <button type="submit" disabled={isSubmitting}>{isSubmitting ? '저장 중...' : (isEditMode ? '수정 완료' : '상품 등록')}</button>
-            <button type="button" onClick={() => navigate('/admin/products')} disabled={isSubmitting}>닫기</button>
+            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? '저장 중...' : (isEditMode ? '수정 완료' : '상품 등록')}</Button>
+            <Button type="button" onClick={() => navigate('/admin/products')} disabled={isSubmitting} variant="secondary">닫기</Button>
         </div>
       </form>
     </>
