@@ -214,7 +214,7 @@ export default function AdminSettlementPage() {
               </TableRow>
             ))}
           </TableBody>
-        </table>
+        </Table>
       </div>
       {isModalOpen && <ReviewDetailModal review={selectedReview} onClose={closeDetailModal} />}
     </>
