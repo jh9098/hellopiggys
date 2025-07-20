@@ -482,20 +482,16 @@ export default function SellerReservationPage() {
             <div className="space-y-8">
                 <Card>
                     <form onSubmit={handleAddCampaign}>
-                        <CardHeader>
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <CardTitle>새 작업 추가</CardTitle>
-                                    <CardDescription>진행할 리뷰 캠페인의 정보를 입력하고 견적에 추가하세요.</CardDescription>
-                                </div>
-                                <div className="flex items-center space-x-2 pt-1 flex-shrink-0">
-                                    <Button type="button" size="sm" variant="outline" onClick={handleSaveTemplate}>지금 작성하는 상품 저장하기</Button>
-                                    <Button type="button" size="sm" variant="outline" onClick={() => setShowTemplateDialog(true)}>저장된 상품 불러오기</Button>
-                                </div>
+                        <CardHeader className="items-center space-y-2">
+                            <CardTitle>새 작업 추가</CardTitle>
+                            <CardDescription>진행할 리뷰 캠페인의 정보를 입력하고 견적에 추가하세요.</CardDescription>
+                            <div className="flex items-center justify-center space-x-2 pt-1">
+                                <Button type="button" size="sm" variant="outline" onClick={handleSaveTemplate}>지금 작성하는 상품 저장하기</Button>
+                                <Button type="button" size="sm" variant="outline" onClick={() => setShowTemplateDialog(true)}>저장된 상품 불러오기</Button>
                             </div>
                         </CardHeader>
                         <CardContent className="grid lg:grid-cols-3 gap-8">
-                            <div className="space-y-4">
+                            <div className="space-y-4 p-4 border rounded-lg h-full">
                                 <div>
                                     <Label htmlFor="date">진행 일자</Label>
                                     <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
@@ -586,7 +582,7 @@ export default function SellerReservationPage() {
                                 </div>
                             </div>
 
-                            <div className="space-y-4 h-full flex flex-col">
+                            <div className="space-y-4 p-4 border rounded-lg h-full flex flex-col">
                                 <div className="flex-grow flex flex-col">
                                     <div className="flex justify-between items-baseline mb-1">
                                         <Label htmlFor="reviewGuide">리뷰 가이드</Label>
