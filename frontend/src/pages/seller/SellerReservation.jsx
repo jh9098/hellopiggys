@@ -231,9 +231,19 @@ export default function SellerReservationPage() {
                     const caps = {}; snap.forEach(d => { caps[d.id] = d.data().capacity || 0; });
                     setCapacities(caps);
                 }));
-                listeners.push(onSnapshot(query(collection(db, 'productTemplates'), where('sellerUid', '==', currentUser.uid)), (snap) => {
-                    setSavedTemplates(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-                }));
+                listeners.push(onSnapshot(
+                    query(collection(db, 'productTemplates'), where('sellerUid', '==', currentUser.uid)),
+                    (snap) => {
+                        const templates = snap.docs.map((d) => {
+                            const data = d.data();
+                            if (data.date?.seconds) {
+                                data.date = new Date(data.date.seconds * 1000);
+                            }
+                            return { id: d.id, ...data };
+                        });
+                        setSavedTemplates(templates);
+                    }
+                ));
                 setIsLoading(false);
                 return () => listeners.forEach(unsub => unsub());
             } else {
@@ -734,7 +744,21 @@ export default function SellerReservationPage() {
                                                 <p className="font-medium">{t.productName}</p>
                                                 <p className="text-sm text-muted-foreground">{t.productOption}</p>
                                             </div>
-                                            <Button size="sm" onClick={() => { setFormState(prev => ({ ...prev, ...rest })); setShowTemplateDialog(false); }}>선택</Button>
+                                            <Button
+                                                size="sm"
+                                                onClick={() => {
+                                                    const date = rest.date instanceof Date
+                                                        ? rest.date
+                                                        : rest.date?.seconds
+                                                            ? new Date(rest.date.seconds * 1000)
+                                                            : new Date();
+                                                    const { date: _, sellerUid: __, createdAt: ___, updatedAt: ____, ...others } = rest;
+                                                    setFormState((prev) => ({ ...prev, ...others, date }));
+                                                    setShowTemplateDialog(false);
+                                                }}
+                                            >
+                                                선택
+                                            </Button>
                                         </div>
                                     );
                                 })
