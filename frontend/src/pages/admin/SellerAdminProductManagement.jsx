@@ -152,22 +152,42 @@ export default function AdminProductManagementPage() {
     }
   };
 
+  const getBasePrice = (deliveryType, reviewType) => {
+    if (deliveryType === '실배송') {
+      switch (reviewType) {
+        case '별점': return 1600;
+        case '텍스트': return 1700;
+        case '포토': return 1800;
+        case '프리미엄(포토)': return 4000;
+        case '프리미엄(영상)': return 5000;
+        default: return 0;
+      }
+    } else if (deliveryType === '빈박스') {
+      return (reviewType === '별점' || reviewType === '텍스트') ? 5400 : 0;
+    }
+    return 0;
+  };
+
   const computeAmounts = (c) => {
-    const reviewFee = Number(c.basePrice || 0) + Number(c.sundayExtraCharge || 0);
-    const productPriceWithAgency = Number(c.productPrice || 0) * 1.1;
+    const basePrice = getBasePrice(c.deliveryType, c.reviewType);
+    const dateObj = c.date?.seconds ? new Date(c.date.seconds * 1000) : c.date ? new Date(c.date) : new Date();
+    const sundayExtraCharge = dateObj.getDay() === 0 ? 600 : 0;
+    const reviewFee = c.reviewFee ?? basePrice + sundayExtraCharge;
+    const productPrice = Number(c.productPrice || 0);
+    const productPriceWithAgency = c.productPriceWithAgencyFee ?? productPrice * 1.1;
     const quantity = Number(c.quantity || 0);
     const subtotal = (reviewFee + productPriceWithAgency) * quantity;
-    const itemTotal = c.itemTotal ?? Math.round(subtotal);
-    const finalItemAmount = c.finalItemAmount ?? Math.round(itemTotal * 1.1);
+    const itemTotal = c.subtotal ?? c.itemTotal ?? Math.round(subtotal);
+    const finalItemAmount = c.finalTotalAmount ?? c.finalItemAmount ?? Math.round((c.isVatApplied ? itemTotal * 1.1 : itemTotal));
     const commission = finalItemAmount - itemTotal;
-    return { reviewFee, itemTotal, finalItemAmount, commission };
+    return { basePrice, sundayExtraCharge, reviewFee, productPrice, quantity, itemTotal, finalItemAmount, commission };
   };
 
   const handleDownloadExcel = () => {
     if (filteredCampaigns.length === 0) return alert("다운로드할 데이터가 없습니다.");
     const toText = (v) => `="${(v ?? '').toString()}"`;
     const dataForExcel = filteredCampaigns.map((c, index) => {
-      const { itemTotal, finalItemAmount, commission } = computeAmounts(c);
+      const { basePrice, sundayExtraCharge, productPrice, quantity, itemTotal, finalItemAmount, commission } = computeAmounts(c);
       return {
         '순번': index + 1,
         '예약 등록 일시': c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleString('ko-KR') : '', // 엑셀은 기존 포맷 유지
@@ -184,7 +204,7 @@ export default function AdminProductManagementPage() {
         '닉네임': sellersMap[c.sellerUid]?.nickname || '',
         '전화번호': toText(sellersMap[c.sellerUid]?.phone || ''),
         '입금확인': c.depositConfirmed ? 'Y' : 'N',
-        '견적 상세': `(리뷰 ${Number(c.basePrice || 0).toLocaleString()}${c.sundayExtraCharge > 0 ? ` + 공휴일 ${Number(c.sundayExtraCharge).toLocaleString()}` : ''} + 상품가 ${Number(c.productPrice).toLocaleString()} x 1.1) x ${c.quantity}개 x 1.1`,
+        '견적 상세': `(리뷰 ${basePrice.toLocaleString()}${sundayExtraCharge > 0 ? ` + 공휴일 ${sundayExtraCharge.toLocaleString()}` : ''} + 상품가 ${productPrice.toLocaleString()} x 1.1) x ${quantity}개${c.isVatApplied ? ' x 1.1' : ''}`,
         '총 견적': `${finalItemAmount.toLocaleString()}원 (견적 ${Number(itemTotal).toLocaleString()} + 수수료 ${commission.toLocaleString()})`,
         '작업': '반려',
       };
@@ -257,7 +277,7 @@ export default function AdminProductManagementPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
                 {filteredCampaigns.map((c, index) => {
-                  const { itemTotal, finalItemAmount, commission } = computeAmounts(c);
+                  const { basePrice, sundayExtraCharge, productPrice, quantity, itemTotal, finalItemAmount, commission } = computeAmounts(c);
                   return (
                     <tr key={c.id} className="hover:bg-gray-50">
                       <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
@@ -286,7 +306,7 @@ export default function AdminProductManagementPage() {
                             disabled={c.status === '예약 확정'}
                         />
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-xs text-gray-500">(리뷰 {Number(c.basePrice || 0).toLocaleString()}{c.sundayExtraCharge > 0 ? ` + 공휴일 ${Number(c.sundayExtraCharge).toLocaleString()}` : ''} + 상품가 {Number(c.productPrice).toLocaleString()} x 1.1) x {c.quantity}개 x 1.1</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm text-xs text-gray-500">(리뷰 {basePrice.toLocaleString()}{sundayExtraCharge > 0 ? ` + 공휴일 ${sundayExtraCharge.toLocaleString()}` : ''} + 상품가 {productPrice.toLocaleString()} x 1.1) x {quantity}개{c.isVatApplied ? ' x 1.1' : ''}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm"><div className='font-bold'>{finalItemAmount.toLocaleString()}원</div><div className='text-xs text-gray-500'>(견적 {Number(itemTotal).toLocaleString()} + 수수료 {commission.toLocaleString()})</div></td>
                       {/* [수정 4] 불필요한 컬럼 제거 */}
                       <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
