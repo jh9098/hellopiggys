@@ -132,7 +132,7 @@ export default function SellerReservationPage() {
     const [selectedSavedCampaigns, setSelectedSavedCampaigns] = useState([]);
     const [deleteConfirmation, setDeleteConfirmation] = useState(null);
     const [paymentAmountInPopup, setPaymentAmountInPopup] = useState(0);
-    const [saveTemplate, setSaveTemplate] = useState(false);
+    const [showSaveSuccess, setShowSaveSuccess] = useState(false);
     const [savedTemplates, setSavedTemplates] = useState([]);
     const [showTemplateDialog, setShowTemplateDialog] = useState(false);
     
@@ -282,24 +282,24 @@ export default function SellerReservationPage() {
     const handleSaveTemplate = async () => {
         if (!user) return;
         const templateData = { ...formState, sellerUid: user.uid, updatedAt: serverTimestamp() };
-        const existing = savedTemplates.find(t => t.productUrl === formState.productUrl && t.productOption === formState.productOption);
+        const existing = savedTemplates.find(
+            t => t.productUrl === formState.productUrl && t.productOption === formState.productOption
+        );
         try {
             if (existing) {
                 await updateDoc(doc(db, 'productTemplates', existing.id), templateData);
             } else {
                 await addDoc(collection(db, 'productTemplates'), { ...templateData, createdAt: serverTimestamp() });
             }
+            setShowSaveSuccess(true);
         } catch (err) {
             console.error('템플릿 저장 오류:', err);
         }
     };
     const handleAddCampaign = (e) => {
         e.preventDefault();
-        if (saveTemplate) {
-            handleSaveTemplate();
-        }
         const newCampaign = { id: nanoid(), ...formState };
-        if (!formState.productOption.trim()) { setPendingCampaign(newCampaign); } 
+        if (!formState.productOption.trim()) { setPendingCampaign(newCampaign); }
         else { setCampaigns(prev => [...prev, newCampaign]); setFormState(initialFormState); }
     };
     const handleConfirmAddCampaign = () => {
@@ -489,8 +489,7 @@ export default function SellerReservationPage() {
                                     <CardDescription>진행할 리뷰 캠페인의 정보를 입력하고 견적에 추가하세요.</CardDescription>
                                 </div>
                                 <div className="flex items-center space-x-2 pt-1 flex-shrink-0">
-                                    <Checkbox id="saveTemplate" checked={saveTemplate} onCheckedChange={setSaveTemplate} />
-                                    <Label htmlFor="saveTemplate">지금 작성하는 상품 저장하기</Label>
+                                    <Button type="button" size="sm" variant="outline" onClick={handleSaveTemplate}>지금 작성하는 상품 저장하기</Button>
                                     <Button type="button" size="sm" variant="outline" onClick={() => setShowTemplateDialog(true)}>저장된 상품 불러오기</Button>
                                 </div>
                             </div>
@@ -764,6 +763,15 @@ export default function SellerReservationPage() {
                                 })
                             )}
                         </div>
+                </DialogContent>
+                </Dialog>
+
+                <Dialog open={showSaveSuccess} onOpenChange={setShowSaveSuccess}>
+                    <DialogContent className="sm:max-w-md text-center space-y-4">
+                        <p>입력한 내용이 저장됐습니다.<br/>저장된 상품 불러오기 버튼을 통해<br/>언제든 불러올 수 있습니다.</p>
+                        <DialogFooter>
+                            <Button className="w-full" onClick={() => setShowSaveSuccess(false)}>확인</Button>
+                        </DialogFooter>
                     </DialogContent>
                 </Dialog>
 
