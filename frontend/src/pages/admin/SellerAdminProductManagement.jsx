@@ -153,13 +153,14 @@ export default function AdminProductManagementPage() {
   };
 
   const computeAmounts = (c) => {
-    const itemTotal = c.itemTotal ?? (
-      (Number(c.basePrice || 0) + Number(c.sundayExtraCharge || 0) + Number(c.productPrice || 0)) *
-      Number(c.quantity || 0)
-    );
-    const finalItemAmount = c.finalItemAmount ?? Math.round(itemTotal * 1.10);
+    const reviewFee = Number(c.basePrice || 0) + Number(c.sundayExtraCharge || 0);
+    const productPriceWithAgency = Number(c.productPrice || 0) * 1.1;
+    const quantity = Number(c.quantity || 0);
+    const subtotal = (reviewFee + productPriceWithAgency) * quantity;
+    const itemTotal = c.itemTotal ?? Math.round(subtotal);
+    const finalItemAmount = c.finalItemAmount ?? Math.round(itemTotal * 1.1);
     const commission = finalItemAmount - itemTotal;
-    return { itemTotal, finalItemAmount, commission };
+    return { reviewFee, itemTotal, finalItemAmount, commission };
   };
 
   const handleDownloadExcel = () => {
@@ -183,7 +184,7 @@ export default function AdminProductManagementPage() {
         '닉네임': sellersMap[c.sellerUid]?.nickname || '',
         '전화번호': toText(sellersMap[c.sellerUid]?.phone || ''),
         '입금확인': c.depositConfirmed ? 'Y' : 'N',
-        '견적 상세': `((리뷰 ${Number(c.basePrice || 0).toLocaleString()}${ c.sundayExtraCharge > 0 ? ` + 공휴일 ${Number(c.sundayExtraCharge).toLocaleString()}` : ''}) + 상품가 ${Number(c.productPrice).toLocaleString()}) * ${ c.quantity }개`,
+        '견적 상세': `(리뷰 ${Number(c.basePrice || 0).toLocaleString()}${c.sundayExtraCharge > 0 ? ` + 공휴일 ${Number(c.sundayExtraCharge).toLocaleString()}` : ''} + 상품가 ${Number(c.productPrice).toLocaleString()} x 1.1) x ${c.quantity}개 x 1.1`,
         '총 견적': `${finalItemAmount.toLocaleString()}원 (견적 ${Number(itemTotal).toLocaleString()} + 수수료 ${commission.toLocaleString()})`,
         '작업': '반려',
       };
@@ -285,7 +286,7 @@ export default function AdminProductManagementPage() {
                             disabled={c.status === '예약 확정'}
                         />
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-xs text-gray-500">((리뷰 {Number(c.basePrice || 0).toLocaleString()}{c.sundayExtraCharge > 0 ? ` + 공휴일 ${Number(c.sundayExtraCharge).toLocaleString()}` : ''}) + 상품가 {Number(c.productPrice).toLocaleString()}) * {c.quantity}개</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm text-xs text-gray-500">(리뷰 {Number(c.basePrice || 0).toLocaleString()}{c.sundayExtraCharge > 0 ? ` + 공휴일 ${Number(c.sundayExtraCharge).toLocaleString()}` : ''} + 상품가 {Number(c.productPrice).toLocaleString()} x 1.1) x {c.quantity}개 x 1.1</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm"><div className='font-bold'>{finalItemAmount.toLocaleString()}원</div><div className='text-xs text-gray-500'>(견적 {Number(itemTotal).toLocaleString()} + 수수료 {commission.toLocaleString()})</div></td>
                       {/* [수정 4] 불필요한 컬럼 제거 */}
                       <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
