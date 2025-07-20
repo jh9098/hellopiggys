@@ -130,6 +130,7 @@ export default function SellerReservationPage() {
     
     const [isVatApplied, setIsVatApplied] = useState(true);
     const [selectedSavedCampaigns, setSelectedSavedCampaigns] = useState([]);
+    const [editedRows, setEditedRows] = useState({});
     const [deleteConfirmation, setDeleteConfirmation] = useState(null);
     const [paymentAmountInPopup, setPaymentAmountInPopup] = useState(0);
     const [showSaveSuccess, setShowSaveSuccess] = useState(false);
@@ -359,10 +360,14 @@ export default function SellerReservationPage() {
     };
 
     const handleDepositCheckboxChange = (id, checked) => {
-      if (checked) { setConfirmationDialogData({ id, checked }); } else { updateDepositStatus(id, checked); }
+      if (checked) { setConfirmationDialogData({ ids: [id], checked }); } else { updateDepositStatus([id], checked); }
     };
-    const updateDepositStatus = async (id, checked) => {
-      try { await updateDoc(doc(db, 'campaigns', id), { paymentReceived: checked }); } catch (err) { console.error('입금 여부 업데이트 오류:', err); }
+    const updateDepositStatus = async (ids, checked) => {
+      const batch = writeBatch(db);
+      (Array.isArray(ids) ? ids : [ids]).forEach((cId) => {
+        batch.update(doc(db, 'campaigns', cId), { paymentReceived: checked });
+      });
+      try { await batch.commit(); } catch (err) { console.error('입금 여부 업데이트 오류:', err); }
     };
     const handleLogout = async () => { try { await signOut(auth); navigate('/seller-login'); } catch (error) { console.error("로그아웃 실패:", error); } };
     const handleKeywordSearch = async () => {
@@ -422,12 +427,71 @@ export default function SellerReservationPage() {
         } catch (error) { console.error("캠페인 삭제 오류:", error); alert("삭제 중 오류 발생."); }
     };
 
-    const handleSelectSavedCampaign = (id, checked) => { setSelectedSavedCampaigns(prev => checked ? [...prev, id] : prev.filter(item => item !== id)); };
-    const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(checked ? savedCampaigns.map(c => c.id) : []); };
+const handleSelectSavedCampaign = (id, checked) => { setSelectedSavedCampaigns(prev => checked ? [...prev, id] : prev.filter(item => item !== id)); };
+const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(checked ? savedCampaigns.map(c => c.id) : []); };
+    const handleRowChange = (id, field, value) => {
+        setEditedRows(prev => ({
+            ...prev,
+            [id]: { ...prev[id], [field]: value }
+        }));
+    };
+
+    const isRowModified = (c) => {
+        const edited = editedRows[c.id];
+        if (!edited) return false;
+        return (
+            (edited.deliveryType ?? c.deliveryType) !== c.deliveryType ||
+            (edited.reviewType ?? c.reviewType) !== c.reviewType ||
+            Number(edited.quantity ?? c.quantity) !== Number(c.quantity)
+        );
+    };
+
+    const applyRowChanges = async (id) => {
+        const original = savedCampaigns.find(sc => sc.id === id);
+        const edited = editedRows[id];
+        if (!original || !edited) return;
+
+        const deliveryType = edited.deliveryType ?? original.deliveryType;
+        const reviewType = edited.reviewType ?? original.reviewType;
+        const quantity = Number(edited.quantity ?? original.quantity);
+        const cDate = original.date?.seconds ? new Date(original.date.seconds * 1000) : new Date();
+        const reviewFee = getBasePrice(deliveryType, reviewType) + (cDate.getDay() === 0 ? 600 : 0);
+        const productPriceWithAgencyFee = Number(original.productPrice) * 1.1;
+        const subtotal = (reviewFee + productPriceWithAgencyFee) * quantity;
+        const finalAmount = original.isVatApplied ? subtotal * 1.1 : subtotal;
+
+        try {
+            await updateDoc(doc(db, 'campaigns', id), {
+                deliveryType,
+                reviewType,
+                quantity,
+                reviewFee,
+                productPriceWithAgencyFee,
+                subtotal: Math.round(subtotal),
+                vat: Math.round(finalAmount - subtotal),
+                finalTotalAmount: Math.round(finalAmount)
+            });
+            setEditedRows(prev => {
+                const copy = { ...prev };
+                delete copy[id];
+                return copy;
+            });
+        } catch (err) {
+            console.error('캠페인 업데이트 오류:', err);
+        }
+    };
+    const handleBulkDepositRequest = () => {
+        const targets = savedCampaigns
+            .filter(c => selectedSavedCampaigns.includes(c.id) && !c.paymentReceived)
+            .map(c => c.id);
+        if (targets.length === 0) return;
+        setConfirmationDialogData({ ids: targets, checked: true });
+    };
 
     if (isLoading) return <div className="flex justify-center items-center h-screen"><p>데이터를 불러오는 중입니다...</p></div>;
     
     const { totalSubtotal, totalVat, totalAmount, amountToUseFromDeposit, remainingPayment } = calculateTotals(campaigns);
+    const pendingDepositCount = savedCampaigns.filter(c => selectedSavedCampaigns.includes(c.id) && !c.paymentReceived).length;
 
     return (
         <>
@@ -630,14 +694,14 @@ export default function SellerReservationPage() {
                 {/* --- 이하 코드는 변경사항 없음 --- */}
                 <Card>
                     <CardHeader><CardTitle>견적 목록(스프레드시트)</CardTitle><CardDescription>결제를 진행할 캠페인 목록입니다.<br/>- 품절 등으로 진행 불가 시 상품가만 예치금으로 전환됩니다.<br/>- 대표님 귀책 사유로 세금계산서 변경 시 수수료 10,000원 부과됩니다.<br/>- 견적 상세 = [체험단 진행비 + 상품가 × (1 + 대행수수료 10%)] × 수량 {isVatApplied && "× (1 + 부가세 10%)"}</CardDescription></CardHeader>
-                    <CardContent><div className="border rounded-md"><Table><TableHeader><TableRow>{['일자', '구분', '리뷰', '수량', '상품명', '상품가', '견적상세', '최종금액', '삭제'].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow></TableHeader><TableBody>{campaigns.length === 0 ? (<TableRow><TableCell colSpan="9" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>) : (campaigns.map((c) => {
+                    <CardContent><div className="border rounded-md"><Table><TableHeader><TableRow>{['일자', '구분', '리뷰', '수량', '상품명', '상품가', '최종금액', '삭제'].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow></TableHeader><TableBody>{campaigns.length === 0 ? (<TableRow><TableCell colSpan="8" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>) : (campaigns.map((c) => {
                         const cDate = c.date instanceof Date ? c.date : new Date();
                         const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
                         const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
                         const subtotal = (reviewFee + productPriceWithAgencyFee) * Number(c.quantity);
                         const finalAmount = isVatApplied ? subtotal * 1.1 : subtotal;
                         
-                        return (<TableRow key={c.id}><TableCell className={cDate.getDay() === 0 ? 'text-destructive font-semibold' : ''}>{formatDateWithDay(cDate)}</TableCell><TableCell><Badge variant="outline">{c.deliveryType}</Badge></TableCell><TableCell><Badge>{c.reviewType}</Badge></TableCell><TableCell>{c.quantity}</TableCell><TableCell className="font-medium">{c.productName}</TableCell><TableCell className="text-right">{Number(c.productPrice).toLocaleString()}원</TableCell><TableCell className="text-xs text-muted-foreground font-mono">{`( ${reviewFee.toLocaleString()} + ${(productPriceWithAgencyFee).toLocaleString()} ) × ${c.quantity} ${isVatApplied ? '× 1.1' : ''}`}</TableCell><TableCell className="font-semibold text-right">{Math.round(finalAmount).toLocaleString()}원</TableCell><TableCell><Button variant="ghost" size="icon" onClick={() => handleDeleteCampaign(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell></TableRow>);
+                        return (<TableRow key={c.id}><TableCell className={cDate.getDay() === 0 ? 'text-destructive font-semibold' : ''}>{formatDateWithDay(cDate)}</TableCell><TableCell><Badge variant="outline">{c.deliveryType}</Badge></TableCell><TableCell><Badge>{c.reviewType}</Badge></TableCell><TableCell>{c.quantity}</TableCell><TableCell className="font-medium">{c.productName}</TableCell><TableCell className="text-right">{Number(c.productPrice).toLocaleString()}원</TableCell><TableCell className="font-semibold text-right">{Math.round(finalAmount).toLocaleString()}원</TableCell><TableCell><Button variant="ghost" size="icon" onClick={() => handleDeleteCampaign(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell></TableRow>);
                     }))}</TableBody></Table></div></CardContent>
                     {campaigns.length > 0 && (<CardFooter className="flex flex-col items-end gap-2 text-right">
                         <div className="text-sm text-muted-foreground">공급가액 합계: {totalSubtotal.toLocaleString()}원</div>
@@ -661,10 +725,15 @@ export default function SellerReservationPage() {
                             <CardTitle>나의 예약 내역</CardTitle>
                             <CardDescription>과거에 예약한 모든 캠페인 내역입니다. 입금 완료 후 '입금'란을 체크해주세요.</CardDescription>
                         </div>
-                        <Button variant="destructive" onClick={() => setDeleteConfirmation({ type: 'multiple', ids: selectedSavedCampaigns })} disabled={selectedSavedCampaigns.length === 0}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            선택 항목 삭제 ({selectedSavedCampaigns.length})
-                        </Button>
+                        <div className="flex space-x-2">
+                            <Button onClick={handleBulkDepositRequest} disabled={pendingDepositCount === 0}>
+                                입금 확인 요청 ({pendingDepositCount})
+                            </Button>
+                            <Button variant="destructive" onClick={() => setDeleteConfirmation({ type: 'multiple', ids: selectedSavedCampaigns })} disabled={selectedSavedCampaigns.length === 0}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                선택 항목 삭제 ({selectedSavedCampaigns.length})
+                            </Button>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="border rounded-md">
@@ -689,32 +758,75 @@ export default function SellerReservationPage() {
                                     {savedCampaigns.length === 0 ? (
                                         <TableRow><TableCell colSpan="10" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
                                     ) : (
-                                        savedCampaigns.map(c => (
-                                            <TableRow key={c.id}>
-                                                <TableCell>
-                                                    <Checkbox checked={selectedSavedCampaigns.includes(c.id)} onCheckedChange={(checked) => handleSelectSavedCampaign(c.id, checked)} aria-label={`${c.productName} 선택`} />
-                                                </TableCell>
-                                                <TableCell className="text-center">{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</TableCell>
-                                                <TableCell className="font-medium">{c.productName}</TableCell>
-                                                <TableCell className="text-center"><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
-                                                <TableCell className="text-center"><Badge>{c.reviewType}</Badge></TableCell>
-                                                <TableCell className="text-center">{c.quantity}</TableCell>
-                                                <TableCell className="text-center">
-                                                    <Checkbox 
-                                                        checked={!!c.paymentReceived} 
-                                                        onCheckedChange={(checked) => handleDepositCheckboxChange(c.id, checked)} 
-                                                        title="입금 완료 시 체크"
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-center"><Badge variant={c.status === '예약 확정' ? 'default' : c.status === '예약 대기' ? 'secondary' : 'destructive'}>{c.status}</Badge></TableCell>
-                                                <TableCell className="text-center">{Math.round(c.finalTotalAmount || 0).toLocaleString()}원</TableCell>
-                                                <TableCell className="text-center">
-                                                    <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmation({ type: 'single', ids: [c.id] })}>
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
+                                        savedCampaigns.map(c => {
+                                            const row = editedRows[c.id] || {};
+                                            const deliveryType = row.deliveryType ?? c.deliveryType;
+                                            const reviewType = row.reviewType ?? c.reviewType;
+                                            const quantity = Number(row.quantity ?? c.quantity);
+                                            const cDate = c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date();
+                                            const reviewFee = getBasePrice(deliveryType, reviewType) + (cDate.getDay() === 0 ? 600 : 0);
+                                            const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
+                                            const subtotal = (reviewFee + productPriceWithAgencyFee) * quantity;
+                                            const finalAmount = c.isVatApplied ? subtotal * 1.1 : subtotal;
+
+                                            return (
+                                                <TableRow key={c.id}>
+                                                    <TableCell>
+                                                        <Checkbox checked={selectedSavedCampaigns.includes(c.id)} onCheckedChange={(checked) => handleSelectSavedCampaign(c.id, checked)} aria-label={`${c.productName} 선택`} />
+                                                    </TableCell>
+                                                    <TableCell className="text-center">{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</TableCell>
+                                                    <TableCell className="font-medium">{c.productName}</TableCell>
+                                                    <TableCell className="text-center">
+                                                        <Select value={deliveryType} onValueChange={(v) => handleRowChange(c.id, 'deliveryType', v)}>
+                                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="실배송">실배송</SelectItem>
+                                                                <SelectItem value="빈박스">빈박스</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <Select value={reviewType} onValueChange={(v) => handleRowChange(c.id, 'reviewType', v)}>
+                                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                {deliveryType === '실배송' ? (
+                                                                    <>
+                                                                        <SelectItem value="별점">별점</SelectItem>
+                                                                        <SelectItem value="텍스트">텍스트</SelectItem>
+                                                                        <SelectItem value="포토">포토</SelectItem>
+                                                                        <SelectItem value="프리미엄(포토)">프리미엄(포토)</SelectItem>
+                                                                        <SelectItem value="프리미엄(영상)">프리미엄(영상)</SelectItem>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <SelectItem value="별점">별점</SelectItem>
+                                                                        <SelectItem value="텍스트">텍스트</SelectItem>
+                                                                    </>
+                                                                )}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <Input type="number" className="w-20" value={quantity} min="1" onChange={(e) => handleRowChange(c.id, 'quantity', e.target.value)} />
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <Checkbox
+                                                            checked={!!c.paymentReceived}
+                                                            onCheckedChange={(checked) => handleDepositCheckboxChange(c.id, checked)}
+                                                            title="입금 완료 시 체크"
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="text-center"><Badge variant={c.status === '예약 확정' ? 'default' : c.status === '예약 대기' ? 'secondary' : 'destructive'}>{c.status}</Badge></TableCell>
+                                                    <TableCell className="text-center">{Math.round(finalAmount || 0).toLocaleString()}원</TableCell>
+                                                    <TableCell className="text-center space-x-2">
+                                                        <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmation({ type: 'single', ids: [c.id] })}>
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        </Button>
+                                                        <Button size="sm" disabled={!isRowModified(c)} onClick={() => applyRowChanges(c.id)}>적용</Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
                                     )}
                                 </TableBody>
                             </Table>
@@ -781,7 +893,27 @@ export default function SellerReservationPage() {
                         </DialogHeader>
                         <div className="my-6 p-6 bg-muted rounded-lg space-y-4 text-base sm:text-lg">
                         <div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">은 행</span><span>국민은행</span></div><div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">계좌번호</span><span className="font-mono tracking-wider">289537-00-006049</span></div><div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">예금주</span><span>아이언마운틴컴퍼니</span></div></div><Button onClick={() => setShowDepositPopup(false)} className="w-full h-12 text-lg mt-2">확인</Button></DialogContent></Dialog>
-                <Dialog open={!!confirmationDialogData} onOpenChange={() => setConfirmationDialogData(null)}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle className="flex items-center space-x-2"><CheckCircle className="text-green-500" /><span>입금 확인 요청</span></DialogTitle><DialogDescription className="pt-4 text-base">입금 확인을 요청했습니다. <br/>관리자 승인 후 예약이 자동으로 확정됩니다.</DialogDescription></DialogHeader><DialogFooter className="mt-4"><Button className="w-full" onClick={() => { if (confirmationDialogData) { updateDepositStatus(confirmationDialogData.id, confirmationDialogData.checked); } setConfirmationDialogData(null); }}>확인</Button></DialogFooter></DialogContent></Dialog>
+                <Dialog open={!!confirmationDialogData} onOpenChange={() => setConfirmationDialogData(null)}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center space-x-2"><CheckCircle className="text-green-500" /><span>입금 확인 요청</span></DialogTitle>
+                            <DialogDescription className="pt-4 text-base">
+                                {confirmationDialogData?.ids?.length && confirmationDialogData.ids.length > 1
+                                    ? `선택한 ${confirmationDialogData.ids.length}개 캠페인에 대한 입금 확인을 요청했습니다.`
+                                    : '입금 확인을 요청했습니다.'}
+                                <br/>관리자 승인 후 예약이 자동으로 확정됩니다.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="mt-4">
+                            <Button className="w-full" onClick={() => {
+                                if (confirmationDialogData) {
+                                    updateDepositStatus(confirmationDialogData.ids, confirmationDialogData.checked);
+                                }
+                                setConfirmationDialogData(null);
+                            }}>확인</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
                 <AlertDialog open={!!pendingCampaign} onOpenChange={() => setPendingCampaign(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>옵션 미입력 확인</AlertDialogTitle><AlertDialogDescription>옵션이 입력되지 않았습니다. 이대로 견적에 추가하시겠습니까?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>취소</AlertDialogCancel><AlertDialogAction onClick={handleConfirmAddCampaign}>추가</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
                 
                 <AlertDialog open={!!deleteConfirmation} onOpenChange={() => setDeleteConfirmation(null)}>
