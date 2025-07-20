@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'; // useRef 임포트 추가
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, signOut, deleteDoc } from '../../firebaseConfig';
+import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, signOut, deleteDoc, addDoc } from '../../firebaseConfig';
 import { nanoid } from 'nanoid';
 import { format } from "date-fns";
 import { ko } from 'date-fns/locale';
@@ -132,7 +132,9 @@ export default function SellerReservationPage() {
     const [selectedSavedCampaigns, setSelectedSavedCampaigns] = useState([]);
     const [deleteConfirmation, setDeleteConfirmation] = useState(null);
     const [paymentAmountInPopup, setPaymentAmountInPopup] = useState(0);
-    const [saveTemplate, setSaveTemplate] = useState(false);
+    const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+    const [savedTemplates, setSavedTemplates] = useState([]);
+    const [showTemplateDialog, setShowTemplateDialog] = useState(false);
     
     // [추가] 애니메이션을 위한 ref와 state
     const animationContainerRef = useRef(null);
@@ -229,6 +231,19 @@ export default function SellerReservationPage() {
                     const caps = {}; snap.forEach(d => { caps[d.id] = d.data().capacity || 0; });
                     setCapacities(caps);
                 }));
+                listeners.push(onSnapshot(
+                    query(collection(db, 'productTemplates'), where('sellerUid', '==', currentUser.uid)),
+                    (snap) => {
+                        const templates = snap.docs.map((d) => {
+                            const data = d.data();
+                            if (data.date?.seconds) {
+                                data.date = new Date(data.date.seconds * 1000);
+                            }
+                            return { id: d.id, ...data };
+                        });
+                        setSavedTemplates(templates);
+                    }
+                ));
                 setIsLoading(false);
                 return () => listeners.forEach(unsub => unsub());
             } else {
@@ -264,13 +279,27 @@ export default function SellerReservationPage() {
 
     const handleFormChange = (name, value) => setFormState(prev => ({ ...prev, [name]: value }));
     const handleDateSelect = (date) => { handleFormChange('date', date); setIsDatePickerOpen(false); };
+    const handleSaveTemplate = async () => {
+        if (!user) return;
+        const templateData = { ...formState, sellerUid: user.uid, updatedAt: serverTimestamp() };
+        const existing = savedTemplates.find(
+            t => t.productUrl === formState.productUrl && t.productOption === formState.productOption
+        );
+        try {
+            if (existing) {
+                await updateDoc(doc(db, 'productTemplates', existing.id), templateData);
+            } else {
+                await addDoc(collection(db, 'productTemplates'), { ...templateData, createdAt: serverTimestamp() });
+            }
+            setShowSaveSuccess(true);
+        } catch (err) {
+            console.error('템플릿 저장 오류:', err);
+        }
+    };
     const handleAddCampaign = (e) => {
         e.preventDefault();
-        if (saveTemplate) {
-            console.log("템플릿으로 저장:", formState);
-        }
         const newCampaign = { id: nanoid(), ...formState };
-        if (!formState.productOption.trim()) { setPendingCampaign(newCampaign); } 
+        if (!formState.productOption.trim()) { setPendingCampaign(newCampaign); }
         else { setCampaigns(prev => [...prev, newCampaign]); setFormState(initialFormState); }
     };
     const handleConfirmAddCampaign = () => {
@@ -460,8 +489,8 @@ export default function SellerReservationPage() {
                                     <CardDescription>진행할 리뷰 캠페인의 정보를 입력하고 견적에 추가하세요.</CardDescription>
                                 </div>
                                 <div className="flex items-center space-x-2 pt-1 flex-shrink-0">
-                                    <Checkbox id="saveTemplate" checked={saveTemplate} onCheckedChange={setSaveTemplate} />
-                                    <Label htmlFor="saveTemplate">지금 작성하는 상품 저장하기</Label>
+                                    <Button type="button" size="sm" variant="outline" onClick={handleSaveTemplate}>지금 작성하는 상품 저장하기</Button>
+                                    <Button type="button" size="sm" variant="outline" onClick={() => setShowTemplateDialog(true)}>저장된 상품 불러오기</Button>
                                 </div>
                             </div>
                         </CardHeader>
@@ -694,9 +723,58 @@ export default function SellerReservationPage() {
                                 </TableBody>
                             </Table>
                         </div>
-                    </CardContent>
+                </CardContent>
                 </Card>
-                
+
+                <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
+                    <DialogContent className="sm:max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle>저장된 상품 불러오기</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-2 max-h-80 overflow-y-auto">
+                            {savedTemplates.length === 0 ? (
+                                <p className="text-center text-muted-foreground py-8">저장된 상품이 없습니다.</p>
+                            ) : (
+                                savedTemplates.map(t => {
+                                    const { id, sellerUid, createdAt, updatedAt, ...rest } = t;
+                                    return (
+                                        <div key={id} className="flex items-center justify-between border-b py-2">
+                                            <div>
+                                                <p className="font-medium">{t.productName}</p>
+                                                <p className="text-sm text-muted-foreground">{t.productOption}</p>
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                onClick={() => {
+                                                    const date = rest.date instanceof Date
+                                                        ? rest.date
+                                                        : rest.date?.seconds
+                                                            ? new Date(rest.date.seconds * 1000)
+                                                            : new Date();
+                                                    const { date: _, sellerUid: __, createdAt: ___, updatedAt: ____, ...others } = rest;
+                                                    setFormState((prev) => ({ ...prev, ...others, date }));
+                                                    setShowTemplateDialog(false);
+                                                }}
+                                            >
+                                                선택
+                                            </Button>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                </DialogContent>
+                </Dialog>
+
+                <Dialog open={showSaveSuccess} onOpenChange={setShowSaveSuccess}>
+                    <DialogContent className="sm:max-w-md text-center space-y-4">
+                        <p>입력한 내용이 저장됐습니다.<br/>저장된 상품 불러오기 버튼을 통해<br/>언제든 불러올 수 있습니다.</p>
+                        <DialogFooter>
+                            <Button className="w-full" onClick={() => setShowSaveSuccess(false)}>확인</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
                 <Dialog open={showDepositPopup} onOpenChange={setShowDepositPopup}>
                     <DialogContent className="sm:max-w-lg">
                         <DialogHeader>
