@@ -152,12 +152,21 @@ export default function AdminProductManagementPage() {
     }
   };
 
+  const computeAmounts = (c) => {
+    const itemTotal = c.itemTotal ?? (
+      (Number(c.basePrice || 0) + Number(c.sundayExtraCharge || 0) + Number(c.productPrice || 0)) *
+      Number(c.quantity || 0)
+    );
+    const finalItemAmount = c.finalItemAmount ?? Math.round(itemTotal * 1.10);
+    const commission = finalItemAmount - itemTotal;
+    return { itemTotal, finalItemAmount, commission };
+  };
+
   const handleDownloadExcel = () => {
     if (filteredCampaigns.length === 0) return alert("다운로드할 데이터가 없습니다.");
     const toText = (v) => `="${(v ?? '').toString()}"`;
     const dataForExcel = filteredCampaigns.map((c, index) => {
-      const finalItemAmount = c.itemTotal ? Math.round(c.itemTotal * 1.10) : 0;
-      const commission = c.itemTotal ? finalItemAmount - c.itemTotal : 0;
+      const { itemTotal, finalItemAmount, commission } = computeAmounts(c);
       return {
         '순번': index + 1,
         '예약 등록 일시': c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleString('ko-KR') : '', // 엑셀은 기존 포맷 유지
@@ -175,7 +184,7 @@ export default function AdminProductManagementPage() {
         '전화번호': toText(sellersMap[c.sellerUid]?.phone || ''),
         '입금확인': c.depositConfirmed ? 'Y' : 'N',
         '견적 상세': `((리뷰 ${Number(c.basePrice || 0).toLocaleString()}${ c.sundayExtraCharge > 0 ? ` + 공휴일 ${Number(c.sundayExtraCharge).toLocaleString()}` : ''}) + 상품가 ${Number(c.productPrice).toLocaleString()}) * ${ c.quantity }개`,
-        '총 견적': `${finalItemAmount.toLocaleString()}원 (견적 ${Number( c.itemTotal || 0 ).toLocaleString()} + 수수료 ${commission.toLocaleString()})`,
+        '총 견적': `${finalItemAmount.toLocaleString()}원 (견적 ${Number(itemTotal).toLocaleString()} + 수수료 ${commission.toLocaleString()})`,
         '작업': '반려',
       };
     });
@@ -247,8 +256,7 @@ export default function AdminProductManagementPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
                 {filteredCampaigns.map((c, index) => {
-                  const finalItemAmount = c.itemTotal ? Math.round(c.itemTotal * 1.10) : 0;
-                  const commission = c.itemTotal ? finalItemAmount - c.itemTotal : 0;
+                  const { itemTotal, finalItemAmount, commission } = computeAmounts(c);
                   return (
                     <tr key={c.id} className="hover:bg-gray-50">
                       <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
@@ -278,7 +286,7 @@ export default function AdminProductManagementPage() {
                         />
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-xs text-gray-500">((리뷰 {Number(c.basePrice || 0).toLocaleString()}{c.sundayExtraCharge > 0 ? ` + 공휴일 ${Number(c.sundayExtraCharge).toLocaleString()}` : ''}) + 상품가 {Number(c.productPrice).toLocaleString()}) * {c.quantity}개</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm"><div className='font-bold'>{finalItemAmount.toLocaleString()}원</div><div className='text-xs text-gray-500'>(견적 {Number(c.itemTotal || 0).toLocaleString()} + 수수료 {commission.toLocaleString()})</div></td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm"><div className='font-bold'>{finalItemAmount.toLocaleString()}원</div><div className='text-xs text-gray-500'>(견적 {Number(itemTotal).toLocaleString()} + 수수료 {commission.toLocaleString()})</div></td>
                       {/* [수정 4] 불필요한 컬럼 제거 */}
                       <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
                     </tr>
