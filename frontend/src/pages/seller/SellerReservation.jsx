@@ -482,20 +482,12 @@ export default function SellerReservationPage() {
             <div className="space-y-8">
                 <Card>
                     <form onSubmit={handleAddCampaign}>
-                        <CardHeader>
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <CardTitle>새 작업 추가</CardTitle>
-                                    <CardDescription>진행할 리뷰 캠페인의 정보를 입력하고 견적에 추가하세요.</CardDescription>
-                                </div>
-                                <div className="flex items-center space-x-2 pt-1 flex-shrink-0">
-                                    <Button type="button" size="sm" variant="outline" onClick={handleSaveTemplate}>지금 작성하는 상품 저장하기</Button>
-                                    <Button type="button" size="sm" variant="outline" onClick={() => setShowTemplateDialog(true)}>저장된 상품 불러오기</Button>
-                                </div>
-                            </div>
+                        <CardHeader className="items-center space-y-2">
+                            <CardTitle>새 작업 추가</CardTitle>
+                            <CardDescription>진행할 리뷰 캠페인의 정보를 입력하고 견적에 추가하세요.</CardDescription>
                         </CardHeader>
                         <CardContent className="grid lg:grid-cols-3 gap-8">
-                            <div className="space-y-4">
+                            <div className="space-y-4 p-4 border rounded-lg h-full">
                                 <div>
                                     <Label htmlFor="date">진행 일자</Label>
                                     <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
@@ -539,6 +531,10 @@ export default function SellerReservationPage() {
                             </div>
 
                             <div className="space-y-4 p-4 border rounded-lg h-full">
+                                <div className="flex justify-center gap-2">
+                                    <Button type="button" size="sm" variant="outline" onClick={handleSaveTemplate}>지금 작성하는 상품 저장하기</Button>
+                                    <Button type="button" size="sm" variant="outline" onClick={() => setShowTemplateDialog(true)}>저장된 상품 불러오기</Button>
+                                </div>
                                 <div className="grid grid-cols-3 gap-4">
                                     <div><Label htmlFor="deliveryType">구분</Label><Select name="deliveryType" value={formState.deliveryType} onValueChange={(v) => handleFormChange('deliveryType', v)}><SelectTrigger id="deliveryType"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="실배송">실배송</SelectItem><SelectItem value="빈박스">빈박스</SelectItem></SelectContent></Select></div>
                                     <div><Label htmlFor="reviewType">리뷰 종류</Label><Select name="reviewType" value={formState.reviewType} onValueChange={(v) => handleFormChange('reviewType', v)}><SelectTrigger id="reviewType"><SelectValue/></SelectTrigger><SelectContent>{formState.deliveryType === '실배송' ? (<><SelectItem value="별점">별점</SelectItem><SelectItem value="텍스트">텍스트</SelectItem><SelectItem value="포토">포토</SelectItem><SelectItem value="프리미엄(포토)">프리미엄(포토)</SelectItem><SelectItem value="프리미엄(영상)">프리미엄(영상)</SelectItem></>) : (<><SelectItem value="별점">별점</SelectItem><SelectItem value="텍스트">텍스트</SelectItem></>)}</SelectContent></Select></div>
@@ -586,7 +582,7 @@ export default function SellerReservationPage() {
                                 </div>
                             </div>
 
-                            <div className="space-y-4 h-full flex flex-col">
+                            <div className="space-y-4 p-4 border rounded-lg h-full flex flex-col">
                                 <div className="flex-grow flex flex-col">
                                     <div className="flex justify-between items-baseline mb-1">
                                         <Label htmlFor="reviewGuide">리뷰 가이드</Label>
@@ -626,7 +622,7 @@ export default function SellerReservationPage() {
                                 <span className="font-semibold">= 체험단 진행비 {finalUnitPrice.toLocaleString()}원</span>
                                 <PriceListDialog />
                             </div>
-                            <Button type="submit">견적에 추가</Button>
+                            <Button type="submit" size="lg">견적에 추가</Button>
                         </CardFooter>
                     </form>
                 </Card>
