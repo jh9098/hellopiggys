@@ -130,6 +130,7 @@ export default function SellerReservationPage() {
     
     const [isVatApplied, setIsVatApplied] = useState(true);
     const [selectedSavedCampaigns, setSelectedSavedCampaigns] = useState([]);
+    const [editedRows, setEditedRows] = useState({});
     const [deleteConfirmation, setDeleteConfirmation] = useState(null);
     const [paymentAmountInPopup, setPaymentAmountInPopup] = useState(0);
     const [showSaveSuccess, setShowSaveSuccess] = useState(false);
@@ -428,14 +429,69 @@ export default function SellerReservationPage() {
 
 const handleSelectSavedCampaign = (id, checked) => { setSelectedSavedCampaigns(prev => checked ? [...prev, id] : prev.filter(item => item !== id)); };
 const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(checked ? savedCampaigns.map(c => c.id) : []); };
+    const handleRowChange = (id, field, value) => {
+        setEditedRows(prev => ({
+            ...prev,
+            [id]: { ...prev[id], [field]: value }
+        }));
+    };
+
+    const isRowModified = (c) => {
+        const edited = editedRows[c.id];
+        if (!edited) return false;
+        return (
+            (edited.deliveryType ?? c.deliveryType) !== c.deliveryType ||
+            (edited.reviewType ?? c.reviewType) !== c.reviewType ||
+            Number(edited.quantity ?? c.quantity) !== Number(c.quantity)
+        );
+    };
+
+    const applyRowChanges = async (id) => {
+        const original = savedCampaigns.find(sc => sc.id === id);
+        const edited = editedRows[id];
+        if (!original || !edited) return;
+
+        const deliveryType = edited.deliveryType ?? original.deliveryType;
+        const reviewType = edited.reviewType ?? original.reviewType;
+        const quantity = Number(edited.quantity ?? original.quantity);
+        const cDate = original.date?.seconds ? new Date(original.date.seconds * 1000) : new Date();
+        const reviewFee = getBasePrice(deliveryType, reviewType) + (cDate.getDay() === 0 ? 600 : 0);
+        const productPriceWithAgencyFee = Number(original.productPrice) * 1.1;
+        const subtotal = (reviewFee + productPriceWithAgencyFee) * quantity;
+        const finalAmount = original.isVatApplied ? subtotal * 1.1 : subtotal;
+
+        try {
+            await updateDoc(doc(db, 'campaigns', id), {
+                deliveryType,
+                reviewType,
+                quantity,
+                reviewFee,
+                productPriceWithAgencyFee,
+                subtotal: Math.round(subtotal),
+                vat: Math.round(finalAmount - subtotal),
+                finalTotalAmount: Math.round(finalAmount)
+            });
+            setEditedRows(prev => {
+                const copy = { ...prev };
+                delete copy[id];
+                return copy;
+            });
+        } catch (err) {
+            console.error('캠페인 업데이트 오류:', err);
+        }
+    };
     const handleBulkDepositRequest = () => {
-        if (selectedSavedCampaigns.length === 0) return;
-        setConfirmationDialogData({ ids: selectedSavedCampaigns, checked: true });
+        const targets = savedCampaigns
+            .filter(c => selectedSavedCampaigns.includes(c.id) && !c.paymentReceived)
+            .map(c => c.id);
+        if (targets.length === 0) return;
+        setConfirmationDialogData({ ids: targets, checked: true });
     };
 
     if (isLoading) return <div className="flex justify-center items-center h-screen"><p>데이터를 불러오는 중입니다...</p></div>;
     
     const { totalSubtotal, totalVat, totalAmount, amountToUseFromDeposit, remainingPayment } = calculateTotals(campaigns);
+    const pendingDepositCount = savedCampaigns.filter(c => selectedSavedCampaigns.includes(c.id) && !c.paymentReceived).length;
 
     return (
         <>
@@ -670,8 +726,8 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                             <CardDescription>과거에 예약한 모든 캠페인 내역입니다. 입금 완료 후 '입금'란을 체크해주세요.</CardDescription>
                         </div>
                         <div className="flex space-x-2">
-                            <Button onClick={handleBulkDepositRequest} disabled={selectedSavedCampaigns.length === 0}>
-                                입금 확인 요청 ({selectedSavedCampaigns.length})
+                            <Button onClick={handleBulkDepositRequest} disabled={pendingDepositCount === 0}>
+                                입금 확인 요청 ({pendingDepositCount})
                             </Button>
                             <Button variant="destructive" onClick={() => setDeleteConfirmation({ type: 'multiple', ids: selectedSavedCampaigns })} disabled={selectedSavedCampaigns.length === 0}>
                                 <Trash2 className="mr-2 h-4 w-4" />
@@ -702,32 +758,75 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                     {savedCampaigns.length === 0 ? (
                                         <TableRow><TableCell colSpan="10" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
                                     ) : (
-                                        savedCampaigns.map(c => (
-                                            <TableRow key={c.id}>
-                                                <TableCell>
-                                                    <Checkbox checked={selectedSavedCampaigns.includes(c.id)} onCheckedChange={(checked) => handleSelectSavedCampaign(c.id, checked)} aria-label={`${c.productName} 선택`} />
-                                                </TableCell>
-                                                <TableCell className="text-center">{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</TableCell>
-                                                <TableCell className="font-medium">{c.productName}</TableCell>
-                                                <TableCell className="text-center"><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
-                                                <TableCell className="text-center"><Badge>{c.reviewType}</Badge></TableCell>
-                                                <TableCell className="text-center">{c.quantity}</TableCell>
-                                                <TableCell className="text-center">
-                                                    <Checkbox 
-                                                        checked={!!c.paymentReceived} 
-                                                        onCheckedChange={(checked) => handleDepositCheckboxChange(c.id, checked)} 
-                                                        title="입금 완료 시 체크"
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-center"><Badge variant={c.status === '예약 확정' ? 'default' : c.status === '예약 대기' ? 'secondary' : 'destructive'}>{c.status}</Badge></TableCell>
-                                                <TableCell className="text-center">{Math.round(c.finalTotalAmount || 0).toLocaleString()}원</TableCell>
-                                                <TableCell className="text-center">
-                                                    <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmation({ type: 'single', ids: [c.id] })}>
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
+                                        savedCampaigns.map(c => {
+                                            const row = editedRows[c.id] || {};
+                                            const deliveryType = row.deliveryType ?? c.deliveryType;
+                                            const reviewType = row.reviewType ?? c.reviewType;
+                                            const quantity = Number(row.quantity ?? c.quantity);
+                                            const cDate = c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date();
+                                            const reviewFee = getBasePrice(deliveryType, reviewType) + (cDate.getDay() === 0 ? 600 : 0);
+                                            const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
+                                            const subtotal = (reviewFee + productPriceWithAgencyFee) * quantity;
+                                            const finalAmount = c.isVatApplied ? subtotal * 1.1 : subtotal;
+
+                                            return (
+                                                <TableRow key={c.id}>
+                                                    <TableCell>
+                                                        <Checkbox checked={selectedSavedCampaigns.includes(c.id)} onCheckedChange={(checked) => handleSelectSavedCampaign(c.id, checked)} aria-label={`${c.productName} 선택`} />
+                                                    </TableCell>
+                                                    <TableCell className="text-center">{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</TableCell>
+                                                    <TableCell className="font-medium">{c.productName}</TableCell>
+                                                    <TableCell className="text-center">
+                                                        <Select value={deliveryType} onValueChange={(v) => handleRowChange(c.id, 'deliveryType', v)}>
+                                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="실배송">실배송</SelectItem>
+                                                                <SelectItem value="빈박스">빈박스</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <Select value={reviewType} onValueChange={(v) => handleRowChange(c.id, 'reviewType', v)}>
+                                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                {deliveryType === '실배송' ? (
+                                                                    <>
+                                                                        <SelectItem value="별점">별점</SelectItem>
+                                                                        <SelectItem value="텍스트">텍스트</SelectItem>
+                                                                        <SelectItem value="포토">포토</SelectItem>
+                                                                        <SelectItem value="프리미엄(포토)">프리미엄(포토)</SelectItem>
+                                                                        <SelectItem value="프리미엄(영상)">프리미엄(영상)</SelectItem>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <SelectItem value="별점">별점</SelectItem>
+                                                                        <SelectItem value="텍스트">텍스트</SelectItem>
+                                                                    </>
+                                                                )}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <Input type="number" className="w-20" value={quantity} min="1" onChange={(e) => handleRowChange(c.id, 'quantity', e.target.value)} />
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <Checkbox
+                                                            checked={!!c.paymentReceived}
+                                                            onCheckedChange={(checked) => handleDepositCheckboxChange(c.id, checked)}
+                                                            title="입금 완료 시 체크"
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="text-center"><Badge variant={c.status === '예약 확정' ? 'default' : c.status === '예약 대기' ? 'secondary' : 'destructive'}>{c.status}</Badge></TableCell>
+                                                    <TableCell className="text-center">{Math.round(finalAmount || 0).toLocaleString()}원</TableCell>
+                                                    <TableCell className="text-center space-x-2">
+                                                        <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmation({ type: 'single', ids: [c.id] })}>
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        </Button>
+                                                        <Button size="sm" disabled={!isRowModified(c)} onClick={() => applyRowChanges(c.id)}>적용</Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
                                     )}
                                 </TableBody>
                             </Table>
