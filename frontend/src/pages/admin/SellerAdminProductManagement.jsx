@@ -152,6 +152,22 @@ export default function AdminProductManagementPage() {
     }
   };
 
+  const handleCancelReservation = async (campaignId) => {
+    if (!window.confirm("이 캠페인의 예약 확정을 취소하고 '예약 대기' 상태로 되돌리시겠습니까?")) {
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'campaigns', campaignId), {
+        status: '예약 대기',
+        depositConfirmed: false,
+      });
+      alert("예약이 취소되어 '예약 대기' 상태로 변경되었습니다.");
+    } catch (err) {
+      console.error('예약 취소 오류:', err);
+      alert("예약 취소 중 오류가 발생했습니다.");
+    }
+  };
+
   const getBasePrice = (deliveryType, reviewType) => {
     if (deliveryType === '실배송') {
       switch (reviewType) {
@@ -294,7 +310,12 @@ export default function AdminProductManagementPage() {
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{Number(c.productPrice).toLocaleString()}원</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{c.keywords}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm"><a href={c.productUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">링크</a></td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.status === '리뷰완료' ? 'bg-blue-100 text-blue-800' : c.status === '예약 확정' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{c.status}</span></td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.status === '리뷰완료' ? 'bg-blue-100 text-blue-800' : c.status === '예약 확정' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{c.status}</span>
+                        {c.status === '예약 확정' && (
+                          <button onClick={() => handleCancelReservation(c.id)} className="ml-2 text-red-600 underline text-xs">취소</button>
+                        )}
+                      </td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-center bg-red-50">{c.paymentReceived ? '✔️' : ''}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[c.sellerUid]?.nickname}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[c.sellerUid]?.phone}</td>
