@@ -40,6 +40,10 @@ export default function AdminReviewManagementPage() {
   const [selectedReview, setSelectedReview] = useState(null);
   const [filters, setFilters] = useState(initialFilters);
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageGroup, setPageGroup] = useState(0); // pagination group index
+  const itemsPerPage = 50;
+  const pagesPerGroup = 10;
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -93,6 +97,19 @@ export default function AdminReviewManagementPage() {
     }
     return filtered;
   }, [rows, filters, sortConfig]);
+
+  const paginatedRows = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return processedRows.slice(startIndex, startIndex + itemsPerPage);
+  }, [processedRows, currentPage]);
+
+  const totalPages = Math.ceil(processedRows.length / itemsPerPage);
+  // ensure page group follows current page
+  useEffect(() => {
+    const group = Math.floor((currentPage - 1) / pagesPerGroup);
+    if (group !== pageGroup) setPageGroup(group);
+  }, [currentPage, pageGroup]);
+  const goToPage = (page) => { if (page > 0 && page <= totalPages) setCurrentPage(page); };
   
   const handleFilterChange = (e) => setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
   const requestSort = (key) => {
@@ -105,7 +122,10 @@ export default function AdminReviewManagementPage() {
     newSelected.has(id) ? newSelected.delete(id) : newSelected.add(id);
     setSelected(newSelected);
   };
-  const toggleSelectAll = (e) => setSelected(e.target.checked ? new Set(processedRows.map(r => r.id)) : new Set());
+  const toggleSelectAll = (e) => setSelected(e.target.checked ? new Set(paginatedRows.map(r => r.id)) : new Set());
+
+  const prevGroup = () => setPageGroup(g => Math.max(0, g - 1));
+  const nextGroup = () => setPageGroup(g => (g + 1) * pagesPerGroup < totalPages ? g + 1 : g);
 
   const downloadCsv = () => {
     if (processedRows.length === 0) return alert('다운로드할 데이터가 없습니다.');
@@ -188,7 +208,7 @@ export default function AdminReviewManagementPage() {
         <Table className="admin-table">
           <TableHeader>
             <TableRow>
-              <TableHead><input type="checkbox" checked={selected.size === processedRows.length && processedRows.length > 0} onChange={toggleSelectAll} /></TableHead>
+              <TableHead><input type="checkbox" checked={paginatedRows.length > 0 && paginatedRows.every(r => selected.has(r.id))} onChange={toggleSelectAll} /></TableHead>
               <TableHead onClick={() => requestSort('createdAt')} className="sortable">구매폼 등록일시<SortIndicator columnKey="createdAt" /></TableHead>
               <TableHead onClick={() => requestSort('status')} className="sortable">상태<SortIndicator columnKey="status" /></TableHead>
               <TableHead onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></TableHead>
@@ -214,7 +234,7 @@ export default function AdminReviewManagementPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {processedRows.map((r) => (
+            {paginatedRows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></TableCell>
                 {/* [수정] 헬퍼 함수 사용 */}
@@ -233,6 +253,25 @@ export default function AdminReviewManagementPage() {
             ))}
           </TableBody>
         </Table>
+      </div>
+      <div className="pagination">
+        <Button variant="outline" size="sm" onClick={prevGroup} disabled={pageGroup === 0}>{'<<'}</Button>
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>{'<'}</Button>
+        {Array.from({ length: Math.min(pagesPerGroup, totalPages - pageGroup * pagesPerGroup) }, (_, i) => {
+          const pageNum = pageGroup * pagesPerGroup + i + 1;
+          return (
+            <Button
+              key={pageNum}
+              variant={currentPage === pageNum ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={() => goToPage(pageNum)}
+            >
+              {pageNum}
+            </Button>
+          );
+        })}
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>{'>'}</Button>
+        <Button variant="outline" size="sm" onClick={nextGroup} disabled={(pageGroup + 1) * pagesPerGroup >= totalPages}>{'>>'}</Button>
       </div>
       {isModalOpen && <ReviewDetailModal review={selectedReview} onClose={closeDetailModal} />}
     </>
