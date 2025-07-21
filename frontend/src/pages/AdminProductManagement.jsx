@@ -34,6 +34,10 @@ export default function AdminProductManagementPage() {
   const [bulkReviewType, setBulkReviewType] = useState('');
   const [bulkProductType, setBulkProductType] = useState('');
   const [bulkReviewOption, setBulkReviewOption] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageGroup, setPageGroup] = useState(0);
+  const itemsPerPage = 20;
+  const pagesPerGroup = 10;
   const navigate = useNavigate();
 
   const fetchProducts = async () => {
@@ -63,6 +67,20 @@ export default function AdminProductManagementPage() {
     }
     return filtered;
   }, [products, filters, sortConfig]);
+
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return processedProducts.slice(startIndex, startIndex + itemsPerPage);
+  }, [processedProducts, currentPage]);
+
+  const totalPages = Math.ceil(processedProducts.length / itemsPerPage);
+  useEffect(() => {
+    const group = Math.floor((currentPage - 1) / pagesPerGroup);
+    if (group !== pageGroup) setPageGroup(group);
+  }, [currentPage, pageGroup]);
+  const goToPage = (page) => { if (page > 0 && page <= totalPages) setCurrentPage(page); };
+  const prevGroup = () => setPageGroup(g => Math.max(0, g - 1));
+  const nextGroup = () => setPageGroup(g => (g + 1) * pagesPerGroup < totalPages ? g + 1 : g);
 
   const handleDelete = async (id) => {
     if (window.confirm('정말로 이 상품을 삭제하시겠습니까?')) {
@@ -125,7 +143,7 @@ export default function AdminProductManagementPage() {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedIds(processedProducts.map(p => p.id));
+      setSelectedIds(paginatedProducts.map(p => p.id));
     } else {
       setSelectedIds([]);
     }
@@ -192,7 +210,7 @@ export default function AdminProductManagementPage() {
         <Table className="admin-table">
           <TableHeader>
             <TableRow>
-              <TableHead><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === processedProducts.length && processedProducts.length > 0} /></TableHead>
+              <TableHead><input type="checkbox" onChange={handleSelectAll} checked={paginatedProducts.length > 0 && paginatedProducts.every(p => selectedIds.includes(p.id))} /></TableHead>
               <TableHead onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></TableHead>
               <TableHead onClick={() => requestSort('reviewType')} className="sortable">결제 종류<SortIndicator columnKey="reviewType" /></TableHead>
               <TableHead onClick={() => requestSort('productType')} className="sortable">상품 종류<SortIndicator columnKey="productType" /></TableHead>
@@ -250,7 +268,7 @@ export default function AdminProductManagementPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-          {processedProducts.length > 0 ? processedProducts.map(p => (
+          {processedProducts.length > 0 ? paginatedProducts.map(p => (
               <TableRow key={p.id}>
                 <TableCell><input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => handleSelectOne(p.id)} /></TableCell>
                 <TableCell style={{textAlign: 'left'}}>{p.productName}</TableCell>
@@ -283,6 +301,25 @@ export default function AdminProductManagementPage() {
             )}
           </TableBody>
         </Table>
+      </div>
+      <div className="pagination">
+        <Button variant="outline" size="sm" onClick={prevGroup} disabled={pageGroup === 0}>{'<<'}</Button>
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>{'<'}</Button>
+        {Array.from({ length: Math.min(pagesPerGroup, totalPages - pageGroup * pagesPerGroup) }, (_, i) => {
+          const pageNum = pageGroup * pagesPerGroup + i + 1;
+          return (
+            <Button
+              key={pageNum}
+              variant={currentPage === pageNum ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={() => goToPage(pageNum)}
+            >
+              {pageNum}
+            </Button>
+          );
+        })}
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>{'>'}</Button>
+        <Button variant="outline" size="sm" onClick={nextGroup} disabled={(pageGroup + 1) * pagesPerGroup >= totalPages}>{'>>'}</Button>
       </div>
     </>
   );
