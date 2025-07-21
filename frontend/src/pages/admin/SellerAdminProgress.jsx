@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { db, collection, query, where, onSnapshot, updateDoc, doc } from '../../firebaseConfig';
+import { toAbsoluteUrl } from '../../utils';
 
 export default function AdminProgressPage() {
   const [campaigns, setCampaigns] = useState([]);
@@ -82,7 +83,7 @@ export default function AdminProgressPage() {
                   <td className="px-2 py-2">{c.productName}</td>
                   <td className="px-2 py-2">{c.productOption}</td>
                   <td className="px-2 py-2">{Number(c.productPrice).toLocaleString()}</td>
-                  <td className="px-2 py-2 break-all">{c.productUrl && <a href={c.productUrl} className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">바로가기</a>}</td>
+                  <td className="px-2 py-2 break-all">{c.productUrl && <a href={toAbsoluteUrl(c.productUrl)} className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">바로가기</a>}</td>
                   <td className="px-2 py-2">{c.keywords}</td>
                   <td className="px-2 py-2 text-gray-500">-</td>
                   <td className="px-2 py-2 text-gray-500">-</td>

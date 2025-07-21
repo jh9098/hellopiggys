@@ -13,6 +13,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 
 import axios from 'axios';
 import hmacSHA256 from 'crypto-js/hmac-sha256';
+import { toAbsoluteUrl } from '../../utils';
 
 // --- shadcn/ui 컴포넌트 임포트 ---
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -93,7 +94,7 @@ function CoupangSearchResults({ results, isLoading, error }) {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4 max-h-96 overflow-y-auto p-1">
             {results.map((item, index) => (
-                <a key={index} href={item.productUrl} target="_blank" rel="noopener noreferrer" className="block border rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                <a key={index} href={toAbsoluteUrl(item.productUrl)} target="_blank" rel="noopener noreferrer" className="block border rounded-lg overflow-hidden hover:shadow-md transition-shadow">
                     <img src={item.productImage} alt={item.productName} className="w-full h-40 object-cover" />
                     <div className="p-3">
                         <p className="text-sm font-medium truncate">{item.productName}</p>

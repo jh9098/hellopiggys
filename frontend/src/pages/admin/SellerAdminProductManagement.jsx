@@ -5,6 +5,7 @@ import { db, collection, query, onSnapshot, doc, updateDoc, orderBy, writeBatch,
 import Papa from 'papaparse';
 import { Button } from '@/components/ui/button';
 import '../../components/ReviewDetailModal.css';
+import { toAbsoluteUrl } from '../../utils';
 
 // [추가] 날짜 포맷팅을 위한 헬퍼 함수
 const formatDateTime = (date) => {
@@ -230,7 +231,7 @@ export default function AdminProductManagementPage() {
         '상품가': c.productPrice ? Number(c.productPrice).toLocaleString() : '',
         '옵션': c.productOption || '',
         '키워드': c.keywords || '',
-        '상품 URL': c.productUrl || '',
+        '상품 URL': toAbsoluteUrl(c.productUrl) || '',
         '상태': c.status || 'N/A',
         '닉네임': sellersMap[c.sellerUid]?.nickname || '',
         '전화번호': toText(sellersMap[c.sellerUid]?.phone || ''),
@@ -324,7 +325,7 @@ export default function AdminProductManagementPage() {
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{c.productOption}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{Number(c.productPrice).toLocaleString()}원</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{c.keywords}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm"><a href={c.productUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">링크</a></td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm"><a href={toAbsoluteUrl(c.productUrl)} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">링크</a></td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.status === '리뷰완료' ? 'bg-blue-100 text-blue-800' : c.status === '예약 확정' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{c.status}</span>
                         {c.status === '예약 확정' && (

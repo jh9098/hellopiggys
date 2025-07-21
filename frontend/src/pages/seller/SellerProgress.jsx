@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button'; // 링크를 버튼처럼 보이게 하기 위해
+import { toAbsoluteUrl } from '../../utils';
 
 export default function SellerProgressPage() {
   // ... (기존 state 및 useEffect 로직은 동일)
@@ -169,7 +170,7 @@ export default function SellerProgressPage() {
                       <TableCell className="text-right font-mono">{Number(c.productPrice).toLocaleString()}원</TableCell>
                       <TableCell className="text-center">
                         <Button asChild variant="link" size="sm" className="h-auto p-0">
-                          <a href={c.productUrl} target="_blank" rel="noopener noreferrer">
+                          <a href={toAbsoluteUrl(c.productUrl)} target="_blank" rel="noopener noreferrer">
                             바로가기
                           </a>
                         </Button>
