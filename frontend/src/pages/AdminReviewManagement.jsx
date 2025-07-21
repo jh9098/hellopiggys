@@ -251,7 +251,11 @@ export default function AdminReviewManagementPage() {
                 <TableCell><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></TableCell>
                 {/* [수정] 헬퍼 함수 사용 */}
                 <TableCell>{formatTimestamp24h(r.createdAt)}</TableCell>
-                <TableCell>{statusMap[r.status] || r.status}</TableCell>
+                <TableCell>
+                  {(!r.keywordAndLikeImagesUrls?.length || !(r.orderImageUrls?.length > 0 || r.cashcardImageUrls?.length > 0))
+                    ? '이미지 업로드 중'
+                    : (statusMap[r.status] || r.status)}
+                </TableCell>
                 <TableCell className="product-name-cell">{r.productName || '-'}</TableCell>
                 <TableCell>{r.mainAccountName || '-'}</TableCell>
                 <TableCell>{r.name || '-'}</TableCell>
