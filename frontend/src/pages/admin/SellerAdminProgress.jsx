@@ -1,8 +1,9 @@
 // src/pages/admin/AdminProgress.jsx
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { db, collection, query, where, onSnapshot, updateDoc, doc } from '../../firebaseConfig';
 import { toAbsoluteUrl } from '../../utils';
+import { Button } from '@/components/ui/button';
 
 export default function AdminProgressPage() {
   const [campaigns, setCampaigns] = useState([]);
@@ -10,6 +11,10 @@ export default function AdminProgressPage() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageGroup, setPageGroup] = useState(0);
+  const itemsPerPage = 100;
+  const pagesPerGroup = 10;
 
   useEffect(() => {
     const q = query(collection(db, 'campaigns'), where('status', '==', '예약 확정'));
@@ -37,6 +42,20 @@ export default function AdminProgressPage() {
   const years = Array.from(new Set(campaigns.map(c => new Date(c.date?.seconds * 1000 || c.date).getFullYear()))).sort((a, b) => b - a);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const expandedCampaigns = filteredCampaigns.flatMap(c => Array.from({ length: Number(c.quantity) || 1 }, () => c));
+
+  const paginatedCampaigns = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return expandedCampaigns.slice(startIndex, startIndex + itemsPerPage);
+  }, [expandedCampaigns, currentPage]);
+
+  const totalPages = Math.ceil(expandedCampaigns.length / itemsPerPage);
+  useEffect(() => {
+    const group = Math.floor((currentPage - 1) / pagesPerGroup);
+    if (group !== pageGroup) setPageGroup(group);
+  }, [currentPage, pageGroup]);
+  const goToPage = (page) => { if (page > 0 && page <= totalPages) setCurrentPage(page); };
+  const prevGroup = () => setPageGroup(g => Math.max(0, g - 1));
+  const nextGroup = () => setPageGroup(g => (g + 1) * pagesPerGroup < totalPages ? g + 1 : g);
 
   const updatePaymentType = async (id, value) => {
     try { await updateDoc(doc(db, 'campaigns', id), { paymentType: value }); } 
@@ -66,11 +85,11 @@ export default function AdminProgressPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {expandedCampaigns.map((c, idx) => {
+            {paginatedCampaigns.map((c, idx) => {
               const d = c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date);
               return (
                 <tr key={`${c.id}-${idx}`} className="text-sm hover:bg-gray-50">
-                  <td className="px-2 py-2">{idx + 1}</td>
+                  <td className="px-2 py-2">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                   <td className="px-2 py-2">{d.toLocaleDateString()}</td>
                   <td className="px-2 py-2">{c.deliveryType}</td>
                   <td className="px-2 py-2">
@@ -79,7 +98,7 @@ export default function AdminProgressPage() {
                     </select>
                   </td>
                   <td className="px-2 py-2">{c.reviewType}</td>
-                  <td className="px-2 py-2">{idx + 1}</td>
+                  <td className="px-2 py-2">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                   <td className="px-2 py-2">{c.productName}</td>
                   <td className="px-2 py-2">{c.productOption}</td>
                   <td className="px-2 py-2">{Number(c.productPrice).toLocaleString()}</td>
@@ -99,6 +118,25 @@ export default function AdminProgressPage() {
             )}
           </tbody>
         </table>
+      </div>
+      <div className="pagination">
+        <Button variant="outline" size="sm" onClick={prevGroup} disabled={pageGroup === 0}>{'<<'}</Button>
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>{'<'}</Button>
+        {Array.from({ length: Math.min(pagesPerGroup, totalPages - pageGroup * pagesPerGroup) }, (_, i) => {
+          const pageNum = pageGroup * pagesPerGroup + i + 1;
+          return (
+            <Button
+              key={pageNum}
+              variant={currentPage === pageNum ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={() => goToPage(pageNum)}
+            >
+              {pageNum}
+            </Button>
+          );
+        })}
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>{'>'}</Button>
+        <Button variant="outline" size="sm" onClick={nextGroup} disabled={(pageGroup + 1) * pagesPerGroup >= totalPages}>{'>>'}</Button>
       </div>
     </>
   );

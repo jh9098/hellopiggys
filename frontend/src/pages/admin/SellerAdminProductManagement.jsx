@@ -1,6 +1,6 @@
 // src/pages/admin/AdminProductManagement.jsx (요청사항 반영 최종본)
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db, collection, query, onSnapshot, doc, updateDoc, orderBy, writeBatch, increment, serverTimestamp } from '../../firebaseConfig';
 import Papa from 'papaparse';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,10 @@ export default function AdminProductManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [detailText, setDetailText] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageGroup, setPageGroup] = useState(0);
+  const itemsPerPage = 20;
+  const pagesPerGroup = 10;
 
   useEffect(() => {
     setLoading(true);
@@ -75,10 +79,24 @@ export default function AdminProductManagementPage() {
     const searchMatch = searchTerm ? JSON.stringify(c).toLowerCase().includes(searchTerm.toLowerCase()) : true;
     return statusMatch && searchMatch;
   });
+
+  const paginatedCampaigns = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredCampaigns.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredCampaigns, currentPage]);
+
+  const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
+  useEffect(() => {
+    const group = Math.floor((currentPage - 1) / pagesPerGroup);
+    if (group !== pageGroup) setPageGroup(group);
+  }, [currentPage, pageGroup]);
+  const goToPage = (page) => { if (page > 0 && page <= totalPages) setCurrentPage(page); };
+  const prevGroup = () => setPageGroup(g => Math.max(0, g - 1));
+  const nextGroup = () => setPageGroup(g => (g + 1) * pagesPerGroup < totalPages ? g + 1 : g);
   
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedIds(filteredCampaigns.map(c => c.id));
+      setSelectedIds(paginatedCampaigns.map(c => c.id));
     } else {
       setSelectedIds([]);
     }
@@ -281,7 +299,7 @@ export default function AdminProductManagementPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === filteredCampaigns.length && filteredCampaigns.length > 0} /></th>
+                <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={paginatedCampaigns.length > 0 && paginatedCampaigns.every(c => selectedIds.includes(c.id))} /></th>
                 <th className={thClass}>순번</th>
                 {/* [수정 1] 컬럼명 변경 */}
                 <th className={thClass}>예약 등록 일자</th>
@@ -308,12 +326,12 @@ export default function AdminProductManagementPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCampaigns.map((c, index) => {
+                {paginatedCampaigns.map((c, index) => {
                   const { basePrice, sundayExtraCharge, productPrice, quantity, itemTotal, finalItemAmount, commission } = computeAmounts(c);
                   return (
                     <tr key={c.id} className="hover:bg-gray-50">
                       <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">{index + 1}</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                       {/* [수정 1] 날짜 포맷팅 적용 */}
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{formatDate(c.createdAt)}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '-'}</td>
@@ -355,6 +373,25 @@ export default function AdminProductManagementPage() {
             </tbody>
           </table>
         )}
+      </div>
+      <div className="pagination">
+        <Button variant="outline" size="sm" onClick={prevGroup} disabled={pageGroup === 0}>{'<<'}</Button>
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>{'<'}</Button>
+        {Array.from({ length: Math.min(pagesPerGroup, totalPages - pageGroup * pagesPerGroup) }, (_, i) => {
+          const pageNum = pageGroup * pagesPerGroup + i + 1;
+          return (
+            <Button
+              key={pageNum}
+              variant={currentPage === pageNum ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={() => goToPage(pageNum)}
+            >
+              {pageNum}
+            </Button>
+          );
+        })}
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>{'>'}</Button>
+        <Button variant="outline" size="sm" onClick={nextGroup} disabled={(pageGroup + 1) * pagesPerGroup >= totalPages}>{'>>'}</Button>
       </div>
       {detailText && (
         <div className="modal-back" onClick={closeDetailModal}>
