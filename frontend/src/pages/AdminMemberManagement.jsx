@@ -1,7 +1,7 @@
 // src/pages/AdminMemberManagement.jsx
 
 import { useState, useEffect, useMemo } from 'react';
-import { db, collection, getDocs, query, orderBy, getDoc, doc, where, writeBatch } from '../firebaseConfig';
+import { db, collection, getDocs, query, orderBy, doc, where, writeBatch, documentId } from '../firebaseConfig';
 import MemberDetailModal from '../components/MemberDetailModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,45 +39,64 @@ export default function AdminMemberManagementPage() {
 
             const reviewsQuery = query(collection(db, 'reviews'), orderBy('createdAt', 'desc'));
             const reviewsSnapshot = await getDocs(reviewsQuery);
-            const reviews = reviewsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const reviews = reviewsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
             const membersData = {};
+            const mainAccountIds = new Set();
+            const subAccountIds = new Set();
 
             for (const review of reviews) {
-                const { mainAccountId } = review;
+                const { mainAccountId, subAccountId } = review;
                 if (!mainAccountId) continue;
+
+                mainAccountIds.add(mainAccountId);
+                if (subAccountId) subAccountIds.add(subAccountId);
 
                 if (!membersData[mainAccountId]) {
                     membersData[mainAccountId] = {
-                        id: mainAccountId, mainAccountName: '로딩 중...', mainAccountPhone: '로딩 중...',
-                        lastSubmissionDate: null, reviews: [],
+                        id: mainAccountId,
+                        lastSubmissionDate: null,
+                        reviews: [],
                     };
                 }
                 membersData[mainAccountId].reviews.push(review);
-                
+
                 if (!membersData[mainAccountId].lastSubmissionDate || review.createdAt.seconds > membersData[mainAccountId].lastSubmissionDate.seconds) {
                     membersData[mainAccountId].lastSubmissionDate = review.createdAt;
                 }
             }
-            const memberList = Object.values(membersData);
 
-            for (const member of memberList) {
-                const userDoc = await getDoc(doc(db, 'users', member.id));
-                if (userDoc.exists()) {
-                    member.mainAccountName = userDoc.data().name;
-                    member.mainAccountPhone = userDoc.data().phone;
-                } else {
-                    member.mainAccountName = '정보 없음';
+            const fetchDocsByIds = async (col, ids) => {
+                const result = {};
+                const arr = Array.from(ids);
+                for (let i = 0; i < arr.length; i += 10) {
+                    const chunk = arr.slice(i, i + 10);
+                    const q = query(collection(db, col), where(documentId(), 'in', chunk));
+                    const snap = await getDocs(q);
+                    snap.forEach(d => { result[d.id] = d.data(); });
                 }
-                for (const review of member.reviews) {
+                return result;
+            };
+
+            const [userMap, subMap] = await Promise.all([
+                fetchDocsByIds('users', mainAccountIds),
+                fetchDocsByIds('subAccounts', subAccountIds)
+            ]);
+
+            const memberList = Object.values(membersData);
+            memberList.forEach(member => {
+                const user = userMap[member.id];
+                member.mainAccountName = user?.name ?? '정보 없음';
+                member.mainAccountPhone = user?.phone ?? '정보 없음';
+
+                member.reviews.forEach(review => {
                     if (review.subAccountId) {
-                        const subDoc = await getDoc(doc(db, 'subAccounts', review.subAccountId));
-                        review.subAccountInfo = subDoc.exists() ? subDoc.data() : { name: '삭제된 계정' };
+                        review.subAccountInfo = subMap[review.subAccountId] || { name: '삭제된 계정' };
                     }
-                }
+                });
                 member.reviewCount = member.reviews.length;
-            }
-            
+            });
+
             memberList.sort((a, b) => b.lastSubmissionDate.seconds - a.lastSubmissionDate.seconds);
             setMembers(memberList);
             setLoading(false);
