@@ -1,8 +1,9 @@
 // src/pages/admin/AdminTrafficManagement.jsx (신규 파일)
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db, collection, query, onSnapshot, doc, updateDoc, orderBy, serverTimestamp } from '../../firebaseConfig';
 import Papa from 'papaparse';
+import { Button } from '@/components/ui/button';
 
 // 날짜 포맷팅 헬퍼 함수
 const formatDateTime = (date) => {
@@ -27,6 +28,10 @@ export default function AdminTrafficManagementPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageGroup, setPageGroup] = useState(0);
+  const itemsPerPage = 20;
+  const pagesPerGroup = 10;
 
   useEffect(() => {
     setLoading(true);
@@ -58,6 +63,20 @@ export default function AdminTrafficManagementPage() {
     const searchMatch = searchTerm ? JSON.stringify(r).toLowerCase().includes(searchTerm.toLowerCase()) : true;
     return statusMatch && searchMatch;
   });
+
+  const paginatedRequests = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredRequests.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredRequests, currentPage]);
+
+  const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
+  useEffect(() => {
+    const group = Math.floor((currentPage - 1) / pagesPerGroup);
+    if (group !== pageGroup) setPageGroup(group);
+  }, [currentPage, pageGroup]);
+  const goToPage = (page) => { if (page > 0 && page <= totalPages) setCurrentPage(page); };
+  const prevGroup = () => setPageGroup(g => Math.max(0, g - 1));
+  const nextGroup = () => setPageGroup(g => (g + 1) * pagesPerGroup < totalPages ? g + 1 : g);
 
   const handleConfirmDeposit = async (requestId, isChecked) => {
     if (!isChecked) {
@@ -115,7 +134,7 @@ export default function AdminTrafficManagementPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredRequests.map(req => (
+              {paginatedRequests.map(req => (
                 <tr key={req.id} className="hover:bg-gray-50">
                   <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{formatDateTime(req.createdAt)}</td>
                   <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{req.requestDate?.seconds ? new Date(req.requestDate.seconds * 1000).toLocaleDateString('ko-KR') : '-'}</td>
@@ -141,6 +160,25 @@ export default function AdminTrafficManagementPage() {
             </tbody>
           </table>
         )}
+      </div>
+      <div className="pagination">
+        <Button variant="outline" size="sm" onClick={prevGroup} disabled={pageGroup === 0}>{'<<'}</Button>
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>{'<'}</Button>
+        {Array.from({ length: Math.min(pagesPerGroup, totalPages - pageGroup * pagesPerGroup) }, (_, i) => {
+          const pageNum = pageGroup * pagesPerGroup + i + 1;
+          return (
+            <Button
+              key={pageNum}
+              variant={currentPage === pageNum ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={() => goToPage(pageNum)}
+            >
+              {pageNum}
+            </Button>
+          );
+        })}
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>{'>'}</Button>
+        <Button variant="outline" size="sm" onClick={nextGroup} disabled={(pageGroup + 1) * pagesPerGroup >= totalPages}>{'>>'}</Button>
       </div>
     </>
   );
