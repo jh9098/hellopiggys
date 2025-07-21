@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { db, collection, query, onSnapshot, doc, updateDoc, orderBy, writeBatch, increment, serverTimestamp } from '../../firebaseConfig';
 import Papa from 'papaparse';
 import { Button } from '@/components/ui/button';
+import '../../components/ReviewDetailModal.css';
+import { toAbsoluteUrl } from '../../utils';
 
 // [추가] 날짜 포맷팅을 위한 헬퍼 함수
 const formatDateTime = (date) => {
@@ -21,16 +23,27 @@ const formatDateTime = (date) => {
   return `${year}.${month}.${day} ${hours}:${minutes}:${seconds}`;
 };
 
+const formatDate = (date) => {
+  if (!date || !date.seconds) return 'N/A';
+  const d = new Date(date.seconds * 1000);
+  const pad = (num) => num.toString().padStart(2, '0');
+  const year = d.getFullYear().toString().slice(-2);
+  const month = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  return `${year}.${month}.${day}`;
+};
+
 
 export default function AdminProductManagementPage() {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sellersMap, setSellersMap] = useState({});
   const [selectedCampaign, setSelectedCampaign] = useState(null);
-  
+
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
+  const [detailText, setDetailText] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -199,6 +212,9 @@ export default function AdminProductManagementPage() {
     return { basePrice, sundayExtraCharge, reviewFee, productPrice, quantity, itemTotal, finalItemAmount, commission };
   };
 
+  const openDetailModal = (text) => setDetailText(text);
+  const closeDetailModal = () => setDetailText(null);
+
   const handleDownloadExcel = () => {
     if (filteredCampaigns.length === 0) return alert("다운로드할 데이터가 없습니다.");
     const toText = (v) => `="${(v ?? '').toString()}"`;
@@ -206,7 +222,7 @@ export default function AdminProductManagementPage() {
       const { basePrice, sundayExtraCharge, productPrice, quantity, itemTotal, finalItemAmount, commission } = computeAmounts(c);
       return {
         '순번': index + 1,
-        '예약 등록 일시': c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleString('ko-KR') : '', // 엑셀은 기존 포맷 유지
+        '예약 등록 일자': c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : '',
         '진행일자': c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '',
         '구분': c.deliveryType || '',
         '리뷰 종류': c.reviewType || '',
@@ -215,13 +231,13 @@ export default function AdminProductManagementPage() {
         '상품가': c.productPrice ? Number(c.productPrice).toLocaleString() : '',
         '옵션': c.productOption || '',
         '키워드': c.keywords || '',
-        '상품 URL': c.productUrl || '',
+        '상품 URL': toAbsoluteUrl(c.productUrl) || '',
         '상태': c.status || 'N/A',
         '닉네임': sellersMap[c.sellerUid]?.nickname || '',
         '전화번호': toText(sellersMap[c.sellerUid]?.phone || ''),
         '입금확인': c.depositConfirmed ? 'Y' : 'N',
         '견적 상세': `(리뷰 ${basePrice.toLocaleString()}${sundayExtraCharge > 0 ? ` + 공휴일 ${sundayExtraCharge.toLocaleString()}` : ''} + 상품가 ${productPrice.toLocaleString()} x 1.1) x ${quantity}개${c.isVatApplied ? ' x 1.1' : ''}`,
-        '총 견적': `${finalItemAmount.toLocaleString()}원 (견적 ${Number(itemTotal).toLocaleString()} + 수수료 ${commission.toLocaleString()})`,
+        '총 견적': `${finalItemAmount.toLocaleString()}원`,
         '작업': '반려',
       };
     });
@@ -268,7 +284,7 @@ export default function AdminProductManagementPage() {
                 <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === filteredCampaigns.length && filteredCampaigns.length > 0} /></th>
                 <th className={thClass}>순번</th>
                 {/* [수정 1] 컬럼명 변경 */}
-                <th className={thClass}>예약 등록 일시</th>
+                <th className={thClass}>예약 등록 일자</th>
                 <th className={thClass}>진행일자</th>
                 <th className={thClass}>구분</th>
                 <th className={thClass}>리뷰 종류</th>
@@ -285,8 +301,8 @@ export default function AdminProductManagementPage() {
                 <th className={thClass}>전화번호</th>
                 {/* [수정 2] 컬럼명 변경 */}
                 <th className={thClass}>입금확인<br/>(예약확정)</th>
-                <th className={thClass}>견적 상세</th>
-                <th className={thClass}>총 견적</th>
+                <th className={thClass} style={{ minWidth: '90px' }}>견적 상세</th>
+                <th className={thClass} style={{ minWidth: '90px' }}>총 견적</th>
                 {/* [수정 4] 불필요한 컬럼 제거 */}
                 <th className={thClass}>작업</th>
               </tr>
@@ -299,7 +315,7 @@ export default function AdminProductManagementPage() {
                       <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{index + 1}</td>
                       {/* [수정 1] 날짜 포맷팅 적용 */}
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{formatDateTime(c.createdAt)}</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{formatDate(c.createdAt)}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '-'}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{c.deliveryType}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{c.reviewType}</td>
@@ -309,7 +325,7 @@ export default function AdminProductManagementPage() {
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{c.productOption}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{Number(c.productPrice).toLocaleString()}원</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">{c.keywords}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm"><a href={c.productUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">링크</a></td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm"><a href={toAbsoluteUrl(c.productUrl)} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">링크</a></td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.status === '리뷰완료' ? 'bg-blue-100 text-blue-800' : c.status === '예약 확정' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{c.status}</span>
                         {c.status === '예약 확정' && (
@@ -327,8 +343,10 @@ export default function AdminProductManagementPage() {
                             disabled={c.status === '예약 확정'}
                         />
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-xs text-gray-500">(리뷰 {basePrice.toLocaleString()}{sundayExtraCharge > 0 ? ` + 공휴일 ${sundayExtraCharge.toLocaleString()}` : ''} + 상품가 {productPrice.toLocaleString()} x 1.1) x {quantity}개{c.isVatApplied ? ' x 1.1' : ''}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm"><div className='font-bold'>{finalItemAmount.toLocaleString()}원</div><div className='text-xs text-gray-500'>(견적 {Number(itemTotal).toLocaleString()} + 수수료 {commission.toLocaleString()})</div></td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm" style={{ minWidth: '90px' }}>
+                        <button onClick={() => openDetailModal(`(리뷰 ${basePrice.toLocaleString()}${sundayExtraCharge > 0 ? ` + 공휴일 ${sundayExtraCharge.toLocaleString()}` : ''} + 상품가 ${productPrice.toLocaleString()} x 1.1) x ${quantity}개${c.isVatApplied ? ' x 1.1' : ''}`)} className="text-blue-600 underline">상세보기</button>
+                      </td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm" style={{ minWidth: '90px' }}>{finalItemAmount.toLocaleString()}원</td>
                       {/* [수정 4] 불필요한 컬럼 제거 */}
                       <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
                     </tr>
@@ -338,6 +356,14 @@ export default function AdminProductManagementPage() {
           </table>
         )}
       </div>
+      {detailText && (
+        <div className="modal-back" onClick={closeDetailModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close" onClick={closeDetailModal}>✖</button>
+            <pre style={{ whiteSpace: 'pre-wrap' }}>{detailText}</pre>
+          </div>
+        </div>
+      )}
     </>
   );
 }
