@@ -24,7 +24,9 @@ export default function AdminMemberManagementPage() {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
+    const [pageGroup, setPageGroup] = useState(0);
     const itemsPerPage = 10;
+    const pagesPerGroup = 10;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedMember, setSelectedMember] = useState(null);
@@ -133,6 +135,12 @@ export default function AdminMemberManagementPage() {
 
     const totalPages = Math.ceil(processedMembers.length / itemsPerPage);
     const goToPage = (page) => { if (page > 0 && page <= totalPages) setCurrentPage(page); };
+    useEffect(() => {
+        const group = Math.floor((currentPage - 1) / pagesPerGroup);
+        if (group !== pageGroup) setPageGroup(group);
+    }, [currentPage, pageGroup]);
+    const prevGroup = () => setPageGroup(g => Math.max(0, g - 1));
+    const nextGroup = () => setPageGroup(g => (g + 1) * pagesPerGroup < totalPages ? g + 1 : g);
     const requestSort = (key) => {
         let direction = sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
         setSortConfig({ key, direction });
@@ -200,20 +208,23 @@ export default function AdminMemberManagementPage() {
                 </Table>
             </div>
             <div className="pagination">
-                <Button variant="outline" size="sm" onClick={() => goToPage(1)} disabled={currentPage === 1}>{'<<'}</Button>
+                <Button variant="outline" size="sm" onClick={prevGroup} disabled={pageGroup === 0}>{'<<'}</Button>
                 <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>{'<'}</Button>
-                {[...Array(totalPages).keys()].map(num => (
-                    <Button
-                        key={num + 1}
-                        variant={currentPage === num + 1 ? 'secondary' : 'outline'}
-                        size="sm"
-                        onClick={() => goToPage(num + 1)}
-                    >
-                        {num + 1}
-                    </Button>
-                ))}
+                {Array.from({ length: Math.min(pagesPerGroup, totalPages - pageGroup * pagesPerGroup) }, (_, i) => {
+                    const pageNum = pageGroup * pagesPerGroup + i + 1;
+                    return (
+                        <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? 'secondary' : 'outline'}
+                            size="sm"
+                            onClick={() => goToPage(pageNum)}
+                        >
+                            {pageNum}
+                        </Button>
+                    );
+                })}
                 <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>{'>'}</Button>
-                <Button variant="outline" size="sm" onClick={() => goToPage(totalPages)} disabled={currentPage === totalPages}>{'>>'}</Button>
+                <Button variant="outline" size="sm" onClick={nextGroup} disabled={(pageGroup + 1) * pagesPerGroup >= totalPages}>{'>>'}</Button>
             </div>
             {isModalOpen && (
                 <MemberDetailModal
