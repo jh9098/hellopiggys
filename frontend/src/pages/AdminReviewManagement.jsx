@@ -49,24 +49,27 @@ export default function AdminReviewManagementPage() {
     setLoading(true);
     const q = query(collection(db, 'reviews'), orderBy('createdAt', 'desc'));
     const snap = await getDocs(q);
-    const reviewsData = await Promise.all(snap.docs.map(async (d) => {
-      const review = { id: d.id, ...d.data() };
-      if (review.mainAccountId) {
-        const userDocRef = doc(db, 'users', review.mainAccountId);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) review.mainAccountName = userDocSnap.data().name; 
-      }
-      if (review.subAccountId) {
-          const subAccountRef = doc(db, "subAccounts", review.subAccountId);
+    const allReviews = await Promise.all(
+      snap.docs.map(async (d) => {
+        const review = { id: d.id, ...d.data() };
+        if (review.mainAccountId) {
+          const userDocRef = doc(db, 'users', review.mainAccountId);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) review.mainAccountName = userDocSnap.data().name;
+        }
+        if (review.subAccountId) {
+          const subAccountRef = doc(db, 'subAccounts', review.subAccountId);
           const subAccountSnap = await getDoc(subAccountRef);
-          if(subAccountSnap.exists()) {
+          if (subAccountSnap.exists()) {
             const subAccountData = subAccountSnap.data();
-            delete subAccountData.createdAt; 
+            delete subAccountData.createdAt;
             Object.assign(review, subAccountData);
           }
-      }
-      return review;
-    }));
+        }
+        return review;
+      })
+    );
+    const reviewsData = allReviews.filter((r) => r.status !== 'settled');
     setRows(reviewsData);
     setLoading(false);
   };
@@ -223,7 +226,16 @@ export default function AdminReviewManagementPage() {
             </TableRow>
             <TableRow className="filter-row">
               <TableHead></TableHead><TableHead></TableHead>
-              <TableHead><select name="status" value={filters.status} onChange={handleFilterChange}><option value="all">전체</option>{Object.values(statusMap).map(s => <option key={s} value={s}>{s}</option>)}</select></TableHead>
+              <TableHead>
+                <select name="status" value={filters.status} onChange={handleFilterChange}>
+                  <option value="all">전체</option>
+                  {Object.entries(statusMap)
+                    .filter(([key]) => key !== 'settled')
+                    .map(([, label]) => (
+                      <option key={label} value={label}>{label}</option>
+                    ))}
+                </select>
+              </TableHead>
               <TableHead><Input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></TableHead>
               <TableHead><Input type="text" name="mainAccountName" value={filters.mainAccountName} onChange={handleFilterChange} /></TableHead>
               <TableHead><Input type="text" name="name" value={filters.name} onChange={handleFilterChange} /></TableHead>
