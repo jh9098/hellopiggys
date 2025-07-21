@@ -27,6 +27,7 @@ export default function AdminLayout() {
           {/* --- 기존 리뷰어 관리 메뉴 --- */}
           <h3 className="menu-section-title">리뷰어 관리</h3>
           <NavLink to="/admin/members" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? 'secondary' : 'ghost', size: 'sm' }), 'justify-start w-full')}>회원 관리</NavLink>
+          <NavLink to="/admin/account-merge" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? 'secondary' : 'ghost', size: 'sm' }), 'justify-start w-full')}>계정 병합</NavLink>
           <NavLink to="/admin/products" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? 'secondary' : 'ghost', size: 'sm' }), 'justify-start w-full')}>상품 등록 및 관리</NavLink>
           <NavLink to="/admin/reviews" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? 'secondary' : 'ghost', size: 'sm' }), 'justify-start w-full')}>리뷰어 구매 관리</NavLink>
           <NavLink to="/admin/settlement" className={({ isActive }) => cn(buttonVariants({ variant: isActive ? 'secondary' : 'ghost', size: 'sm' }), 'justify-start w-full')}>정산 관리</NavLink>

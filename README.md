@@ -37,3 +37,8 @@ gsutil cors set cors.json gs://$BUCKET
 
 Netlify 등 도메인에서 업로드 시 `https://hellopiggy.netlify.app`가 허용되도록 설정해야 합니다.
 
+## 계정 병합 기능
+관리자는 `/admin/account-merge` 페이지에서 중복 사용자 계정을 하나로 통합할 수 있습니다.
+본계정 UID와 전화번호, 타계정 UID와 전화번호를 입력 후 "병합 실행"을 클릭하면
+타계정의 리뷰·서브계정·주소 정보가 본계정으로 이동되고 기존 계정이 삭제됩니다.
+

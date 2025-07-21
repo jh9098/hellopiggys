@@ -38,6 +38,7 @@ import SellerAdminSellerManagementPage from './pages/admin/SellerAdminSellerMana
 import SellerAdminTrafficPage from './pages/admin/SellerAdminTraffic';
 // [추가] 새로 만든 트래픽 관리 페이지 임포트
 import AdminTrafficManagementPage from './pages/admin/AdminTrafficManagement';
+import AdminAccountMergePage from './pages/AdminAccountMerge';
 
 // --- 판매자 페이지들 ---
 import SellerDashboardPage from './pages/seller/SellerDashboard'; 
@@ -86,6 +87,7 @@ function App() {
           {/* 기존 리뷰어 관리 */}
           <Route path="reviews" element={<AdminReviewManagement />} />
           <Route path="members" element={<AdminMemberManagement />} />
+          <Route path="account-merge" element={<AdminAccountMergePage />} />
           <Route path="products" element={<AdminProductManagement />} />
           <Route path="products/new" element={<AdminProductForm />} />
           <Route path="products/edit/:productId" element={<AdminProductForm />} />
