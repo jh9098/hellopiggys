@@ -30,6 +30,12 @@ const statusMap = {
   settled: '정산 완료'
 };
 const getStatusKeyByValue = (value) => Object.keys(statusMap).find(key => statusMap[key] === value);
+const getDisplayStatus = (review) => {
+  const needsImages =
+    !review.keywordAndLikeImagesUrls?.length ||
+    !(review.orderImageUrls?.length > 0 || review.cashcardImageUrls?.length > 0);
+  return needsImages ? '이미지 업로드 중' : (statusMap[review.status] || review.status);
+};
 const initialFilters = { productName: '', mainAccountName: '', name: '', phoneNumber: '', status: 'all', reviewConfirm: 'all' };
 
 export default function AdminReviewManagementPage() {
@@ -81,7 +87,7 @@ export default function AdminReviewManagementPage() {
     Object.entries(filters).forEach(([key, value]) => {
       if (!value || value === 'all') return;
       filtered = filtered.filter(row => {
-        if (key === 'status') return row.status === getStatusKeyByValue(value);
+        if (key === 'status') return getDisplayStatus(row) === value;
         if (key === 'reviewConfirm') {
           const hasImages = row.confirmImageUrls && row.confirmImageUrls.length > 0;
           return value === 'O' ? hasImages : !hasImages;
@@ -251,11 +257,7 @@ export default function AdminReviewManagementPage() {
                 <TableCell><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></TableCell>
                 {/* [수정] 헬퍼 함수 사용 */}
                 <TableCell>{formatTimestamp24h(r.createdAt)}</TableCell>
-                <TableCell>
-                  {(!r.keywordAndLikeImagesUrls?.length || !(r.orderImageUrls?.length > 0 || r.cashcardImageUrls?.length > 0))
-                    ? '이미지 업로드 중'
-                    : (statusMap[r.status] || r.status)}
-                </TableCell>
+                <TableCell>{getDisplayStatus(r)}</TableCell>
                 <TableCell className="product-name-cell">{r.productName || '-'}</TableCell>
                 <TableCell>{r.mainAccountName || '-'}</TableCell>
                 <TableCell>{r.name || '-'}</TableCell>
