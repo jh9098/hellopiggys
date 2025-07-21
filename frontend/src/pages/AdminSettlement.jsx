@@ -33,6 +33,10 @@ export default function AdminSettlementPage() {
   const [selectedReview, setSelectedReview] = useState(null);
   const [filters, setFilters] = useState(initialFilters);
   const [sortConfig, setSortConfig] = useState({ key: 'verifiedAt', direction: 'desc' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageGroup, setPageGroup] = useState(0);
+  const itemsPerPage = 50;
+  const pagesPerGroup = 10;
 
   const fetchSettlementList = async () => {
     setLoading(true);
@@ -96,6 +100,20 @@ export default function AdminSettlementPage() {
     return filtered;
   }, [rows, filters, sortConfig]);
 
+  const paginatedRows = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return processedRows.slice(startIndex, startIndex + itemsPerPage);
+  }, [processedRows, currentPage]);
+
+  const totalPages = Math.ceil(processedRows.length / itemsPerPage);
+  useEffect(() => {
+    const group = Math.floor((currentPage - 1) / pagesPerGroup);
+    if (group !== pageGroup) setPageGroup(group);
+  }, [currentPage, pageGroup]);
+  const goToPage = (page) => { if (page > 0 && page <= totalPages) setCurrentPage(page); };
+  const prevGroup = () => setPageGroup(g => Math.max(0, g - 1));
+  const nextGroup = () => setPageGroup(g => (g + 1) * pagesPerGroup < totalPages ? g + 1 : g);
+
   const handleFilterChange = (e) => setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
   const requestSort = (key) => {
     let direction = sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
@@ -107,7 +125,7 @@ export default function AdminSettlementPage() {
     newSelected.has(id) ? newSelected.delete(id) : newSelected.add(id);
     setSelected(newSelected);
   };
-  const toggleSelectAll = (e) => setSelected(e.target.checked ? new Set(processedRows.map(r => r.id)) : new Set());
+  const toggleSelectAll = (e) => setSelected(e.target.checked ? new Set(paginatedRows.map(r => r.id)) : new Set());
   const handleDelete = async () => {
     if (selected.size === 0) return;
     if (!window.confirm(`${selected.size}개의 항목을 삭제하시겠습니까?`)) return;
@@ -171,7 +189,7 @@ export default function AdminSettlementPage() {
         <Table className="admin-table">
           <TableHeader>
             <TableRow>
-              <TableHead><input type="checkbox" onChange={toggleSelectAll} checked={selected.size === processedRows.length && processedRows.length > 0} /></TableHead>
+              <TableHead><input type="checkbox" onChange={toggleSelectAll} checked={paginatedRows.length > 0 && paginatedRows.every(r => selected.has(r.id))} /></TableHead>
               <TableHead onClick={() => requestSort('verifiedAt')} className="sortable">리뷰 인증일<SortIndicator columnKey="verifiedAt" /></TableHead>
               <TableHead onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></TableHead>
               <TableHead onClick={() => requestSort('mainAccountName')} className="sortable">본계정 이름<SortIndicator columnKey="mainAccountName" /></TableHead>
@@ -197,7 +215,7 @@ export default function AdminSettlementPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {processedRows.map((r) => (
+            {paginatedRows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></TableCell>
                 {/* [수정] 헬퍼 함수 사용 */}
@@ -216,6 +234,25 @@ export default function AdminSettlementPage() {
             ))}
           </TableBody>
         </Table>
+      </div>
+      <div className="pagination">
+        <Button variant="outline" size="sm" onClick={prevGroup} disabled={pageGroup === 0}>{'<<'}</Button>
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>{'<'}</Button>
+        {Array.from({ length: Math.min(pagesPerGroup, totalPages - pageGroup * pagesPerGroup) }, (_, i) => {
+          const pageNum = pageGroup * pagesPerGroup + i + 1;
+          return (
+            <Button
+              key={pageNum}
+              variant={currentPage === pageNum ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={() => goToPage(pageNum)}
+            >
+              {pageNum}
+            </Button>
+          );
+        })}
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>{'>'}</Button>
+        <Button variant="outline" size="sm" onClick={nextGroup} disabled={(pageGroup + 1) * pagesPerGroup >= totalPages}>{'>>'}</Button>
       </div>
       {isModalOpen && <ReviewDetailModal review={selectedReview} onClose={closeDetailModal} />}
     </>
