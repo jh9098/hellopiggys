@@ -44,6 +44,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.19",
+    "vite-plugin-pwa": "^0.18.0",
     "eslint": "^8.57.0",
     "eslint-config-google": "^0.14.0",
     "postcss": "^8.4.38",
