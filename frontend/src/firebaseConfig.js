@@ -27,6 +27,7 @@ import {
   writeBatch,
   increment,
   arrayRemove,
+  documentId,
 } from 'firebase/firestore';
 import {
   getStorage,
@@ -80,6 +81,7 @@ export {
   writeBatch,
   increment,
   arrayRemove,
+  documentId,
 
   // Storage
   ref,
