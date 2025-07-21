@@ -112,6 +112,12 @@ export default function AdminReviewManagementPage() {
     return processedRows.slice(startIndex, startIndex + itemsPerPage);
   }, [processedRows, currentPage]);
 
+  // Reset to first page when filters change to ensure results are visible
+  useEffect(() => {
+    setCurrentPage(1);
+    setPageGroup(0);
+  }, [filters]);
+
   const totalPages = Math.ceil(processedRows.length / itemsPerPage);
   // ensure page group follows current page
   useEffect(() => {
