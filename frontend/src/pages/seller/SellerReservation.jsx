@@ -529,6 +529,20 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
     
     const { totalSubtotal, totalVat, totalAmount, amountToUseFromDeposit, remainingPayment } = calculateTotals(campaigns);
     const pendingDepositCount = savedCampaigns.filter(c => selectedSavedCampaigns.includes(c.id) && !c.paymentReceived).length;
+    const totalPaymentAmount = useMemo(() => {
+        return savedCampaigns.reduce((sum, sc) => {
+            const row = editedRows[sc.id] || {};
+            const deliveryType = row.deliveryType ?? sc.deliveryType;
+            const reviewType = row.reviewType ?? sc.reviewType;
+            const quantity = Number(row.quantity ?? sc.quantity);
+            const cDate = sc.date?.seconds ? new Date(sc.date.seconds * 1000) : new Date();
+            const reviewFee = getBasePrice(deliveryType, reviewType) + (cDate.getDay() === 0 ? 600 : 0);
+            const productPriceWithAgencyFee = Number(sc.productPrice) * 1.1;
+            const subtotal = (reviewFee + productPriceWithAgencyFee) * quantity;
+            const final = sc.isVatApplied ? subtotal * 1.1 : subtotal;
+            return sum + final;
+        }, 0);
+    }, [savedCampaigns, editedRows]);
 
     return (
         <>
@@ -825,15 +839,16 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                         <TableHead className="w-[60px] text-center">수량</TableHead>
                                         <TableHead className="w-[60px] text-center">입금</TableHead>
                                         <TableHead className="w-[100px] text-center">상태</TableHead>
-                                        <TableHead className="w-[120px] text-center">최종금액</TableHead>
+                                        <TableHead className="w-[120px] text-center">개별견적</TableHead>
+                                        <TableHead className="w-[120px] text-center">결제금액</TableHead>
                                         <TableHead className="w-[80px] text-center">관리</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {savedCampaigns.length === 0 ? (
-                                        <TableRow><TableCell colSpan="10" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan="11" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
                                     ) : (
-                                        savedCampaigns.map(c => {
+                                        savedCampaigns.map((c, idx) => {
                                             const row = editedRows[c.id] || {};
                                             const deliveryType = row.deliveryType ?? c.deliveryType;
                                             const reviewType = row.reviewType ?? c.reviewType;
@@ -893,6 +908,11 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                                     </TableCell>
                                                     <TableCell className="text-center"><Badge variant={c.status === '예약 확정' ? 'default' : c.status === '예약 대기' ? 'secondary' : 'destructive'}>{c.status}</Badge></TableCell>
                                                     <TableCell className="text-center">{Math.round(finalAmount || 0).toLocaleString()}원</TableCell>
+                                                    {idx === 0 && (
+                                                        <TableCell className="text-center font-semibold" rowSpan={savedCampaigns.length}>
+                                                            {Math.round(totalPaymentAmount).toLocaleString()}원
+                                                        </TableCell>
+                                                    )}
                                                     <TableCell className="text-center space-x-2">
                                                         <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmation({ type: 'single', ids: [c.id] })}>
                                                             <Trash2 className="h-4 w-4 text-destructive" />
