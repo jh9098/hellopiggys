@@ -1,12 +1,12 @@
-// src/pages/WriteReview.jsx (최종 수정 버전: 미리보기 제거, 파일 이름 목록 표시)
+// src/pages/WriteReview.jsx (개선안)
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   auth, onAuthStateChanged, db, storage, 
-  ref, uploadBytes, getDownloadURL, addDoc, collection, 
-  serverTimestamp, getDocs, query, orderBy, where 
-} from '../firebaseConfig'; // 'storage'를 직접 import 하는 방식 사용
+  ref, uploadBytes, getDownloadURL, addDoc, collection, doc, getDoc,
+  serverTimestamp, getDocs, query, orderBy, where, updateDoc
+} from '../firebaseConfig';
 import LoginModal from '../components/LoginModal';
 import AccountModal from '../components/AccountModal';
 import './WriteReview.css';
@@ -23,10 +23,6 @@ const UPLOAD_FIELDS = [
   { key: 'cashcardImage', label: '현금영수증/매출전표', group: 'purchase', required: false },
 ];
 
-<<<<<<< HEAD
-export default function WriteReview() {
-  const navigate = useNavigate();
-=======
 function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
@@ -35,7 +31,6 @@ export default function WriteReview() {
   const navigate = useNavigate();
   const queryParams = useQuery();
   const productIdFromUrl = queryParams.get('pid');
->>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
 
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -65,31 +60,21 @@ export default function WriteReview() {
   const [globalAddresses, setGlobalAddresses] = useState([]);
   
   const [images, setImages] = useState({});
-<<<<<<< HEAD
-=======
-  // ▼▼▼ [추가] 이미지 처리 상태를 관리할 state ▼▼▼
   const [imageProcessingStatus, setImageProcessingStatus] = useState({});
-  // ▲▲▲ [추가] 완료 ▲▲▲
->>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
 
   const [showImageUpload, setShowImageUpload] = useState(false);
 
-  // ▼▼▼ [수정] 제출 상태를 더 상세하게 관리하기 위한 state 추가 ▼▼▼
   const [submitting, setSubmitting] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState('');
-  // ▲▲▲ [수정] 완료 ▲▲▲
 
   const [isAccountSelected, setIsAccountSelected] = useState(false);
   const [selectedSubAccountInfo, setSelectedSubAccountInfo] = useState(null);
   const [isAgreed, setIsAgreed] = useState(false);
 
-<<<<<<< HEAD
-=======
   const filteredProducts = products.filter(p =>
     p.productName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
->>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
   useEffect(() => {
     if (isAccountModalOpen || isLoginModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -121,20 +106,6 @@ export default function WriteReview() {
         setGlobalAddresses([]);
       }
     });
-<<<<<<< HEAD
-    const fetchProducts = async () => {
-      try {
-        const q = query(collection(db, 'products'), where('progressStatus', '==', '진행중'), orderBy('createdAt', 'desc'));
-        const snapshot = await getDocs(q);
-        setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } catch (e) { console.error("상품 목록 로딩 실패:", e); }
-      finally { setLoading(false); }
-    };
-    fetchProducts();
-    return () => unsubscribeAuth();
-  }, []);
-=======
->>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
 
     const initializeProducts = async () => {
       setLoading(true);
@@ -169,45 +140,10 @@ export default function WriteReview() {
     return () => unsubscribeAuth();
   }, [productIdFromUrl]);
 
-  // ▼▼▼ [수정] onFileChange 함수에 처리 중 상태 로직 추가 ▼▼▼
   const onFileChange = async (e) => {
     const { name, files } = e.target;
     if (!files || files.length === 0) return;
-<<<<<<< HEAD
-  
-    const options = {
-      maxSizeMB: 1,
-      maxWidthOrHeight: 1920,
-      useWebWorker: true,
-    };
-  
-    const processedFiles = [];
-    for (const file of files) {
-      try {
-        const compressedFile = await imageCompression(file, options);
-        processedFiles.push(compressedFile);
-      } catch (error) {
-        console.warn(`이미지 압축 실패. 원본 파일을 사용합니다: ${file.name}`, error);
-        processedFiles.push(file);
-      }
-    }
-    
-    const selectedFiles = Array.from(processedFiles).slice(0, 5);
-    setImages(prev => ({ ...prev, [name]: selectedFiles }));
-  };
-  
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!isFormValid) {
-      return alert('필수 입력 항목을 모두 채워주세요.');
-    }
-    setSubmitting(true);
-    try {
-      const urlMap = {};
-=======
->>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
 
-    // 1. 파일 선택 즉시 처리 중 상태로 변경
     setImageProcessingStatus(prev => ({ ...prev, [name]: true }));
 
     try {
@@ -219,7 +155,6 @@ export default function WriteReview() {
       };
     
       const processedFiles = [];
-      // for-of 루프는 await를 순차적으로 기다려줍니다.
       for (const file of files) {
         try {
           const compressedFile = await imageCompression(file, options);
@@ -231,20 +166,16 @@ export default function WriteReview() {
       }
       
       const selectedFiles = Array.from(processedFiles).slice(0, 5);
-      // 2. 압축 완료 후, state에 파일 목록 업데이트
       setImages(prev => ({ ...prev, [name]: selectedFiles }));
 
     } catch (err) {
       console.error("이미지 처리 중 오류 발생:", err);
       alert("이미지를 처리하는 중 오류가 발생했습니다. 다른 파일을 선택해보세요.");
     } finally {
-      // 3. 성공/실패 여부와 관계없이 처리 중 상태 해제
       setImageProcessingStatus(prev => ({ ...prev, [name]: false }));
     }
   };
-  // ▲▲▲ [수정] 완료 ▲▲▲
   
-  // ▼▼▼ [수정] 제출 로직을 사용자 피드백과 안정성을 강화하는 방향으로 대폭 수정 ▼▼▼
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -260,8 +191,6 @@ export default function WriteReview() {
     setSubmitting(true);
     setSubmissionStatus('리뷰 정보 저장 중...');
 
-    // --- 1단계: 텍스트 정보만 먼저 Firestore에 저장 ---
-    // 이렇게 하면 이미지가 업로드되는 동안에도 사용자는 제출이 시작되었다고 인지 가능
     const reviewData = {
       mainAccountId: currentUser.uid,
       subAccountId: form.subAccountId,
@@ -269,7 +198,7 @@ export default function WriteReview() {
       productName: selectedProduct.productName || '상품명 없음', 
       reviewType: selectedProduct.reviewType || '현영',
       createdAt: serverTimestamp(),
-      status: 'uploading_images', // 'submitted' 대신 이미지 업로드 중이라는 임시 상태 사용
+      status: 'uploading_images',
       name: form.name,
       phoneNumber: form.phoneNumber,
       address: form.address,
@@ -288,7 +217,6 @@ export default function WriteReview() {
       const docRef = await addDoc(collection(db, 'reviews'), reviewData);
       setSubmissionStatus('이미지 파일 처리 중...');
 
-      // --- 2단계: 이미지들을 하나씩 압축 및 업로드하고, URL을 Firestore 문서에 업데이트 ---
       const allImageFiles = UPLOAD_FIELDS.flatMap(field => 
         (images[field.key] || []).map(file => ({ fieldName: field.key, file }))
       );
@@ -310,10 +238,9 @@ export default function WriteReview() {
         urlMap[fieldKeyForUrl].push(downloadUrl);
       }
 
-      // --- 3단계: 모든 이미지 URL과 최종 상태를 Firestore에 업데이트 ---
       setSubmissionStatus('최종 정보 업데이트 중...');
       await updateDoc(docRef, {
-        status: 'submitted', // 최종 상태로 변경
+        status: 'submitted',
         ...urlMap,
       });
 
@@ -327,14 +254,11 @@ export default function WriteReview() {
     } catch (err) {
       alert(`제출 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. 오류: ${err.message}`);
       console.error("제출 실패:", err);
-      // 오류 발생 시 생성된 review 문서를 삭제하거나, 사용자에게 재시도를 안내할 수 있습니다.
-      // 여기서는 간단히 알림만 표시합니다.
     } finally {
       setSubmitting(false);
       setSubmissionStatus('');
     }
   };
-  // ▲▲▲ [수정] 완료 ▲▲▲
 
   const handleMainButtonClick = () => { if (currentUser) { if (selectedProduct) { setIsAccountModalOpen(true); } else { alert("먼저 참여할 상품을 선택해주세요."); } } else { setIsLoginModalOpen(true); } };
   const handleLoginSuccess = () => setIsLoginModalOpen(false);
@@ -467,12 +391,7 @@ export default function WriteReview() {
       </>)}
       
       {isAccountSelected && selectedSubAccountInfo && (
-<<<<<<< HEAD
-        <form onSubmit={handleSubmit}>
-          {/* ... 폼 필드 ... */}
-=======
         <form onSubmit={handleSubmit} className="space-y-4">
->>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
           <div className="field">
             <Label htmlFor="name">구매자(수취인)</Label>
             <Input id="name" name="name" value={form.name} onChange={onFormChange} required />
@@ -573,66 +492,18 @@ export default function WriteReview() {
 
           {showImageUpload && (
             <>
-          <div className="image-upload-group">
-            {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label }) => (
-              <div className="field" key={key}>
-                <label>{label} (최대 5장)</label>
-<<<<<<< HEAD
-                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
-=======
-                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple disabled={imageProcessingStatus[key]} />
-                
-                {/* ▼▼▼ [추가] 이미지 처리 중 알림 메시지 ▼▼▼ */}
-                {imageProcessingStatus[key] && (
-                  <div className="image-processing-notice">
-                    이미지 처리 중입니다. 파일 목록이 표시될 때까지 잠시만 기다려주세요...
-                  </div>
-                )}
-                {/* ▲▲▲ [추가] 완료 ▲▲▲ */}
-
->>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
-                <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
-                  {images[key] && images[key].length > 0 ? (
-                    images[key].map((file, i) => (
-                      <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
-                    ))
-                  ) : (
-                    <div style={{ color: '#999' }}>선택된 파일 없음</div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="image-upload-group">
-            <h4>2. 구매 & 증빙 인증</h4>
-            {UPLOAD_FIELDS.filter(f => f.group === 'purchase').map(({ key, label }) => (
-              <div className="field" key={key}>
-                <label>{label} (최대 5장)</label>
-<<<<<<< HEAD
-                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
-                <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
-                  {images[key] && images[key].length > 0 ? (
-                    images[key].map((file, i) => (
-                      <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
-                    ))
-                  ) : (
-                    <div style={{ color: '#999' }}>선택된 파일 없음</div>
-                  )}
-                </div>
-=======
-                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple disabled={imageProcessingStatus[key]} />
-
-                {/* ▼▼▼ [추가] 이미지 처리 중 알림 메시지 (동일한 로직) ▼▼▼ */}
-                {imageProcessingStatus[key] && (
-                  <div className="image-processing-notice">
-                    이미지 처리 중입니다. 파일 목록이 표시될 때까지 잠시만 기다려주세요...
-                  </div>
-                )}
-                {/* ▲▲▲ [추가] 완료 ▲▲▲ */}
-
-                <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
-
+              <div className="image-upload-group">
+                {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label }) => (
+                  <div className="field" key={key}>
+                    <label>{label} (최대 5장)</label>
+                    <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple disabled={imageProcessingStatus[key]} />
+                    
+                    {imageProcessingStatus[key] && (
+                      <div className="image-processing-notice">
+                        이미지 처리 중입니다. 파일 목록이 표시될 때까지 잠시만 기다려주세요...
+                      </div>
+                    )}
+                    <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
                       {images[key] && images[key].length > 0 ? (
                         images[key].map((file, i) => (
                           <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
@@ -643,7 +514,31 @@ export default function WriteReview() {
                     </div>
                   </div>
                 ))}
->>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
+              </div>
+
+              <div className="image-upload-group">
+                <h4>2. 구매 & 증빙 인증</h4>
+                {UPLOAD_FIELDS.filter(f => f.group === 'purchase').map(({ key, label }) => (
+                  <div className="field" key={key}>
+                    <label>{label} (최대 5장)</label>
+                    <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple disabled={imageProcessingStatus[key]} />
+
+                    {imageProcessingStatus[key] && (
+                      <div className="image-processing-notice">
+                        이미지 처리 중입니다. 파일 목록이 표시될 때까지 잠시만 기다려주세요...
+                      </div>
+                    )}
+                    <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
+                      {images[key] && images[key].length > 0 ? (
+                        images[key].map((file, i) => (
+                          <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
+                        ))
+                      ) : (
+                        <div style={{ color: '#999' }}>선택된 파일 없음</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </>
           )}
@@ -662,9 +557,7 @@ export default function WriteReview() {
             type="submit"
             disabled={!isFormValid || submitting}
           >
-            {/* ▼▼▼ [수정] 버튼 텍스트를 제출 상태에 따라 동적으로 변경 ▼▼▼ */}
             {submitting ? submissionStatus : '제출하기'}
-            {/* ▲▲▲ [수정] 완료 ▲▲▲ */}
           </Button>
         </form>
       )}
