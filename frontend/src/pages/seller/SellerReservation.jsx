@@ -611,12 +611,108 @@ export default function SellerReservationPage() {
             </div>
 
             <div className="space-y-8">
-                {/* --- 새 작업 추가 --- */}
                 <Card>
-                    {/* ... (폼 부분은 변경 없음) ... */}
-                </Card>
+                    <form onSubmit={handleAddCampaign}>
+                        <CardHeader className="items-center space-y-2">
+                            <CardTitle>새 작업 추가</CardTitle>
+                            <CardDescription>진행할 리뷰 캠페인의 정보를 입력하고 견적에 추가하세요.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid lg:grid-cols-3 gap-8">
+                            <div className="space-y-4 p-4 border rounded-lg h-full">
+                                <div>
+                                    <Label htmlFor="date">진행 일자</Label>
+                                    <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button id="date" variant={"outline"} className={cn( "w-full justify-start text-left font-normal", !formState.date && "text-muted-foreground" )}>
+                                                <CalendarIcon className="mr-2 h-4 w-4" />{formState.date ? format(formState.date, "PPP", {locale: ko}) : <span>날짜 선택</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={formState.date} onSelect={handleDateSelect} initialFocus /></PopoverContent>
+                                    </Popover>
+                                </div>
+                                <div className="text-xs">
+                                    <FullCalendar 
+                                        plugins={[dayGridPlugin, interactionPlugin]} 
+                                        initialView="dayGridMonth" 
+                                        headerToolbar={{ left: 'prev', center: 'title', right: 'next' }} 
+                                        events={calendarEvents} 
+                                        dayCellContent={renderDayCell}
+                                        dayCellClassNames={(arg) => {
+                                            const dateStr = formatDateForCalendar(arg.date);
+                                            const capacity = capacities[dateStr] || 0;
+                                            const dailyEvents = calendarCampaigns.filter(c => c.status === '예약 확정' && formatDateForCalendar(c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date)) === dateStr);
+                                            const totalQuantity = dailyEvents.reduce((sum, event) => sum + Number(event.quantity || 0), 0);
+                                            const remaining = capacity - totalQuantity;
+                                            if (remaining > 0 && capacity > 0) return 'cursor-pointer hover:bg-muted';
+                                            return '';
+                                        }}
+                                        dateClick={(info) => {
+                                            const dateStr = info.dateStr;
+                                            const capacity = capacities[dateStr] || 0;
+                                            const dailyEvents = calendarCampaigns.filter(c => c.status === '예약 확정' && formatDateForCalendar(c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date)) === dateStr);
+                                            const totalQuantity = dailyEvents.reduce((sum, event) => sum + Number(event.quantity || 0), 0);
+                                            const remaining = capacity - totalQuantity;
+                                            if (remaining > 0 && capacity > 0) setFormState(prev => ({ ...prev, date: info.date }));
+                                            else alert('해당 날짜는 예약이 마감되었습니다.');
+                                        }}
+                                        locale="ko" 
+                                        height="auto" 
+                                    />
+                                </div>
+                            </div>
 
-                {/* --- 견적 목록 --- */}
+                            <div className="space-y-4 p-4 border rounded-lg h-full">
+                                <div className="flex justify-center gap-2">
+                                    <Button type="button" size="sm" variant="outline" onClick={handleSaveTemplate}>지금 작성하는 상품 저장하기</Button>
+                                    <Button type="button" size="sm" variant="outline" onClick={() => setShowTemplateDialog(true)}>저장된 상품 불러오기</Button>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div><Label htmlFor="deliveryType">구분</Label><Select name="deliveryType" value={formState.deliveryType} onValueChange={(v) => handleFormChange('deliveryType', v)}><SelectTrigger id="deliveryType"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="실배송">실배송</SelectItem><SelectItem value="빈박스">빈박스</SelectItem></SelectContent></Select></div>
+                                    <div><Label htmlFor="reviewType">리뷰 종류</Label><Select name="reviewType" value={formState.reviewType} onValueChange={(v) => handleFormChange('reviewType', v)}><SelectTrigger id="reviewType"><SelectValue/></SelectTrigger><SelectContent>{formState.deliveryType === '실배송' ? (<><SelectItem value="별점">별점</SelectItem><SelectItem value="텍스트">텍스트</SelectItem><SelectItem value="포토">포토</SelectItem><SelectItem value="프리미엄(포토)">프리미엄(포토)</SelectItem><SelectItem value="프리미엄(영상)">프리미엄(영상)</SelectItem></>) : (<><SelectItem value="별점">별점</SelectItem><SelectItem value="텍스트">텍스트</SelectItem></>)}</SelectContent></Select></div>
+                                    <div><Label htmlFor="quantity">체험단 개수</Label><Input id="quantity" type="number" name="quantity" value={formState.quantity} onChange={(e) => handleFormChange('quantity', e.target.value)} min="1" required /></div>
+                                </div>
+                                <div><Label htmlFor="productUrl">상품 URL</Label><Input id="productUrl" type="url" name="productUrl" value={formState.productUrl} onChange={(e) => handleFormChange('productUrl', e.target.value)} placeholder="https://..." /></div>
+                                <div><Label htmlFor="productName">상품명</Label><Input id="productName" name="productName" value={formState.productName} onChange={(e) => handleFormChange('productName', e.target.value)} required /></div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><Label htmlFor="productOption">옵션</Label><Input id="productOption" name="productOption" value={formState.productOption} onChange={(e) => handleFormChange('productOption', e.target.value)} /></div>
+                                    <div><Label htmlFor="productPrice">상품가</Label><Input id="productPrice" type="number" name="productPrice" value={formState.productPrice} onChange={(e) => handleFormChange('productPrice', e.target.value)} placeholder="0" /></div>
+                                </div>
+                                <div><Label htmlFor="keywords">키워드 (1개)</Label><Input id="keywords" name="keywords" value={formState.keywords} onChange={handleKeywordSync} /></div>
+                                <div className="p-4 border rounded-lg bg-muted/40 space-y-3">
+                                    <Label htmlFor="coupangSearch" className="font-semibold">해당 키워드로 대표님 상품이 검색이 되는지 확인해 보셨나요?</Label>
+                                    <div ref={animationContainerRef} className="relative flex space-x-2">
+                                        <Input id="coupangSearch" placeholder="키워드 입력 후 검색" value={searchKeyword} onChange={e => setSearchKeyword(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleKeywordSearch())} />
+                                        <Button ref={searchButtonRef} type="button" onClick={handleKeywordSearch} disabled={isSearching} className={cn(searchKeyword.trim() && !isSearching && 'animate-pulse')}>
+                                            <Search className="h-4 w-4"/>
+                                        </Button>
+                                        <MousePointer2 className={cn("w-5 h-5 absolute text-primary-foreground bg-primary p-1 rounded-full shadow-lg pointer-events-none", "opacity-0", searchKeyword.trim() && !isSearching && "animate-mouse-pointer")} style={{ ...animationStyle, left: 0, top: 0, transformOrigin: 'top left' }}/>
+                                    </div>
+                                    <CoupangSearchResults results={searchResults} isLoading={isSearching} error={searchError} />
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 p-4 border rounded-lg h-full flex flex-col">
+                                <div className="flex-grow flex flex-col">
+                                    <div className="flex justify-between items-baseline mb-1"><Label htmlFor="reviewGuide">리뷰 가이드</Label><span className="text-xs text-muted-foreground">{formState.reviewGuide.length} / 200</span></div>
+                                    <Textarea id="reviewGuide" name="reviewGuide" value={formState.reviewGuide} onChange={(e) => handleFormChange('reviewGuide', e.target.value)} disabled={formState.reviewType === '별점'} className="flex-grow" maxLength="200" placeholder="경우에 따라 가이드 내용이 반려될 수 있습니다"/>
+                                </div>
+                                <div className="flex-grow flex flex-col">
+                                    <div className="flex justify-between items-baseline mb-1"><Label htmlFor="remarks">비고</Label><span className="text-xs text-muted-foreground">{formState.remarks.length} / 200</span></div>
+                                    <Textarea id="remarks" name="remarks" value={formState.remarks} onChange={(e) => handleFormChange('remarks', e.target.value)} className="flex-grow" maxLength="200" />
+                                </div>
+                            </div>
+                        </CardContent>
+                        <CardFooter className="flex justify-between items-center flex-wrap gap-4">
+                            <div className="flex items-center space-x-2 text-sm">
+                                <span>단가: {basePrice.toLocaleString()}원</span>
+                                {sundayExtraCharge > 0 && <span className="text-destructive">+ 공휴일 {sundayExtraCharge.toLocaleString()}원</span>}
+                                <span className="font-semibold">= 체험단 진행비 {finalUnitPrice.toLocaleString()}원</span>
+                                <PriceListDialog />
+                            </div>
+                            <Button type="submit" size="lg">견적에 추가</Button>
+                        </CardFooter>
+                    </form>
+                </Card>
                 <Card>
                     <CardHeader><CardTitle>견적 목록(스프레드시트)</CardTitle><CardDescription>결제를 진행할 캠페인 목록입니다.<br/>- 품절 등으로 진행 불가 시 상품가만 예치금으로 전환됩니다.<br/>- 대표님 귀책 사유로 세금계산서 변경 시 수수료 10,000원 부과됩니다.<br/>- 견적 상세 = [체험단 진행비 + 상품가 × (1 + 대행수수료 10%)] × 수량 {isVatApplied && "× (1 + 부가세 10%)"}</CardDescription></CardHeader>
                     <CardContent>
@@ -783,6 +879,8 @@ export default function SellerReservationPage() {
                         </div>
                 </CardContent>
                 </Card>
+
+
                 <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}><DialogContent className="sm:max-w-lg"><DialogHeader><div className="flex items-center justify-between space-x-2"><DialogTitle>저장된 상품 불러오기</DialogTitle><div className="flex items-center space-x-2"><Input placeholder="검색" value={templateSearch} onChange={e => setTemplateSearch(e.target.value)} className="h-8" /><Button size="sm" variant="destructive" onClick={handleDeleteSelectedTemplates} disabled={selectedTemplateIds.length === 0}>선택삭제</Button></div></div></DialogHeader><div className="space-y-2 max-h-80 overflow-y-auto">{filteredTemplates.length === 0 ? (<p className="text-center text-muted-foreground py-8">저장된 상품이 없습니다.</p>) : (filteredTemplates.map(t => { const { id, sellerUid, createdAt, updatedAt, ...rest } = t; return (<div key={id} className="flex items-center justify-between border-b py-2 space-x-2"><Checkbox checked={selectedTemplateIds.includes(id)} onCheckedChange={checked => handleSelectTemplate(id, checked)} aria-label="템플릿 선택" /><div className="flex-1"><p className="font-medium">{t.productName}</p><p className="text-sm text-muted-foreground">{t.productOption}</p></div><div className="flex items-center space-x-2"><Button variant="ghost" size="icon" onClick={() => handleDeleteTemplate(id)}><Trash2 className="h-4 w-4 text-destructive" /></Button><Button size="sm" onClick={() => { const date = rest.date instanceof Date ? rest.date : rest.date?.seconds ? new Date(rest.date.seconds * 1000) : new Date(); const { date: _, sellerUid: __, createdAt: ___, updatedAt: ____, ...others } = rest; setFormState((prev) => ({ ...prev, ...others, date })); setShowTemplateDialog(false); }}>선택</Button></div></div>); }))}</div></DialogContent></Dialog>
                 <Dialog open={showSaveSuccess} onOpenChange={setShowSaveSuccess}><DialogContent className="sm:max-w-md text-center space-y-4"><p>입력한 내용이 저장됐습니다.<br/>저장된 상품 불러오기 버튼을 통해<br/>언제든 불러올 수 있습니다.</p><DialogFooter><Button className="w-full" onClick={() => setShowSaveSuccess(false)}>확인</Button></DialogFooter></DialogContent></Dialog>
                 <Dialog open={showDepositPopup} onOpenChange={setShowDepositPopup}><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle className="text-2xl text-center font-bold">입금 계좌 안내</DialogTitle><DialogDescription className="text-center pt-2">예약이 접수되었습니다. 아래 계좌로 <strong className="text-primary">{paymentAmountInPopup.toLocaleString()}원</strong>을 입금해주세요.</DialogDescription></DialogHeader><div className="my-6 p-6 bg-muted rounded-lg space-y-4 text-base sm:text-lg"><div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">은 행</span><span>국민은행</span></div><div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">계좌번호</span><span className="font-mono tracking-wider">289537-00-006049</span></div><div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">예금주</span><span>아이언마운틴컴퍼니</span></div></div><Button onClick={() => setShowDepositPopup(false)} className="w-full h-12 text-lg mt-2">확인</Button></DialogContent></Dialog>
