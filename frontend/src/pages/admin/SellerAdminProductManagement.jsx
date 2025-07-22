@@ -349,7 +349,7 @@ export default function AdminProductManagementPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-                {groupedCampaigns.map((group, gIdx) =>
+                {groupedCampaigns.flatMap((group, gIdx) =>
                   group.items.map((c, index) => {
                     const { basePrice, sundayExtraCharge, productPrice, quantity, itemTotal, finalItemAmount, commission } = computeAmounts(c);
                     return (
