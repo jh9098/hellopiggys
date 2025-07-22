@@ -395,8 +395,8 @@ export default function AdminProductManagementPage() {
                       {/* [수정 4] 불필요한 컬럼 제거 */}
                       <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
                     </tr>
-                  );
-                ))}
+                    );
+                  }))}
             </tbody>
           </table>
         )}
