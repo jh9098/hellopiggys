@@ -525,9 +525,34 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
         setConfirmationDialogData({ ids: targets, checked: true });
     };
 
+    const groupedSavedCampaigns = useMemo(() => {
+        const groups = {};
+        savedCampaigns.forEach((c) => {
+            const key = c.createdAt?.seconds || 'unknown';
+            if (!groups[key]) groups[key] = { key, items: [], total: 0 };
+            groups[key].items.push(c);
+            const cDate = c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date();
+            const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
+            const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
+            const subtotal = (reviewFee + productPriceWithAgencyFee) * Number(c.quantity);
+            const finalAmount = c.isVatApplied ? subtotal * 1.1 : subtotal;
+            groups[key].total += Math.round(finalAmount || 0);
+        });
+        return Object.values(groups).sort((a, b) => (b.key - a.key));
+    }, [savedCampaigns]);
+
     if (isLoading) return <div className="flex justify-center items-center h-screen"><p>데이터를 불러오는 중입니다...</p></div>;
-    
+
     const { totalSubtotal, totalVat, totalAmount, amountToUseFromDeposit, remainingPayment } = calculateTotals(campaigns);
+    const totalFinalForEstimate = campaigns.reduce((sum, c) => {
+        const cDate = c.date instanceof Date ? c.date : new Date();
+        const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
+        const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
+        const subtotal = (reviewFee + productPriceWithAgencyFee) * Number(c.quantity);
+        const finalAmount = isVatApplied ? subtotal * 1.1 : subtotal;
+        return sum + Math.round(finalAmount);
+    }, 0);
+
     const pendingDepositCount = savedCampaigns.filter(c => selectedSavedCampaigns.includes(c.id) && !c.paymentReceived).length;
 
     return (
@@ -731,14 +756,42 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                 {/* --- 이하 코드는 변경사항 없음 --- */}
                 <Card>
                     <CardHeader><CardTitle>견적 목록(스프레드시트)</CardTitle><CardDescription>결제를 진행할 캠페인 목록입니다.<br/>- 품절 등으로 진행 불가 시 상품가만 예치금으로 전환됩니다.<br/>- 대표님 귀책 사유로 세금계산서 변경 시 수수료 10,000원 부과됩니다.<br/>- 견적 상세 = [체험단 진행비 + 상품가 × (1 + 대행수수료 10%)] × 수량 {isVatApplied && "× (1 + 부가세 10%)"}</CardDescription></CardHeader>
-                    <CardContent><div className="border rounded-md"><Table><TableHeader><TableRow>{['일자', '구분', '리뷰', '수량', '상품명', '상품가', '최종금액', '삭제'].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow></TableHeader><TableBody>{campaigns.length === 0 ? (<TableRow><TableCell colSpan="8" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>) : (campaigns.map((c) => {
+                    <CardContent><div className="border rounded-md"><Table><TableHeader><TableRow>
+                        <TableHead>상품군</TableHead>
+                        <TableHead>일자</TableHead>
+                        <TableHead>구분</TableHead>
+                        <TableHead>리뷰</TableHead>
+                        <TableHead>수량</TableHead>
+                        <TableHead>상품명</TableHead>
+                        <TableHead>상품가</TableHead>
+                        <TableHead>개별견적</TableHead>
+                        <TableHead>결제금액</TableHead>
+                        <TableHead>삭제</TableHead>
+                    </TableRow></TableHeader><TableBody>{campaigns.length === 0 ? (<TableRow><TableCell colSpan="10" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>) : (campaigns.map((c, idx) => {
                         const cDate = c.date instanceof Date ? c.date : new Date();
                         const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
                         const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
                         const subtotal = (reviewFee + productPriceWithAgencyFee) * Number(c.quantity);
                         const finalAmount = isVatApplied ? subtotal * 1.1 : subtotal;
-                        
-                        return (<TableRow key={c.id}><TableCell className={cDate.getDay() === 0 ? 'text-destructive font-semibold' : ''}>{formatDateWithDay(cDate)}</TableCell><TableCell><Badge variant="outline">{c.deliveryType}</Badge></TableCell><TableCell><Badge>{c.reviewType}</Badge></TableCell><TableCell>{c.quantity}</TableCell><TableCell className="font-medium">{c.productName}</TableCell><TableCell className="text-right">{Number(c.productPrice).toLocaleString()}원</TableCell><TableCell className="font-semibold text-right">{Math.round(finalAmount).toLocaleString()}원</TableCell><TableCell><Button variant="ghost" size="icon" onClick={() => handleDeleteCampaign(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell></TableRow>);
+
+                        return (
+                            <TableRow key={c.id}>
+                                {idx === 0 && (
+                                    <TableCell rowSpan={campaigns.length} className="text-center align-middle font-semibold">상품군</TableCell>
+                                )}
+                                <TableCell className={cDate.getDay() === 0 ? 'text-destructive font-semibold' : ''}>{formatDateWithDay(cDate)}</TableCell>
+                                <TableCell><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
+                                <TableCell><Badge>{c.reviewType}</Badge></TableCell>
+                                <TableCell>{c.quantity}</TableCell>
+                                <TableCell className="font-medium">{c.productName}</TableCell>
+                                <TableCell className="text-right">{Number(c.productPrice).toLocaleString()}원</TableCell>
+                                <TableCell className="font-semibold text-right">{Math.round(finalAmount).toLocaleString()}원</TableCell>
+                                {idx === 0 && (
+                                    <TableCell rowSpan={campaigns.length} className="font-semibold text-right align-middle">{totalFinalForEstimate.toLocaleString()}원</TableCell>
+                                )}
+                                <TableCell><Button variant="ghost" size="icon" onClick={() => handleDeleteCampaign(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
+                            </TableRow>
+                        );
                     }))}</TableBody></Table></div></CardContent>
                     {campaigns.length > 0 && (<CardFooter className="flex flex-col items-end gap-2 text-right">
                         <div className="text-sm text-muted-foreground">공급가액 합계: {totalSubtotal.toLocaleString()}원</div>
@@ -780,6 +833,7 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                         <TableHead className="w-[50px]">
                                             <Checkbox onCheckedChange={handleSelectAllSavedCampaigns} checked={savedCampaigns.length > 0 && selectedSavedCampaigns.length === savedCampaigns.length} aria-label="모두 선택" />
                                         </TableHead>
+                                        <TableHead className="w-[80px] text-center">상품군</TableHead>
                                         <TableHead className="w-[140px] text-center">일자</TableHead>
                                         <TableHead>상품명</TableHead>
                                         <TableHead className="w-[80px] text-center">구분</TableHead>
@@ -787,15 +841,16 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                         <TableHead className="w-[60px] text-center">수량</TableHead>
                                         <TableHead className="w-[60px] text-center">입금</TableHead>
                                         <TableHead className="w-[100px] text-center">상태</TableHead>
-                                        <TableHead className="w-[120px] text-center">최종금액</TableHead>
+                                        <TableHead className="w-[120px] text-center">개별견적</TableHead>
+                                        <TableHead className="w-[120px] text-center">결제금액</TableHead>
                                         <TableHead className="w-[80px] text-center">관리</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {savedCampaigns.length === 0 ? (
-                                        <TableRow><TableCell colSpan="10" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
+                                    {groupedSavedCampaigns.length === 0 ? (
+                                        <TableRow><TableCell colSpan="12" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
                                     ) : (
-                                        savedCampaigns.map(c => {
+                                        groupedSavedCampaigns.map((group, gIdx) => group.items.map((c, idx) => {
                                             const row = editedRows[c.id] || {};
                                             const deliveryType = row.deliveryType ?? c.deliveryType;
                                             const reviewType = row.reviewType ?? c.reviewType;
@@ -811,6 +866,9 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                                     <TableCell>
                                                         <Checkbox checked={selectedSavedCampaigns.includes(c.id)} onCheckedChange={(checked) => handleSelectSavedCampaign(c.id, checked)} aria-label={`${c.productName} 선택`} />
                                                     </TableCell>
+                                                    {idx === 0 && (
+                                                        <TableCell rowSpan={group.items.length} className="text-center align-middle font-semibold">{`상품군 ${gIdx + 1}`}</TableCell>
+                                                    )}
                                                     <TableCell className="text-center">{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</TableCell>
                                                     <TableCell className="font-medium">{c.productName}</TableCell>
                                                     <TableCell className="text-center">
@@ -855,6 +913,9 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                                     </TableCell>
                                                     <TableCell className="text-center"><Badge variant={c.status === '예약 확정' ? 'default' : c.status === '예약 대기' ? 'secondary' : 'destructive'}>{c.status}</Badge></TableCell>
                                                     <TableCell className="text-center">{Math.round(finalAmount || 0).toLocaleString()}원</TableCell>
+                                                    {idx === 0 && (
+                                                        <TableCell rowSpan={group.items.length} className="font-semibold text-right align-middle">{group.total.toLocaleString()}원</TableCell>
+                                                    )}
                                                     <TableCell className="text-center space-x-2">
                                                         <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmation({ type: 'single', ids: [c.id] })}>
                                                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -863,7 +924,7 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                                     </TableCell>
                                                 </TableRow>
                                             );
-                                        })
+                                        }))
                                     )}
                                 </TableBody>
                             </Table>
