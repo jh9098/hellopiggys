@@ -18,7 +18,14 @@ import {
 
 const formatDateTime = (ts) => {
   if (!ts || !ts.seconds) return '';
-  return new Date(ts.seconds * 1000).toLocaleString('ko-KR');
+  const d = new Date(ts.seconds * 1000);
+  const yy = String(d.getFullYear()).slice(2);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  return `${yy}.${mm}.${dd}. ${hh}:${mi}:${ss}`;
 };
 
 const formatDate = (ts) => {
@@ -68,11 +75,7 @@ export default function SellerAdminDashboardPage() {
     date: '',
     deliveryType: '',
     reviewType: '',
-    quantity: '',
     productName: '',
-    productOption: '',
-    productPrice: '',
-    keywords: '',
     nickname: '',
     phone: '',
   });
@@ -195,13 +198,28 @@ export default function SellerAdminDashboardPage() {
               <TableHead></TableHead>
               <TableHead><input className="w-full" value={filters.createdAt} onChange={e=>handleFilterChange('createdAt', e.target.value)} /></TableHead>
               <TableHead><input className="w-full" value={filters.date} onChange={e=>handleFilterChange('date', e.target.value)} /></TableHead>
-              <TableHead><input className="w-full" value={filters.deliveryType} onChange={e=>handleFilterChange('deliveryType', e.target.value)} /></TableHead>
-              <TableHead><input className="w-full" value={filters.reviewType} onChange={e=>handleFilterChange('reviewType', e.target.value)} /></TableHead>
-              <TableHead><input className="w-full" value={filters.quantity} onChange={e=>handleFilterChange('quantity', e.target.value)} /></TableHead>
+              <TableHead>
+                <select className="w-full" value={filters.deliveryType} onChange={e=>handleFilterChange('deliveryType', e.target.value)}>
+                  <option value=""></option>
+                  <option value="실배송">실배송</option>
+                  <option value="빈박스">빈박스</option>
+                </select>
+              </TableHead>
+              <TableHead>
+                <select className="w-full" value={filters.reviewType} onChange={e=>handleFilterChange('reviewType', e.target.value)}>
+                  <option value=""></option>
+                  <option value="별점">별점</option>
+                  <option value="텍스트">텍스트</option>
+                  <option value="포토">포토</option>
+                  <option value="프리미엄(포토)">프리미엄(포토)</option>
+                  <option value="프리미엄(영상)">프리미엄(영상)</option>
+                </select>
+              </TableHead>
+              <TableHead></TableHead>
               <TableHead><input className="w-full" value={filters.productName} onChange={e=>handleFilterChange('productName', e.target.value)} /></TableHead>
-              <TableHead><input className="w-full" value={filters.productOption} onChange={e=>handleFilterChange('productOption', e.target.value)} /></TableHead>
-              <TableHead><input className="w-full" value={filters.productPrice} onChange={e=>handleFilterChange('productPrice', e.target.value)} /></TableHead>
-              <TableHead><input className="w-full" value={filters.keywords} onChange={e=>handleFilterChange('keywords', e.target.value)} /></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
               <TableHead><input className="w-full" value={filters.nickname} onChange={e=>handleFilterChange('nickname', e.target.value)} /></TableHead>
               <TableHead><input className="w-full" value={filters.phone} onChange={e=>handleFilterChange('phone', e.target.value)} /></TableHead>
               <TableHead></TableHead>
