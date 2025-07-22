@@ -531,6 +531,15 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
     if (isLoading) return <div className="flex justify-center items-center h-screen"><p>데이터를 불러오는 중입니다...</p></div>;
     
     const { totalSubtotal, totalVat, totalAmount, amountToUseFromDeposit, remainingPayment } = calculateTotals(campaigns);
+    const savedGroupTotals = useMemo(() => {
+        const totals = {};
+        savedCampaigns.forEach(c => {
+            const gId = c.groupId || c.id;
+            const amount = c.finalTotalAmount ?? 0;
+            totals[gId] = (totals[gId] || 0) + amount;
+        });
+        return totals;
+    }, [savedCampaigns]);
     const pendingDepositCount = savedCampaigns.filter(c => selectedSavedCampaigns.includes(c.id) && !c.paymentReceived).length;
 
     return (
@@ -742,11 +751,12 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                 <TableHead className="text-center">리뷰</TableHead>
                                 <TableHead className="text-center">수량</TableHead>
                                 <TableHead>상품명</TableHead>
-                                <TableHead className="text-center">결제 금액</TableHead>
+                                <TableHead className="text-center">개별 견적</TableHead>
+                                <TableHead className="text-center">총 견적</TableHead>
                                 <TableHead>삭제</TableHead>
                             </TableRow>
                         </TableHeader>
-                        <TableBody>{campaigns.length === 0 ? (<TableRow><TableCell colSpan="7" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>) : (campaigns.map((c) => {
+                        <TableBody>{campaigns.length === 0 ? (<TableRow><TableCell colSpan="8" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>) : (campaigns.map((c) => {
                         const cDate = c.date instanceof Date ? c.date : new Date();
                         const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
                         const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
@@ -768,6 +778,9 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                 <TableCell className="font-medium">{c.productName}</TableCell>
                                 <TableCell className="font-semibold text-center">
                                     {Math.round(finalAmount).toLocaleString()}원
+                                </TableCell>
+                                <TableCell className="font-semibold text-center">
+                                    {totalAmount.toLocaleString()}원
                                 </TableCell>
                                 <TableCell>
                                     <Button
@@ -828,13 +841,14 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                         <TableHead className="w-[60px] text-center">수량</TableHead>
                                         <TableHead className="w-[60px] text-center">입금</TableHead>
                                         <TableHead className="w-[100px] text-center">상태</TableHead>
-                                        <TableHead className="w-[120px] text-center">최종금액</TableHead>
+                                        <TableHead className="w-[120px] text-center">개별 견적</TableHead>
+                                        <TableHead className="w-[120px] text-center">총 견적</TableHead>
                                         <TableHead className="w-[80px] text-center">관리</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {savedCampaigns.length === 0 ? (
-                                        <TableRow><TableCell colSpan="10" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan="11" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
                                     ) : (
                                         savedCampaigns.map(c => {
                                             const row = editedRows[c.id] || {};
@@ -896,6 +910,7 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                                     </TableCell>
                                                     <TableCell className="text-center"><Badge variant={c.status === '예약 확정' ? 'default' : c.status === '예약 대기' ? 'secondary' : 'destructive'}>{c.status}</Badge></TableCell>
                                                     <TableCell className="text-center">{Math.round(finalAmount || 0).toLocaleString()}원</TableCell>
+                                                    <TableCell className="text-center">{(savedGroupTotals[c.groupId || c.id] || Math.round(finalAmount || 0)).toLocaleString()}원</TableCell>
                                                     <TableCell className="text-center space-x-2">
                                                         <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmation({ type: 'single', ids: [c.id] })}>
                                                             <Trash2 className="h-4 w-4 text-destructive" />
