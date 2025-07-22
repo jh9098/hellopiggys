@@ -1,12 +1,77 @@
-/* src/pages/MyReviews.css (수정된 최종 버전) */
+/* src/pages/MyReviews.css (최종 버전) */
 
 /* 기본 페이지 레이아웃 */
-.my-wrap { max-width: 480px; margin: 0 auto; padding: 16px; font-family: Pretendard, sans-serif; background-color: #f0f2f5; }
-.my-wrap h2 { margin-top: 0; }
-.logout { background: #fff; border: 1px solid #ccc; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+.my-wrap {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px;
+  font-family: Pretendard, sans-serif;
+  background-color: #f0f2f5;
+  min-height: 100vh;
+}
+
+/* 헤더 스타일 */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.page-header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+.logout-btn {
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* 필터 버튼 스타일 */
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.filter-btn {
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 18px;
+  background-color: #fff;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+.filter-btn:hover {
+  background-color: #f0f0f0;
+}
+.filter-btn.active {
+  background-color: #333;
+  color: #fff;
+  border-color: #333;
+  font-weight: 600;
+}
 
 /* 카드 공통 스타일 */
-.card { border: 1px solid #ddd; border-radius: 12px; margin: 24px 0; background: #fff; transition: opacity 0.3s, background-color 0.3s; border-left: 5px solid transparent; display: flex; flex-direction: column; padding: 16px; }
+.card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  margin: 0 0 16px 0;
+  background: #fff;
+  transition: opacity 0.3s, background-color 0.3s;
+  border-left: 5px solid transparent;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.card.buying { border-left-color: #FF9800; }
 .card.submitted { border-left-color: #2196F3; }
 .card.review-completed { border-left-color: #FFC107; }
 .card.verified { border-left-color: #4CAF50; }
@@ -14,23 +79,69 @@
 .card.settled { opacity: 0.7; border-left-color: #9E9E9E; background-color: #fafafa; }
 
 /* 카드 헤더 */
-.card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 8px; }
-.card-head > div { display: flex; flex-wrap: wrap; gap: 8px; }
-.timestamp { font-size: 12px; color: #666; white-space: nowrap; padding-top: 2px; }
-.badge { padding: 4px 10px; border-radius: 16px; color: white; font-size: 12px; font-weight: 600; }
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+.card-head > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.timestamp {
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+  padding-top: 4px;
+}
+.badge {
+  padding: 4px 10px;
+  border-radius: 16px;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.card.buying .badge { background-color: #FF9800; }
 .card.submitted .badge { background-color: #2196F3; }
 .card.review-completed .badge { background-color: #FFC107; color: #333; }
 .card.verified .badge { background-color: #4CAF50; }
 .card.rejected .badge { background-color: #F44336; }
 .card.settled .badge { background-color: #9E9E9E; }
-.badge.secondary { background-color: #9E9E9E; color: #fff; }
+.badge.secondary {
+  background-color: #78909c;
+  color: #fff;
+}
 
 /* 상품 정보 섹션 */
-.product-details { background-color: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e9ecef; }
-.product-details h4 { margin: 0 0 10px; font-size: 16px; }
-.product-details p { margin: 0 0 6px; font-size: 14px; color: #495057; line-height: 1.5; }
-.guide-box { margin-top: 12px; border-top: 1px solid #e0e0e0; padding-top: 12px; }
-.guide-box p { white-space: pre-wrap; }
+.product-details {
+  background-color: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #e9ecef;
+}
+.product-details h4 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+.product-details p {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: #495057;
+  line-height: 1.5;
+}
+.guide-box {
+  margin-top: 12px;
+  border-top: 1px solid #e0e0e0;
+  padding-top: 12px;
+}
+.guide-box p {
+  white-space: pre-wrap;
+}
 .guide-box .toggle-btn {
   margin-top: 8px;
   background: none;
@@ -39,49 +150,176 @@
   cursor: pointer;
   font-size: 14px;
   padding: 0;
+  height: auto;
+}
+.guide-box .toggle-btn:hover {
+  text-decoration: underline;
 }
 
 /* 가격 및 반려 사유 */
-.price { font-size: 20px; font-weight: bold; text-align: right; margin-bottom: 16px; }
-.rejection-reason { background-color: #ffebee; border: 1px solid #ef9a9a; padding: 12px; margin-bottom: 16px; border-radius: 4px; font-size: 14px; }
-.rejection-reason strong { color: #c62828; }
+.price {
+  font-size: 20px;
+  font-weight: bold;
+  text-align: right;
+  margin-bottom: 16px;
+  color: #111;
+}
+.rejection-reason {
+  background-color: #ffebee;
+  border: 1px solid #ef9a9a;
+  padding: 12px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.rejection-reason strong {
+  color: #c62828;
+}
 
 /* 버튼 영역 */
-.btn-wrap { display: flex; gap: 8px; margin-top: auto; padding-top: 16px; border-top: 1px solid #eee; }
-.btn-wrap button { flex: 1; padding: 12px 0; border: none; font-size: 15px; font-weight: 500; background: #e0e0e0; color: #333; border-radius: 6px; cursor: pointer; }
-.btn-wrap button:disabled { background-color: #f5f5f5; color: #bdbdbd; cursor: not-allowed; }
-.btn-wrap button.outline { background: #333; color: #fff; }
-.btn-wrap button.delete { background: #e53935; color: #fff; }
+.btn-wrap {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+.btn-wrap button {
+  flex: 1;
+  padding: 12px 0;
+  border: none;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #007bff;
+  color: #fff;
+}
+.btn-wrap button:disabled {
+  background-color: #f5f5f5;
+  color: #bdbdbd;
+  cursor: not-allowed;
+  border: 1px solid #e0e0e0;
+}
+.btn-wrap button.outline {
+  background: #333;
+  color: #fff;
+}
+.btn-wrap button.delete {
+  background: #e53935;
+  color: #fff;
+}
 
 
 /* 모달 공통 스타일 */
-.modal-back { 
-  position: fixed; 
-  inset: 0; 
-  background: rgba(0, 0, 0, 0.5); 
-  display: flex; 
-  align-items: flex-start;
-  justify-content: center; 
-  z-index: 1000; 
-  padding: 20px 0;
+.modal-back {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
   overflow-y: auto;
 }
-
-.modal { background: #fff; border-radius: 8px; padding: 24px; width: 90%; max-width: 420px; max-height: 90vh; overflow-y: auto; position: relative; }
-.modal .close { position: absolute; top: 12px; right: 12px; border: none; background: none; font-size: 24px; cursor: pointer; color: #888; }
+.modal {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+.modal .close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  border: none;
+  background: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #888;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+}
+.modal .close:hover {
+  color: #333;
+}
 
 /* 구매내역 모달 상세 스타일 */
-.detail-view h3 { text-align: center; margin-top: 0; margin-bottom: 24px; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.detail-view .field { display: flex; flex-direction: column; margin-bottom: 12px; }
-.detail-view .field label { font-size: 14px; color: #555; margin-bottom: 4px; }
-.detail-view .field p { margin: 0; padding: 8px; font-size: 15px; border: 1px solid #fff; min-height: 19px; }
-.detail-view .field input, .detail-view .field select { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; background: #fafafa; }
-.modal-actions { display: flex; gap: 8px; margin-top: 24px; }
-.modal-actions button { flex: 1; padding: 12px; font-size: 16px; border-radius: 6px; border: none; cursor: pointer; }
-.modal-actions button:first-child { background: #000; color: #fff; }
-.modal-actions button.secondary { background: #e0e0e0; color: #333; }
-.modal-actions button:disabled { background: #f5f5f5; color: #bdbdbd; cursor: not-allowed; }
+.detail-view h3 {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.detail-view .field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+.detail-view .field label {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 6px;
+}
+.detail-view .field p {
+  margin: 0;
+  padding: 10px 8px;
+  font-size: 15px;
+  border: 1px solid transparent;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+.detail-view .field input,
+.detail-view .field select {
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  height: 40px;
+}
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+}
+.modal-actions button {
+  flex: 1;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+.modal-actions button:first-child {
+  background: #000;
+  color: #fff;
+}
+.modal-actions button.secondary {
+  background: #e0e0e0;
+  color: #333;
+}
+.modal-actions button:disabled {
+  background: #f5f5f5;
+  color: #bdbdbd;
+  cursor: not-allowed;
+}
 
 /* 여러 이미지 표시를 위한 스타일 */
 .detail-view .field.full-width {
@@ -89,17 +327,21 @@
 }
 .preview-container {
   display: flex;
-  flex-wrap: wrap; 
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 4px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
 }
 .detail-view .thumb {
-  width: 80px;      
-  height: 80px;     
+  width: 80px;
+  height: 80px;
   object-fit: cover;
   border: 1px solid #eee;
   border-radius: 4px;
-  background-color: #f8f8f8;
+  background-color: #fff;
+  cursor: zoom-in;
 }
 
 /* 로그인 모달 열기 버튼 */
@@ -114,7 +356,6 @@
   margin-top: 20px;
 }
 
-/* ▼▼▼ 여기가 진짜 수정되어야 할 부분입니다 ▼▼▼ */
 /* 파일 이름 목록 스타일 */
 .file-list {
   margin-top: 8px;
@@ -124,9 +365,11 @@
   padding: 8px;
   border-radius: 4px;
   border: 1px solid #e9ecef;
+  min-height: 40px;
 }
 .file-list-placeholder {
   color: #999;
+  font-style: italic;
 }
 
 /* 기존 이미지 래퍼 및 삭제 버튼 */
@@ -157,11 +400,9 @@
 .delete-image-btn:hover {
   background-color: #F44336;
 }
-/* ▲▲▲ 수정 완료 ▲▲▲ */
-
 
 @media (max-width: 480px) {
-  /* 2단 그리드를 1단으로 변경 */
+  /* 모바일에서 2단 그리드를 1단으로 변경 */
   .form-grid {
     grid-template-columns: 1fr;
   }
