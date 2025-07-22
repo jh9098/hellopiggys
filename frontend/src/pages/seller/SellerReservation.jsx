@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, memo } from 'react'; // 'memo'를 import합니다.
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, signOut, deleteDoc, addDoc } from '../../firebaseConfig';
 import { nanoid } from 'nanoid';
@@ -115,8 +115,8 @@ function PriceListDialog() {
     );
 }
 
-// ✅ [수정] FullCalendar의 dayCellContent를 위한 독립적인 메모이제이션 컴포넌트 생성
-const DayCellContent = memo(({ dayCellInfo, capacities, calendarCampaigns }) => {
+// ✅ dayCellContent에서 사용할 단순 렌더링 컴포넌트
+function DayCellContent({ dayCellInfo, capacities, calendarCampaigns }) {
     const dateStr = formatDateForCalendar(dayCellInfo.date);
     const capacity = capacities[dateStr] || 0;
     const dailyEvents = calendarCampaigns.filter(c => c.status === '예약 확정' && formatDateForCalendar(c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date)) === dateStr);
@@ -133,8 +133,7 @@ const DayCellContent = memo(({ dayCellInfo, capacities, calendarCampaigns }) => 
             </div>
         </div>
     );
-});
-DayCellContent.displayName = 'DayCellContent'; // 디버깅을 위한 이름 설정
+}
 
 
 // --- 메인 컴포넌트 ---
