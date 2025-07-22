@@ -352,10 +352,11 @@ export default function SellerReservationPage() {
     const handleProcessPayment = async () => {
         if (campaigns.length === 0 || !user) { alert('견적에 추가된 캠페인이 없습니다.'); return; }
         
-        const { remainingPayment, amountToUseFromDeposit } = calculateTotals(campaigns);
+        const { remainingPayment, amountToUseFromDeposit, totalAmount } = calculateTotals(campaigns);
         const batch = writeBatch(db);
         const sellerDocRef = doc(db, 'sellers', user.uid);
         const isFullDepositPayment = remainingPayment <= 0;
+        const groupId = nanoid();
 
         campaigns.forEach(campaign => {
             const campaignRef = doc(collection(db, 'campaigns'));
@@ -374,6 +375,8 @@ export default function SellerReservationPage() {
                 status: '예약 대기',
                 paymentReceived: isFullDepositPayment,
                 isVatApplied,
+                groupId,
+                groupTotalAmount: Math.round(totalAmount),
                 reviewFee,
                 productPriceWithAgencyFee,
                 subtotal: Math.round(totalSubtotal),

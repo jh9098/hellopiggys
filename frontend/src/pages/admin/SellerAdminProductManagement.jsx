@@ -43,6 +43,8 @@ export default function AdminProductManagementPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState('desc');
   const [detailText, setDetailText] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageGroup, setPageGroup] = useState(0);
@@ -74,7 +76,7 @@ export default function AdminProductManagementPage() {
     return () => { unsubscribeCampaigns(); unsubSellers(); };
   }, []);
 
-  const filteredCampaigns = campaigns.filter(c => {
+  const filteredCampaigns = sortedCampaigns.filter(c => {
     const statusMatch = statusFilter ? c.status === statusFilter : true;
     const searchMatch = searchTerm ? JSON.stringify(c).toLowerCase().includes(searchTerm.toLowerCase()) : true;
     return statusMatch && searchMatch;
@@ -230,6 +232,31 @@ export default function AdminProductManagementPage() {
     return { basePrice, sundayExtraCharge, reviewFee, productPrice, quantity, itemTotal, finalItemAmount, commission };
   };
 
+  const groupTotals = useMemo(() => {
+    const totals = {};
+    campaigns.forEach((c) => {
+      const { finalItemAmount } = computeAmounts(c);
+      const gId = c.groupId || c.id;
+      totals[gId] = (totals[gId] || 0) + finalItemAmount;
+    });
+    return totals;
+  }, [campaigns]);
+
+  const sortedCampaigns = useMemo(() => {
+    const list = [...campaigns];
+    const getTime = (v) => {
+      if (!v) return 0;
+      if (v.seconds) return v.seconds;
+      const d = new Date(v);
+      return d.getTime() / 1000;
+    };
+    list.sort((a, b) => {
+      const diff = getTime(a[sortField]) - getTime(b[sortField]);
+      return sortDirection === 'asc' ? diff : -diff;
+    });
+    return list;
+  }, [campaigns, sortField, sortDirection]);
+
   const openDetailModal = (text) => setDetailText(text);
   const closeDetailModal = () => setDetailText(null);
 
@@ -255,7 +282,8 @@ export default function AdminProductManagementPage() {
         '전화번호': toText(sellersMap[c.sellerUid]?.phone || ''),
         '입금확인': c.depositConfirmed ? 'Y' : 'N',
         '견적 상세': `(리뷰 ${basePrice.toLocaleString()}${sundayExtraCharge > 0 ? ` + 공휴일 ${sundayExtraCharge.toLocaleString()}` : ''} + 상품가 ${productPrice.toLocaleString()} x 1.1) x ${quantity}개${c.isVatApplied ? ' x 1.1' : ''}`,
-        '총 견적': `${finalItemAmount.toLocaleString()}원`,
+        '개별 견적': `${finalItemAmount.toLocaleString()}원`,
+        '총 견적': `${(groupTotals[c.groupId || c.id] || finalItemAmount).toLocaleString()}원`,
         '작업': '반려',
       };
     });
@@ -302,8 +330,24 @@ export default function AdminProductManagementPage() {
                 <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={paginatedCampaigns.length > 0 && paginatedCampaigns.every(c => selectedIds.includes(c.id))} /></th>
                 <th className={thClass}>순번</th>
                 {/* [수정 1] 컬럼명 변경 */}
-                <th className={thClass}>예약 등록 일자</th>
-                <th className={thClass}>진행일자</th>
+                <th
+                  className={thClass + ' cursor-pointer'}
+                  onClick={() => {
+                    setSortField('createdAt');
+                    setSortDirection((d) => (sortField === 'createdAt' && d === 'asc' ? 'desc' : 'asc'));
+                  }}
+                >
+                  예약 등록 일자 {sortField === 'createdAt' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+                </th>
+                <th
+                  className={thClass + ' cursor-pointer'}
+                  onClick={() => {
+                    setSortField('date');
+                    setSortDirection((d) => (sortField === 'date' && d === 'asc' ? 'desc' : 'asc'));
+                  }}
+                >
+                  진행일자 {sortField === 'date' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+                </th>
                 <th className={thClass}>구분</th>
                 <th className={thClass}>리뷰 종류</th>
                 <th className={thClass}>체험단 개수</th>
@@ -320,6 +364,7 @@ export default function AdminProductManagementPage() {
                 {/* [수정 2] 컬럼명 변경 */}
                 <th className={thClass}>입금확인<br/>(예약확정)</th>
                 <th className={thClass} style={{ minWidth: '90px' }}>견적 상세</th>
+                <th className={thClass} style={{ minWidth: '90px' }}>개별 견적</th>
                 <th className={thClass} style={{ minWidth: '90px' }}>총 견적</th>
                 {/* [수정 4] 불필요한 컬럼 제거 */}
                 <th className={thClass}>작업</th>
@@ -365,6 +410,7 @@ export default function AdminProductManagementPage() {
                         <button onClick={() => openDetailModal(`(리뷰 ${basePrice.toLocaleString()}${sundayExtraCharge > 0 ? ` + 공휴일 ${sundayExtraCharge.toLocaleString()}` : ''} + 상품가 ${productPrice.toLocaleString()} x 1.1) x ${quantity}개${c.isVatApplied ? ' x 1.1' : ''}`)} className="text-blue-600 underline">상세보기</button>
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm" style={{ minWidth: '90px' }}>{finalItemAmount.toLocaleString()}원</td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm" style={{ minWidth: '90px' }}>{(groupTotals[c.groupId || c.id] || finalItemAmount).toLocaleString()}원</td>
                       {/* [수정 4] 불필요한 컬럼 제거 */}
                       <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
                     </tr>
