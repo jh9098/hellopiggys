@@ -233,7 +233,7 @@ export default function AdminProductManagementPage() {
     return 0;
   };
 
-  const computeAmounts = (c) => {
+  function computeAmounts(c) {
     const basePrice = getBasePrice(c.deliveryType, c.reviewType);
     const dateObj = c.date?.seconds ? new Date(c.date.seconds * 1000) : c.date ? new Date(c.date) : new Date();
     const sundayExtraCharge = dateObj.getDay() === 0 ? 600 : 0;
@@ -246,7 +246,7 @@ export default function AdminProductManagementPage() {
     const finalItemAmount = c.finalTotalAmount ?? c.finalItemAmount ?? Math.round((c.isVatApplied ? itemTotal * 1.1 : itemTotal));
     const commission = finalItemAmount - itemTotal;
     return { basePrice, sundayExtraCharge, reviewFee, productPrice, quantity, itemTotal, finalItemAmount, commission };
-  };
+  }
 
   const openDetailModal = (text) => setDetailText(text);
   const closeDetailModal = () => setDetailText(null);
