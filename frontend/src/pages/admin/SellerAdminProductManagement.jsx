@@ -76,6 +76,21 @@ export default function AdminProductManagementPage() {
     return () => { unsubscribeCampaigns(); unsubSellers(); };
   }, []);
 
+  const sortedCampaigns = useMemo(() => {
+    const list = [...campaigns];
+    const getTime = (v) => {
+      if (!v) return 0;
+      if (v.seconds) return v.seconds;
+      const d = new Date(v);
+      return d.getTime() / 1000;
+    };
+    list.sort((a, b) => {
+      const diff = getTime(a[sortField]) - getTime(b[sortField]);
+      return sortDirection === 'asc' ? diff : -diff;
+    });
+    return list;
+  }, [campaigns, sortField, sortDirection]);
+
   const filteredCampaigns = sortedCampaigns.filter(c => {
     const statusMatch = statusFilter ? c.status === statusFilter : true;
     const searchMatch = searchTerm ? JSON.stringify(c).toLowerCase().includes(searchTerm.toLowerCase()) : true;
@@ -241,21 +256,6 @@ export default function AdminProductManagementPage() {
     });
     return totals;
   }, [campaigns]);
-
-  const sortedCampaigns = useMemo(() => {
-    const list = [...campaigns];
-    const getTime = (v) => {
-      if (!v) return 0;
-      if (v.seconds) return v.seconds;
-      const d = new Date(v);
-      return d.getTime() / 1000;
-    };
-    list.sort((a, b) => {
-      const diff = getTime(a[sortField]) - getTime(b[sortField]);
-      return sortDirection === 'asc' ? diff : -diff;
-    });
-    return list;
-  }, [campaigns, sortField, sortDirection]);
 
   const openDetailModal = (text) => setDetailText(text);
   const closeDetailModal = () => setDetailText(null);
