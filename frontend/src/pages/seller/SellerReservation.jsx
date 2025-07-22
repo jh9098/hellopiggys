@@ -59,6 +59,7 @@ const formatDateWithDay = (date) => {
     return format(date, 'yyyy.MM.dd(EEE)', { locale: ko });
 };
 
+// [수정] 컴포넌트들을 메인 컴포넌트 밖으로 이동
 function CoupangSearchResults({ results, isLoading, error }) {
     if (isLoading) return <div className="p-4 text-center text-muted-foreground">검색 중입니다...</div>;
     if (error) return <div className="p-4 text-center text-destructive">{error}</div>;
@@ -105,7 +106,19 @@ function CoupangSearchResults({ results, isLoading, error }) {
     );
 }
 
+// ✅ [수정] PriceListDialog 컴포넌트를 SellerReservationPage 밖으로 이동시켰습니다.
+function PriceListDialog() {
+    return (
+        <Dialog>
+            <DialogTrigger asChild><Button variant="ghost" size="sm" className="text-xs h-auto p-1">단가표 보기</Button></DialogTrigger>
+            <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>리뷰 캠페인 단가표</DialogTitle></DialogHeader><div className="space-y-4"><div><h4 className="font-semibold mb-2">📦 실배송</h4><Table><TableHeader><TableRow><TableHead>리뷰 종류</TableHead><TableHead className="text-right">단가</TableHead></TableRow></TableHeader><TableBody><TableRow><TableCell>별점</TableCell><TableCell className="text-right">1,600원</TableCell></TableRow><TableRow><TableCell>텍스트</TableCell><TableCell className="text-right">1,700원</TableCell></TableRow><TableRow><TableCell>포토</TableCell><TableCell className="text-right">1,800원</TableCell></TableRow><TableRow><TableCell>프리미엄(포토)</TableCell><TableCell className="text-right">4,000원</TableCell></TableRow><TableRow><TableCell>프리미엄(영상)</TableCell><TableCell className="text-right">5,000원</TableCell></TableRow></TableBody></Table></div><div><h4 className="font-semibold mb-2">👻 빈박스</h4><Table><TableHeader><TableRow><TableHead>리뷰 종류</TableHead><TableHead className="text-right">단가</TableHead></TableRow></TableHeader><TableBody><TableRow><TableCell>별점</TableCell><TableCell className="text-right">5,400원</TableCell></TableRow><TableRow><TableCell>텍스트</TableCell><TableCell className="text-right">5,400원</TableCell></TableRow></TableBody></Table></div></div><DialogFooter className="mt-4"><p className="text-xs text-muted-foreground">* 일요일/공휴일 진행 시 <strong className="text-destructive">600원</strong>의 가산금이 추가됩니다.</p></DialogFooter></DialogContent>
+        </Dialog>
+    );
+}
+
+
 export default function SellerReservationPage() {
+    // ... (컴포넌트 내부 로직은 이전과 동일) ...
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
@@ -713,6 +726,7 @@ export default function SellerReservationPage() {
                         </CardFooter>
                     </form>
                 </Card>
+
                 <Card>
                     <CardHeader><CardTitle>견적 목록(스프레드시트)</CardTitle><CardDescription>결제를 진행할 캠페인 목록입니다.<br/>- 품절 등으로 진행 불가 시 상품가만 예치금으로 전환됩니다.<br/>- 대표님 귀책 사유로 세금계산서 변경 시 수수료 10,000원 부과됩니다.<br/>- 견적 상세 = [체험단 진행비 + 상품가 × (1 + 대행수수료 10%)] × 수량 {isVatApplied && "× (1 + 부가세 10%)"}</CardDescription></CardHeader>
                     <CardContent>
@@ -720,7 +734,6 @@ export default function SellerReservationPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        {/* [수정] 칼럼 헤더 순서 및 명칭 변경 */}
                                         <TableHead>상품군</TableHead>
                                         <TableHead>일자</TableHead>
                                         <TableHead className="text-center">구분</TableHead>
@@ -745,31 +758,22 @@ export default function SellerReservationPage() {
                                             
                                             return (
                                                 <TableRow key={c.id}>
-                                                    {/* [수정] 1. 상품군 (rowSpan 적용) */}
                                                     {index === 0 && (
                                                         <TableCell rowSpan={campaigns.length} className="text-center align-middle font-medium">
                                                             현재 그룹
                                                         </TableCell>
                                                     )}
-                                                    {/* 2. 일자 */}
                                                     <TableCell className={cDate.getDay() === 0 ? 'text-destructive font-semibold' : ''}>{formatDateWithDay(cDate)}</TableCell>
-                                                    {/* 3. 구분 */}
                                                     <TableCell className="text-center"><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
-                                                    {/* 4. 리뷰 */}
                                                     <TableCell className="text-center"><Badge>{c.reviewType}</Badge></TableCell>
-                                                    {/* 5. 수량 */}
                                                     <TableCell className="text-center">{c.quantity}</TableCell>
-                                                    {/* 6. 상품명 */}
                                                     <TableCell className="font-medium">{c.productName}</TableCell>
-                                                    {/* 7. 개별견적 */}
                                                     <TableCell className="font-semibold text-center">{Math.round(finalAmount).toLocaleString()}원</TableCell>
-                                                    {/* [수정] 8. 결제금액 (rowSpan 적용) */}
                                                     {index === 0 && (
                                                         <TableCell rowSpan={campaigns.length} className="text-center align-middle font-bold text-primary">
                                                             {totalAmount.toLocaleString()}원
                                                         </TableCell>
                                                     )}
-                                                    {/* 9. 삭제 */}
                                                     <TableCell><Button variant="ghost" size="icon" onClick={() => handleDeleteCampaign(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
                                                 </TableRow>
                                             );
@@ -794,7 +798,6 @@ export default function SellerReservationPage() {
                     </CardFooter>)}
                 </Card>
 
-                {/* --- 나의 예약 내역 --- */}
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
@@ -811,7 +814,6 @@ export default function SellerReservationPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        {/* [수정] 칼럼 헤더 순서 및 명칭 변경 */}
                                         <TableHead className="w-[50px]"><Checkbox onCheckedChange={handleSelectAllSavedCampaigns} checked={savedCampaigns.length > 0 && selectedSavedCampaigns.length === savedCampaigns.length} aria-label="모두 선택" /></TableHead>
                                         <TableHead className="w-[100px] text-center">상품군</TableHead>
                                         <TableHead className="w-[140px] text-center">일자</TableHead>
@@ -843,29 +845,17 @@ export default function SellerReservationPage() {
 
                                             return (
                                                 <TableRow key={c.id}>
-                                                    {/* 1. 체크박스 */}
                                                     <TableCell><Checkbox checked={selectedSavedCampaigns.includes(c.id)} onCheckedChange={(checked) => handleSelectSavedCampaign(c.id, checked)} aria-label={`${c.productName} 선택`} /></TableCell>
-                                                    {/* [수정] 2. 상품군 (rowSpan 적용) */}
                                                     {c.isFirstInGroup && <TableCell rowSpan={c.groupSize} className="text-center align-middle font-medium">{c.groupName}</TableCell>}
-                                                    {/* 3. 일자 */}
                                                     <TableCell className="text-center">{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</TableCell>
-                                                    {/* 4. 상품명 */}
                                                     <TableCell className="font-medium">{c.productName}</TableCell>
-                                                    {/* 5. 구분 */}
                                                     <TableCell className="text-center"><Select value={deliveryType} onValueChange={(v) => handleRowChange(c.id, 'deliveryType', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="실배송">실배송</SelectItem><SelectItem value="빈박스">빈박스</SelectItem></SelectContent></Select></TableCell>
-                                                    {/* 6. 리뷰 */}
                                                     <TableCell className="text-center"><Select value={reviewType} onValueChange={(v) => handleRowChange(c.id, 'reviewType', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{deliveryType === '실배송' ? (<><SelectItem value="별점">별점</SelectItem><SelectItem value="텍스트">텍스트</SelectItem><SelectItem value="포토">포토</SelectItem><SelectItem value="프리미엄(포토)">프리미엄(포토)</SelectItem><SelectItem value="프리미엄(영상)">프리미엄(영상)</SelectItem></>) : (<><SelectItem value="별점">별점</SelectItem><SelectItem value="텍스트">텍스트</SelectItem></>)}</SelectContent></Select></TableCell>
-                                                    {/* 7. 수량 */}
                                                     <TableCell className="text-center"><Input type="number" className="w-20" value={quantity} min="1" onChange={(e) => handleRowChange(c.id, 'quantity', e.target.value)} /></TableCell>
-                                                    {/* 8. 개별견적 */}
                                                     <TableCell className="text-center">{Math.round(finalAmount || 0).toLocaleString()}원</TableCell>
-                                                    {/* [수정] 9. 결제금액 (rowSpan 적용) */}
                                                     {c.isFirstInGroup && <TableCell rowSpan={c.groupSize} className="text-center align-middle font-bold text-primary">{c.groupTotalAmount.toLocaleString()}원</TableCell>}
-                                                    {/* 10. 입금 */}
                                                     <TableCell className="text-center"><Checkbox checked={!!c.paymentReceived} onCheckedChange={(checked) => handleDepositCheckboxChange(c.id, checked)} title="입금 완료 시 체크" /></TableCell>
-                                                    {/* 11. 상태 */}
                                                     <TableCell className="text-center"><Badge variant={c.status === '예약 확정' ? 'default' : c.status === '예약 대기' ? 'secondary' : 'destructive'}>{c.status}</Badge></TableCell>
-                                                    {/* 12. 관리 */}
                                                     <TableCell className="text-center space-x-2">
                                                         <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmation({ type: 'single', ids: [c.id] })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                                         <Button size="sm" disabled={!isRowModified(c)} onClick={() => applyRowChanges(c.id)}>적용</Button>
@@ -880,7 +870,6 @@ export default function SellerReservationPage() {
                 </CardContent>
                 </Card>
 
-
                 <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}><DialogContent className="sm:max-w-lg"><DialogHeader><div className="flex items-center justify-between space-x-2"><DialogTitle>저장된 상품 불러오기</DialogTitle><div className="flex items-center space-x-2"><Input placeholder="검색" value={templateSearch} onChange={e => setTemplateSearch(e.target.value)} className="h-8" /><Button size="sm" variant="destructive" onClick={handleDeleteSelectedTemplates} disabled={selectedTemplateIds.length === 0}>선택삭제</Button></div></div></DialogHeader><div className="space-y-2 max-h-80 overflow-y-auto">{filteredTemplates.length === 0 ? (<p className="text-center text-muted-foreground py-8">저장된 상품이 없습니다.</p>) : (filteredTemplates.map(t => { const { id, sellerUid, createdAt, updatedAt, ...rest } = t; return (<div key={id} className="flex items-center justify-between border-b py-2 space-x-2"><Checkbox checked={selectedTemplateIds.includes(id)} onCheckedChange={checked => handleSelectTemplate(id, checked)} aria-label="템플릿 선택" /><div className="flex-1"><p className="font-medium">{t.productName}</p><p className="text-sm text-muted-foreground">{t.productOption}</p></div><div className="flex items-center space-x-2"><Button variant="ghost" size="icon" onClick={() => handleDeleteTemplate(id)}><Trash2 className="h-4 w-4 text-destructive" /></Button><Button size="sm" onClick={() => { const date = rest.date instanceof Date ? rest.date : rest.date?.seconds ? new Date(rest.date.seconds * 1000) : new Date(); const { date: _, sellerUid: __, createdAt: ___, updatedAt: ____, ...others } = rest; setFormState((prev) => ({ ...prev, ...others, date })); setShowTemplateDialog(false); }}>선택</Button></div></div>); }))}</div></DialogContent></Dialog>
                 <Dialog open={showSaveSuccess} onOpenChange={setShowSaveSuccess}><DialogContent className="sm:max-w-md text-center space-y-4"><p>입력한 내용이 저장됐습니다.<br/>저장된 상품 불러오기 버튼을 통해<br/>언제든 불러올 수 있습니다.</p><DialogFooter><Button className="w-full" onClick={() => setShowSaveSuccess(false)}>확인</Button></DialogFooter></DialogContent></Dialog>
                 <Dialog open={showDepositPopup} onOpenChange={setShowDepositPopup}><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle className="text-2xl text-center font-bold">입금 계좌 안내</DialogTitle><DialogDescription className="text-center pt-2">예약이 접수되었습니다. 아래 계좌로 <strong className="text-primary">{paymentAmountInPopup.toLocaleString()}원</strong>을 입금해주세요.</DialogDescription></DialogHeader><div className="my-6 p-6 bg-muted rounded-lg space-y-4 text-base sm:text-lg"><div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">은 행</span><span>국민은행</span></div><div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">계좌번호</span><span className="font-mono tracking-wider">289537-00-006049</span></div><div className="flex items-center"><span className="w-28 font-semibold text-muted-foreground">예금주</span><span>아이언마운틴컴퍼니</span></div></div><Button onClick={() => setShowDepositPopup(false)} className="w-full h-12 text-lg mt-2">확인</Button></DialogContent></Dialog>
@@ -891,6 +880,8 @@ export default function SellerReservationPage() {
         </>
     );
 }
+
+// PriceListDialog was moved outside the main component.
 
 function PriceListDialog() {
     return (
