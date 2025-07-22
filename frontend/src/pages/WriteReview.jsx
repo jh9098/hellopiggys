@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // src/pages/WriteReview.jsx (최종 수정 버전: 미리보기 제거, 파일 이름 목록 표시)
 
 import { useState, useEffect } from 'react';
@@ -7,10 +8,26 @@ import {
   ref, uploadBytes, getDownloadURL, addDoc, collection, 
   serverTimestamp, getDocs, query, orderBy, where 
 } from '../firebaseConfig'; // 'storage'를 직접 import 하는 방식 사용
+=======
+// src/pages/WriteReview.jsx (개선안)
+
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { 
+  auth, onAuthStateChanged, db, storage, 
+  ref, uploadBytes, getDownloadURL, addDoc, collection, doc, getDoc,
+  serverTimestamp, getDocs, query, orderBy, where, updateDoc
+} from '../firebaseConfig';
+>>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
 import LoginModal from '../components/LoginModal';
 import AccountModal from '../components/AccountModal';
 import './WriteReview.css';
 import imageCompression from 'browser-image-compression';
+// --- shadcn/ui 컴포넌트 임포트 ---
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const UPLOAD_FIELDS = [
   { key: 'keywordAndLikeImages', label: '1. 키워드 & 찜 인증', group: 'keyword-like', required: false },
@@ -18,11 +35,23 @@ const UPLOAD_FIELDS = [
   { key: 'cashcardImage', label: '현금영수증/매출전표', group: 'purchase', required: false },
 ];
 
+<<<<<<< HEAD
 export default function WriteReview() {
   const navigate = useNavigate();
+=======
+function useQuery() {
+  return new URLSearchParams(useLocation().search);
+}
+
+export default function WriteReview() {
+  const navigate = useNavigate();
+  const queryParams = useQuery();
+  const productIdFromUrl = queryParams.get('pid');
+>>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
 
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   
   const [currentUser, setCurrentUser] = useState(null);
@@ -48,12 +77,31 @@ export default function WriteReview() {
   const [globalAddresses, setGlobalAddresses] = useState([]);
   
   const [images, setImages] = useState({});
+<<<<<<< HEAD
+=======
+  // ▼▼▼ [추가] 이미지 처리 상태를 관리할 state ▼▼▼
+  const [imageProcessingStatus, setImageProcessingStatus] = useState({});
+  // ▲▲▲ [추가] 완료 ▲▲▲
+>>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
 
+  const [showImageUpload, setShowImageUpload] = useState(false);
+
+  // ▼▼▼ [수정] 제출 상태를 더 상세하게 관리하기 위한 state 추가 ▼▼▼
   const [submitting, setSubmitting] = useState(false);
+  const [submissionStatus, setSubmissionStatus] = useState('');
+  // ▲▲▲ [수정] 완료 ▲▲▲
+
   const [isAccountSelected, setIsAccountSelected] = useState(false);
   const [selectedSubAccountInfo, setSelectedSubAccountInfo] = useState(null);
   const [isAgreed, setIsAgreed] = useState(false);
 
+<<<<<<< HEAD
+=======
+  const filteredProducts = products.filter(p =>
+    p.productName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+>>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
   useEffect(() => {
     if (isAccountModalOpen || isLoginModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -85,6 +133,7 @@ export default function WriteReview() {
         setGlobalAddresses([]);
       }
     });
+<<<<<<< HEAD
     const fetchProducts = async () => {
       try {
         const q = query(collection(db, 'products'), where('progressStatus', '==', '진행중'), orderBy('createdAt', 'desc'));
@@ -96,10 +145,47 @@ export default function WriteReview() {
     fetchProducts();
     return () => unsubscribeAuth();
   }, []);
+=======
+>>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
 
+    const initializeProducts = async () => {
+      setLoading(true);
+      if (productIdFromUrl) {
+        const productRef = doc(db, 'products', productIdFromUrl);
+        const productSnap = await getDoc(productRef);
+        if (productSnap.exists()) {
+          const productData = { id: productSnap.id, ...productSnap.data() };
+          setSelectedProduct(productData);
+          setForm(prev => ({
+            ...prev,
+            paymentType: productData.reviewType || '현영',
+            productType: productData.productType || '실배송',
+            reviewOption: productData.reviewOption || '별점',
+          }));
+        } else {
+          alert('유효하지 않은 상품 링크입니다. 관리자에게 문의하세요.');
+        }
+      } else {
+        try {
+          const q = query(collection(db, 'products'), where('progressStatus', '==', '진행중'), orderBy('createdAt', 'desc'));
+          const snapshot = await getDocs(q);
+          setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        } catch (e) {
+          console.error("상품 목록 로딩 실패:", e);
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeProducts();
+    return () => unsubscribeAuth();
+  }, [productIdFromUrl]);
+
+  // ▼▼▼ [수정] onFileChange 함수에 처리 중 상태 로직 추가 ▼▼▼
   const onFileChange = async (e) => {
     const { name, files } = e.target;
     if (!files || files.length === 0) return;
+<<<<<<< HEAD
   
     const options = {
       maxSizeMB: 1,
@@ -130,61 +216,141 @@ export default function WriteReview() {
     setSubmitting(true);
     try {
       const urlMap = {};
+=======
+>>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
 
-      for (const field of UPLOAD_FIELDS) {
-        const fieldName = field.key;
-        if (images[fieldName] && images[fieldName].length > 0) {
-          const urls = [];
-          for (const file of images[fieldName]) {
-            const storageRef = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
-            const snapshot = await uploadBytes(storageRef, file);
-            const downloadUrl = await getDownloadURL(snapshot.ref);
-            urls.push(downloadUrl);
-          }
-          urlMap[`${fieldName}Urls`] = urls;
+    // 1. 파일 선택 즉시 처리 중 상태로 변경
+    setImageProcessingStatus(prev => ({ ...prev, [name]: true }));
+
+    try {
+      const options = {
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1280,
+        useWebWorker: true,
+        initialQuality: 0.7,
+      };
+    
+      const processedFiles = [];
+      // for-of 루프는 await를 순차적으로 기다려줍니다.
+      for (const file of files) {
+        try {
+          const compressedFile = await imageCompression(file, options);
+          processedFiles.push(compressedFile);
+        } catch (error) {
+          console.warn(`이미지 압축 실패. 원본 파일을 사용합니다: ${file.name}`, error);
+          processedFiles.push(file);
         }
       }
+      
+      const selectedFiles = Array.from(processedFiles).slice(0, 5);
+      // 2. 압축 완료 후, state에 파일 목록 업데이트
+      setImages(prev => ({ ...prev, [name]: selectedFiles }));
 
-      const reviewData = {
-        mainAccountId: currentUser.uid,
-        subAccountId: form.subAccountId,
-        productId: selectedProduct.id,
-        productName: selectedProduct.productName,
-        reviewType: selectedProduct.reviewType,
-        createdAt: serverTimestamp(),
-        status: 'submitted',
-        name: form.name,
-        phoneNumber: form.phoneNumber,
-        address: form.address,
-        bank: form.bank,
-        bankNumber: form.bankNumber,
-        accountHolderName: form.accountHolderName,
-        orderNumber: form.orderNumber,
-        rewardAmount: form.rewardAmount,
-        participantId: form.participantId,
-        paymentType: form.paymentType,
-        productType: form.productType,
-        reviewOption: form.reviewOption,
-        ...urlMap,
-      };
-
-      await addDoc(collection(db, 'reviews'), reviewData);
-      const uploadedAllImages = UPLOAD_FIELDS.every(f => images[f.key] && images[f.key].length > 0);
-      const msg = uploadedAllImages
-        ? '리뷰가 성공적으로 제출되었습니다.'
-        : '리뷰가 성공적으로 제출되었습니다.\nhttps://hellopiggy.netlify.app/my-reviews 에서 이미지 등록을 완료해주셔야 구매인증이 완료됩니다.';
-      alert(msg);
-      navigate('/my-reviews', { replace: true });
     } catch (err) {
-      alert('제출 실패: ' + err.message);
-      console.error(err);
+      console.error("이미지 처리 중 오류 발생:", err);
+      alert("이미지를 처리하는 중 오류가 발생했습니다. 다른 파일을 선택해보세요.");
     } finally {
-      setSubmitting(false);
+      // 3. 성공/실패 여부와 관계없이 처리 중 상태 해제
+      setImageProcessingStatus(prev => ({ ...prev, [name]: false }));
     }
   };
+  // ▲▲▲ [수정] 완료 ▲▲▲
+  
+  // ▼▼▼ [수정] 제출 로직을 사용자 피드백과 안정성을 강화하는 방향으로 대폭 수정 ▼▼▼
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!selectedProduct) {
+      alert('오류: 상품이 선택되지 않았습니다. 페이지를 새로고침하고 다시 시도해주세요.');
+      return;
+    }
+    if (!isFormValid) {
+      alert('필수 입력 항목을 모두 채워주세요.');
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmissionStatus('리뷰 정보 저장 중...');
+
+    // --- 1단계: 텍스트 정보만 먼저 Firestore에 저장 ---
+    // 이렇게 하면 이미지가 업로드되는 동안에도 사용자는 제출이 시작되었다고 인지 가능
+    const reviewData = {
+      mainAccountId: currentUser.uid,
+      subAccountId: form.subAccountId,
+      productId: selectedProduct.id,
+      productName: selectedProduct.productName || '상품명 없음', 
+      reviewType: selectedProduct.reviewType || '현영',
+      createdAt: serverTimestamp(),
+      status: 'uploading_images', // 'submitted' 대신 이미지 업로드 중이라는 임시 상태 사용
+      name: form.name,
+      phoneNumber: form.phoneNumber,
+      address: form.address,
+      bank: form.bank,
+      bankNumber: form.bankNumber,
+      accountHolderName: form.accountHolderName,
+      orderNumber: form.orderNumber,
+      rewardAmount: form.rewardAmount,
+      participantId: form.participantId,
+      paymentType: form.paymentType,
+      productType: form.productType,
+      reviewOption: form.reviewOption,
+    };
+
+    try {
+      const docRef = await addDoc(collection(db, 'reviews'), reviewData);
+      setSubmissionStatus('이미지 파일 처리 중...');
+
+      // --- 2단계: 이미지들을 하나씩 압축 및 업로드하고, URL을 Firestore 문서에 업데이트 ---
+      const allImageFiles = UPLOAD_FIELDS.flatMap(field => 
+        (images[field.key] || []).map(file => ({ fieldName: field.key, file }))
+      );
+
+      const urlMap = {};
+      for (let i = 0; i < allImageFiles.length; i++) {
+        const { fieldName, file } = allImageFiles[i];
+        const fieldKeyForUrl = `${fieldName}Urls`;
+        
+        setSubmissionStatus(`이미지 업로드 중... (${i + 1}/${allImageFiles.length})`);
+
+        const storageRef = ref(storage, `reviewImages/${docRef.id}/${Date.now()}_${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadUrl = await getDownloadURL(snapshot.ref);
+        
+        if (!urlMap[fieldKeyForUrl]) {
+          urlMap[fieldKeyForUrl] = [];
+        }
+        urlMap[fieldKeyForUrl].push(downloadUrl);
+      }
+
+      // --- 3단계: 모든 이미지 URL과 최종 상태를 Firestore에 업데이트 ---
+      setSubmissionStatus('최종 정보 업데이트 중...');
+      await updateDoc(docRef, {
+        status: 'submitted', // 최종 상태로 변경
+        ...urlMap,
+      });
+
+      const hasAnyImage = Object.keys(images).some(key => images[key] && images[key].length > 0);
+      const msg = hasAnyImage
+        ? '리뷰가 성공적으로 제출되었습니다.'
+        : '리뷰 정보가 제출되었습니다. 이미지를 등록하시려면 "리뷰 관리" 페이지를 이용해주세요.';
+      alert(msg);
+      navigate('/reviewer/my-reviews', { replace: true });
+
+    } catch (err) {
+      alert(`제출 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요. 오류: ${err.message}`);
+      console.error("제출 실패:", err);
+      // 오류 발생 시 생성된 review 문서를 삭제하거나, 사용자에게 재시도를 안내할 수 있습니다.
+      // 여기서는 간단히 알림만 표시합니다.
+    } finally {
+      setSubmitting(false);
+      setSubmissionStatus('');
+    }
+  };
+  // ▲▲▲ [수정] 완료 ▲▲▲
 
   const handleMainButtonClick = () => { if (currentUser) { if (selectedProduct) { setIsAccountModalOpen(true); } else { alert("먼저 참여할 상품을 선택해주세요."); } } else { setIsLoginModalOpen(true); } };
   const handleLoginSuccess = () => setIsLoginModalOpen(false);
+
   const handleProductSelect = (e) => {
     const productId = e.target.value;
     const product = products.find(p => p.id === productId) || null;
@@ -200,6 +366,7 @@ export default function WriteReview() {
       }));
     }
   };
+
   const handleSelectAccount = (subAccount) => {
     setForm(prev => ({
       ...prev,
@@ -243,31 +410,51 @@ export default function WriteReview() {
 
   return (
     <div className="page-wrap">
-      <h2 className="title">구매 폼 작성</h2>
-      {!currentUser && ( 
-        <div className="notice-box">
-        로그인 후 배정받은 상품을 선택해주세요.<br />
-        회원가입 시 전화번호는 숫자만 입력하세요.<br /><br />
-        회원가입은 지금 본인 이름과 전화번호로 가입하시고<br />
-        계정 추가 시 실제 진행 계정을 입력하셔서 등록하세요.<br />
-        * 타계정도 본인 이름과 전화번호로 가입하셔야합니다. *<br />
-        지금 가입하시는 하나의 이름과 전화번호로 전부 관리하는겁니다.
-        </div> )}
-      {isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} />}
-      {currentUser ? (
-        <button onClick={() => auth.signOut()} className="logout-btn">로그아웃</button>
-      ) : (
-        <button onClick={() => setIsLoginModalOpen(true)} className="login-open-btn">로그인 / 회원가입</button>
-      )}
-      {currentUser && (
+      <Card>
+        <CardHeader>
+          <CardTitle>구매 폼 작성</CardTitle>
+          {!currentUser && (
+            <CardDescription>
+              로그인 후 배정받은 상품을 선택해주세요.<br />
+              회원가입 시 전화번호는 숫자만 입력하세요.<br /><br />
+              회원가입은 지금 본인 이름과 전화번호로 가입하시고<br />
+              계정 추가 시 실제 진행 계정을 입력하셔서 등록하세요.<br />
+              * 타계정도 본인 이름과 전화번호로 가입하셔야합니다. *<br />
+              지금 가입하시는 하나의 이름과 전화번호로 전부 관리하는겁니다.
+            </CardDescription>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isLoginModalOpen && (
+            <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} />
+          )}
+          {currentUser ? (
+            <Button onClick={() => auth.signOut()} variant="outline" className="logout-btn">로그아웃</Button>
+          ) : (
+            <Button onClick={() => setIsLoginModalOpen(true)} className="login-open-btn">로그인 / 회원가입</Button>
+          )}
+
+      {currentUser && !productIdFromUrl && (
         <div className="field">
           <label>상품 선택</label>
+          <input
+            type="text"
+            placeholder="상품명 검색"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ marginBottom: '8px' }}
+          />
           <select onChange={handleProductSelect} value={selectedProduct?.id || ''}>
             <option value="" disabled>체험단 상품을 선택해 주세요</option>
-            {products.map(p => <option key={p.id} value={p.id}>{p.productName} ({p.reviewType})</option>)}
+            {filteredProducts.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.productName} ({p.reviewType})
+              </option>
+            ))}
           </select>
         </div>
       )}
+
       {selectedProduct && (<>
           <div className="product-info-box">
             <h4>{selectedProduct.productName}</h4>
@@ -278,7 +465,7 @@ export default function WriteReview() {
             {selectedProduct.guide && (<div className="guide-content"><strong>가이드:</strong><p style={{whiteSpace: 'pre-line'}}>{selectedProduct.guide}</p></div>)}
           </div>
           <div className="account-selection-action">
-            <button type="button" onClick={handleMainButtonClick}>{isAccountSelected ? '✓ 계정 선택 완료 (변경하기)' : '구매 폼 작성하기'}</button>
+            <Button type="button" onClick={handleMainButtonClick}>{isAccountSelected ? '✓ 계정 선택 완료 (변경하기)' : '구매 폼 작성하기'}</Button>
           </div>
           {isAccountModalOpen && (
             <AccountModal
@@ -292,52 +479,57 @@ export default function WriteReview() {
       </>)}
       
       {isAccountSelected && selectedSubAccountInfo && (
+<<<<<<< HEAD
         <form onSubmit={handleSubmit}>
           {/* ... 폼 필드 ... */}
+=======
+        <form onSubmit={handleSubmit} className="space-y-4">
+>>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
           <div className="field">
-            <label>구매자(수취인)</label>
-            <input name="name" value={form.name} onChange={onFormChange} required />
+            <Label htmlFor="name">구매자(수취인)</Label>
+            <Input id="name" name="name" value={form.name} onChange={onFormChange} required />
           </div>
           <div className="field">
-            <label>전화번호</label>
-            <input name="phoneNumber" value={form.phoneNumber} onChange={onFormChange} required />
+            <Label htmlFor="phoneNumber">전화번호</Label>
+            <Input id="phoneNumber" name="phoneNumber" value={form.phoneNumber} onChange={onFormChange} required />
           </div>
           <div className="field">
-            <label>주소</label>
+            <Label htmlFor="address">주소</Label>
             {addressOptions.length > 0 ? (
-              <select name="address" value={form.address} onChange={onFormChange} required>
+              <select name="address" value={form.address} onChange={onFormChange} required className="w-full border rounded-md p-2">
                 {addressOptions.map((addr, idx) => (
                   <option key={idx} value={addr}>{addr}</option>
                 ))}
               </select>
             ) : (
-              <input name="address" value={form.address} onChange={onFormChange} required />
+              <Input id="address" name="address" value={form.address} onChange={onFormChange} required />
             )}
           </div>
           <div className="field">
-            <label>은행</label>
-            <input name="bank" value={form.bank} onChange={onFormChange} required />
+            <Label htmlFor="bank">은행</Label>
+            <Input id="bank" name="bank" value={form.bank} onChange={onFormChange} required />
           </div>
           <div className="field">
-            <label>계좌번호</label>
-            <input name="bankNumber" value={form.bankNumber} onChange={onFormChange} required />
+            <Label htmlFor="bankNumber">계좌번호</Label>
+            <Input id="bankNumber" name="bankNumber" value={form.bankNumber} onChange={onFormChange} required />
           </div>
           <div className="field">
-            <label>예금주</label>
-            <input name="accountHolderName" value={form.accountHolderName} onChange={onFormChange} required />
+            <Label htmlFor="accountHolderName">예금주</Label>
+            <Input id="accountHolderName" name="accountHolderName" value={form.accountHolderName} onChange={onFormChange} required />
           </div>
           
           <div className="field">
-            <label>쿠팡 ID</label>
-            <input name="participantId" value={form.participantId} onChange={onFormChange} placeholder="쿠팡 ID를 입력하세요" required/>
+            <Label htmlFor="participantId">쿠팡 ID</Label>
+            <Input id="participantId" name="participantId" value={form.participantId} onChange={onFormChange} placeholder="쿠팡 ID를 입력하세요" required />
           </div>
           <div className="field">
-            <label>주문번호</label>
-            <input name="orderNumber" value={form.orderNumber} onChange={onFormChange} placeholder="주문번호를 그대로 복사하세요" required/>
+            <Label htmlFor="orderNumber">주문번호</Label>
+            <Input id="orderNumber" name="orderNumber" value={form.orderNumber} onChange={onFormChange} placeholder="주문번호를 그대로 복사하세요" required />
           </div>
           <div className="field">
-            <label>금액</label>
-            <input
+            <Label htmlFor="rewardAmount">금액</Label>
+            <Input
+              id="rewardAmount"
               name="rewardAmount"
               value={form.rewardAmount ? Number(form.rewardAmount).toLocaleString() : ''}
               onChange={onFormChange}
@@ -346,22 +538,22 @@ export default function WriteReview() {
             />
           </div>
           <div className="field">
-            <label>결제유형(선택하세요)</label>
-            <select name="paymentType" value={form.paymentType} onChange={onFormChange}>
+            <Label htmlFor="paymentType">결제유형(선택하세요)</Label>
+            <select id="paymentType" name="paymentType" value={form.paymentType} onChange={onFormChange} className="w-full border rounded-md p-2">
               <option value="현영">현영</option>
               <option value="자율결제">자율결제</option>
             </select>
           </div>
           <div className="field">
-            <label>상품종류(선택하세요)</label>
-            <select name="productType" value={form.productType} onChange={onFormChange}>
+            <Label htmlFor="productType">상품종류(선택하세요)</Label>
+            <select id="productType" name="productType" value={form.productType} onChange={onFormChange} className="w-full border rounded-md p-2">
               <option value="실배송">실배송</option>
               <option value="빈박스">빈박스</option>
             </select>
           </div>
           <div className="field">
-            <label>리뷰종류(선택하세요)</label>
-            <select name="reviewOption" value={form.reviewOption} onChange={onFormChange}>
+            <Label htmlFor="reviewOption">리뷰종류(선택하세요)</Label>
+            <select id="reviewOption" name="reviewOption" value={form.reviewOption} onChange={onFormChange} className="w-full border rounded-md p-2">
               {form.productType === '빈박스' ? (
                 <>
                   <option value="별점">별점</option>
@@ -372,18 +564,45 @@ export default function WriteReview() {
                   <option value="별점">별점</option>
                   <option value="텍스트">텍스트</option>
                   <option value="포토">포토</option>
-                  <option value="프리미엄포토">프리미엄포토</option>
-                  <option value="프리미엄영상">프리미엄영상</option>
+                  <option value="프리미엄(포토)">프리미엄(포토)</option>
+                  <option value="프리미엄(영상)">프리미엄(영상)</option>
                 </>
               )}
             </select>
           </div>
-          
+
+          <hr className="section-divider" />
+          {!showImageUpload && (
+            <Button
+              type="button"
+              className="upload-toggle-btn"
+              onClick={() => setShowImageUpload(true)}
+            >
+              이미지 지금 등록하기
+            </Button>
+          )}
+          <p className="upload-note">이미지 등록 생략하고 제출 후, 리뷰관리에서 업로드 하셔도 됩니다</p>
+
+          {showImageUpload && (
+            <>
           <div className="image-upload-group">
             {UPLOAD_FIELDS.filter(f => f.group === 'keyword-like').map(({ key, label }) => (
               <div className="field" key={key}>
                 <label>{label} (최대 5장)</label>
+<<<<<<< HEAD
                 <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
+=======
+                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple disabled={imageProcessingStatus[key]} />
+                
+                {/* ▼▼▼ [추가] 이미지 처리 중 알림 메시지 ▼▼▼ */}
+                {imageProcessingStatus[key] && (
+                  <div className="image-processing-notice">
+                    이미지 처리 중입니다. 파일 목록이 표시될 때까지 잠시만 기다려주세요...
+                  </div>
+                )}
+                {/* ▲▲▲ [추가] 완료 ▲▲▲ */}
+
+>>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
                 <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
                   {images[key] && images[key].length > 0 ? (
                     images[key].map((file, i) => (
@@ -402,6 +621,7 @@ export default function WriteReview() {
             {UPLOAD_FIELDS.filter(f => f.group === 'purchase').map(({ key, label }) => (
               <div className="field" key={key}>
                 <label>{label} (최대 5장)</label>
+<<<<<<< HEAD
                 <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple />
                 <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
                   {images[key] && images[key].length > 0 ? (
@@ -412,9 +632,33 @@ export default function WriteReview() {
                     <div style={{ color: '#999' }}>선택된 파일 없음</div>
                   )}
                 </div>
+=======
+                <input type="file" accept="image/*" name={key} onChange={onFileChange} multiple disabled={imageProcessingStatus[key]} />
+
+                {/* ▼▼▼ [추가] 이미지 처리 중 알림 메시지 (동일한 로직) ▼▼▼ */}
+                {imageProcessingStatus[key] && (
+                  <div className="image-processing-notice">
+                    이미지 처리 중입니다. 파일 목록이 표시될 때까지 잠시만 기다려주세요...
+                  </div>
+                )}
+                {/* ▲▲▲ [추가] 완료 ▲▲▲ */}
+
+                <div className="file-list" style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
+
+                      {images[key] && images[key].length > 0 ? (
+                        images[key].map((file, i) => (
+                          <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
+                        ))
+                      ) : (
+                        <div style={{ color: '#999' }}>선택된 파일 없음</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+>>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
               </div>
-            ))}
-          </div>
+            </>
+          )}
           
           <div className="field">
             <label>
@@ -425,15 +669,19 @@ export default function WriteReview() {
               /> 개인정보 이용에 동의합니다.
             </label>
           </div>
-          <button 
-            className="submit-btn" 
-            type="submit" 
+          <Button
+            className="submit-btn"
+            type="submit"
             disabled={!isFormValid || submitting}
           >
-            {submitting ? '제출 중…' : '제출하기'}
-          </button>
+            {/* ▼▼▼ [수정] 버튼 텍스트를 제출 상태에 따라 동적으로 변경 ▼▼▼ */}
+            {submitting ? submissionStatus : '제출하기'}
+            {/* ▲▲▲ [수정] 완료 ▲▲▲ */}
+          </Button>
         </form>
       )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

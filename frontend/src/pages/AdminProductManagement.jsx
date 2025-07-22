@@ -1,25 +1,44 @@
-// src/pages/AdminProductManagement.jsx (상품/리뷰 종류 컬럼 추가)
+// src/pages/AdminProductManagement.jsx (최종 수정 완료)
 
 import { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { db, collection, getDocs, query, orderBy, deleteDoc, doc, updateDoc } from '../firebaseConfig';
 import Papa from 'papaparse';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
 
 const formatDate = (date) => date ? new Date(date.seconds * 1000).toLocaleDateString() : 'N/A';
 const progressStatusOptions = ['진행전', '진행중', '진행완료', '일부완료', '보류'];
+const productTypeOptions = ['실배송', '빈박스'];
+const reviewTypeOptions = ['현영', '자율결제'];
+const fullReviewOptions = ['별점', '텍스트', '포토', '프리미엄(포토)', '프리미엄(영상)'];
+const limitedReviewOptions = ['별점', '텍스트'];
 
-export default function AdminProductManagement() {
+export default function AdminProductManagementPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    productName: '',
-    reviewType: '',
-    reviewDate: '',
-    progressStatus: 'all',
-    productType: '', // 필터 상태 추가
-    reviewOption: '', // 필터 상태 추가
+    productName: '', reviewType: '', reviewDate: '', progressStatus: 'all',
+    productType: '', reviewOption: '',
   });
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkReviewType, setBulkReviewType] = useState('');
+  const [bulkProductType, setBulkProductType] = useState('');
+  const [bulkReviewOption, setBulkReviewOption] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageGroup, setPageGroup] = useState(0);
+  const itemsPerPage = 20;
+  const pagesPerGroup = 10;
+  const navigate = useNavigate();
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -29,9 +48,7 @@ export default function AdminProductManagement() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+  useEffect(() => { fetchProducts(); }, []);
 
   const processedProducts = useMemo(() => {
     let filtered = [...products];
@@ -50,6 +67,20 @@ export default function AdminProductManagement() {
     }
     return filtered;
   }, [products, filters, sortConfig]);
+
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return processedProducts.slice(startIndex, startIndex + itemsPerPage);
+  }, [processedProducts, currentPage]);
+
+  const totalPages = Math.ceil(processedProducts.length / itemsPerPage);
+  useEffect(() => {
+    const group = Math.floor((currentPage - 1) / pagesPerGroup);
+    if (group !== pageGroup) setPageGroup(group);
+  }, [currentPage, pageGroup]);
+  const goToPage = (page) => { if (page > 0 && page <= totalPages) setCurrentPage(page); };
+  const prevGroup = () => setPageGroup(g => Math.max(0, g - 1));
+  const nextGroup = () => setPageGroup(g => (g + 1) * pagesPerGroup < totalPages ? g + 1 : g);
 
   const handleDelete = async (id) => {
     if (window.confirm('정말로 이 상품을 삭제하시겠습니까?')) {
@@ -71,22 +102,15 @@ export default function AdminProductManagement() {
   };
 
   const resetFilters = () => setFilters({
-    productName: '',
-    reviewType: '',
-    reviewDate: '',
-    progressStatus: 'all',
-    productType: '',
-    reviewOption: '',
+    productName: '', reviewType: '', reviewDate: '', progressStatus: 'all',
+    productType: '', reviewOption: '',
   });
 
   const downloadCsv = () => {
     const csvData = processedProducts.map(p => ({
-      '상품명': p.productName || '-',
-      '결제 종류': p.reviewType || '-',
-      '상품 종류': p.productType || '-', // 엑셀 다운로드에 추가
-      '리뷰 종류': p.reviewOption || '-', // 엑셀 다운로드에 추가
-      '진행일자': p.reviewDate || '-',
-      '진행 상태': p.progressStatus || '-',
+      '상품명': p.productName || '-', '결제 종류': p.reviewType || '-',
+      '상품 종류': p.productType || '-', '리뷰 종류': p.reviewOption || '-',
+      '진행일자': p.reviewDate || '-', '진행 상태': p.progressStatus || '-',
       '등록날짜': formatDate(p.createdAt),
     }));
     const csv = Papa.unparse(csvData, { header: true });
@@ -101,106 +125,201 @@ export default function AdminProductManagement() {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      const productRef = doc(db, 'products', id);
-      await updateDoc(productRef, { progressStatus: newStatus });
-      setProducts(prevProducts =>
-        prevProducts.map(p => (p.id === id ? { ...p, progressStatus: newStatus } : p))
-      );
+      await updateDoc(doc(db, 'products', id), { progressStatus: newStatus });
+      setProducts(prev => prev.map(p => (p.id === id ? { ...p, progressStatus: newStatus } : p)));
     } catch (error) {
       alert('상태 변경 중 오류가 발생했습니다: ' + error.message);
     }
   };
 
+  const handleFieldChange = async (id, field, value) => {
+    try {
+      await updateDoc(doc(db, 'products', id), { [field]: value });
+      setProducts(prev => prev.map(p => (p.id === id ? { ...p, [field]: value } : p)));
+    } catch (err) {
+      alert('정보 수정 중 오류가 발생했습니다: ' + err.message);
+    }
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(paginatedProducts.map(p => p.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+  };
+
+  const deleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm('선택한 상품을 모두 삭제하시겠습니까?')) return;
+    for (const id of selectedIds) {
+      await deleteDoc(doc(db, 'products', id));
+    }
+    setProducts(prev => prev.filter(p => !selectedIds.includes(p.id)));
+    setSelectedIds([]);
+  };
+
+  const bulkUpdate = async (field, value) => {
+    if (!value || selectedIds.length === 0) return;
+    const updates = selectedIds.map(id => updateDoc(doc(db, 'products', id), { [field]: value }));
+    await Promise.all(updates);
+    setProducts(prev => prev.map(p => selectedIds.includes(p.id) ? { ...p, [field]: value } : p));
+  };
+
+  // [수정] 가이드 복사 핸들러
+  const handleCopyGuide = (guideText) => {
+    if (!guideText) {
+        alert('복사할 가이드 내용이 없습니다.');
+        return;
+    }
+    navigator.clipboard.writeText(guideText)
+      .then(() => {
+        alert('가이드가 복사되었습니다!');
+      })
+      .catch(err => {
+        alert('가이드 복사에 실패했습니다.');
+        console.error('Could not copy text: ', err);
+      });
+  };
+
+
   if (loading) return <p>상품 목록을 불러오는 중...</p>;
 
-  const SortIndicator = ({ columnKey }) => {
-    if (sortConfig.key !== columnKey) return null;
-    return sortConfig.direction === 'asc' ? ' ▲' : ' ▼';
-  };
+  const SortIndicator = ({ columnKey }) => sortConfig.key !== columnKey ? null : (sortConfig.direction === 'asc' ? ' ▲' : ' ▼');
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <div className="toolbar" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>상품 관리 ({processedProducts.length})</h2>
-        <Link to="/admin/products/new" style={{ padding: '8px 16px', backgroundColor: '#000', color: '#fff', textDecoration: 'none', borderRadius: '4px' }}>
-          상품 생성
-        </Link>
+        <Button asChild>
+          <Link to="/admin/products/new">상품 생성</Link>
+        </Button>
       </div>
       <div className="toolbar">
-        <button onClick={resetFilters}>필터 초기화</button>
-        <button onClick={downloadCsv}>엑셀 다운로드</button>
+        <Button variant="outline" size="sm" onClick={resetFilters}>필터 초기화</Button>
+        <Button variant="outline" size="sm" onClick={downloadCsv}>엑셀 다운로드</Button>
       </div>
-
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ minWidth: '1000px' }}>
-          <thead>
-            <tr>
-              {/* ▼▼▼ 컬럼 너비 조정 및 추가 ▼▼▼ */}
-              <th onClick={() => requestSort('productName')} className="sortable" style={{width: '20%'}}>상품명<SortIndicator columnKey="productName" /></th>
-              <th onClick={() => requestSort('reviewType')} className="sortable" style={{width: '10%'}}>결제 종류<SortIndicator columnKey="reviewType" /></th>
-              <th onClick={() => requestSort('productType')} className="sortable" style={{width: '10%'}}>상품 종류<SortIndicator columnKey="productType" /></th>
-              <th onClick={() => requestSort('reviewOption')} className="sortable" style={{width: '10%'}}>리뷰 종류<SortIndicator columnKey="reviewOption" /></th>
-              <th onClick={() => requestSort('reviewDate')} className="sortable" style={{width: '10%'}}>진행일자<SortIndicator columnKey="reviewDate" /></th>
-              <th onClick={() => requestSort('progressStatus')} className="sortable" style={{width: '10%'}}>진행 상태<SortIndicator columnKey="progressStatus" /></th>
-              <th onClick={() => requestSort('createdAt')} className="sortable" style={{width: '10%'}}>등록날짜<SortIndicator columnKey="createdAt" /></th>
-              <th style={{width: '10%'}}>관리</th>
-            </tr>
-            <tr className="filter-row">
-              <th><input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></th>
-              <th><input type="text" name="reviewType" value={filters.reviewType} onChange={handleFilterChange} /></th>
-              <th><input type="text" name="productType" value={filters.productType} onChange={handleFilterChange} /></th>
-              <th><input type="text" name="reviewOption" value={filters.reviewOption} onChange={handleFilterChange} /></th>
-              <th><input type="text" name="reviewDate" value={filters.reviewDate} onChange={handleFilterChange} /></th>
-              <th>
-                <select name="progressStatus" value={filters.progressStatus} onChange={handleFilterChange}>
-                  <option value="all">전체</option>
-                  {progressStatusOptions.map(status => <option key={status} value={status}>{status}</option>)}
-                </select>
-              </th>
-              <th></th>
-              <th></th>
-              {/* ▲▲▲ 필터 컬럼 추가 ▲▲▲ */}
-            </tr>
-          </thead>
-          <tbody>
-          {processedProducts.length > 0 ? processedProducts.map(product => (
-              <tr key={product.id}>
-                <td style={{textAlign: 'left'}}>{product.productName}</td>
-                <td>{product.reviewType}</td>
-                {/* ▼▼▼ 데이터 표시 컬럼 추가 ▼▼▼ */}
-                <td>{product.productType || '-'}</td>
-                <td>{product.reviewOption || '-'}</td>
-                <td>{product.reviewDate}</td>
-                <td>
-                  <select 
-                    value={product.progressStatus || '진행전'} 
-                    onChange={(e) => handleStatusChange(product.id, e.target.value)}
-                    style={{ padding: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
-                  >
-                    {progressStatusOptions.map(status => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
+      <div className="toolbar">
+        <Button variant="destructive" size="sm" onClick={deleteSelected}>선택 삭제</Button>
+      </div>
+      <div className="table-container">
+        <Table className="admin-table">
+          <TableHeader>
+            <TableRow>
+              <TableHead><input type="checkbox" onChange={handleSelectAll} checked={paginatedProducts.length > 0 && paginatedProducts.every(p => selectedIds.includes(p.id))} /></TableHead>
+              <TableHead onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></TableHead>
+              <TableHead onClick={() => requestSort('reviewType')} className="sortable">결제 종류<SortIndicator columnKey="reviewType" /></TableHead>
+              <TableHead onClick={() => requestSort('productType')} className="sortable">상품 종류<SortIndicator columnKey="productType" /></TableHead>
+              <TableHead onClick={() => requestSort('reviewOption')} className="sortable">리뷰 종류<SortIndicator columnKey="reviewOption" /></TableHead>
+              <TableHead onClick={() => requestSort('reviewDate')} className="sortable">진행일자<SortIndicator columnKey="reviewDate" /></TableHead>
+              <TableHead onClick={() => requestSort('progressStatus')} className="sortable">진행 상태<SortIndicator columnKey="progressStatus" /></TableHead>
+              <TableHead onClick={() => requestSort('createdAt')} className="sortable">등록날짜<SortIndicator columnKey="createdAt" /></TableHead>
+              <TableHead>관리</TableHead>
+            </TableRow>
+            <TableRow className="bulk-row">
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead>
+                <div className="bulk-control">
+                  <select value={bulkReviewType} onChange={(e) => setBulkReviewType(e.target.value)}>
+                    <option value="">결제 종류 일괄 변경</option>
+                    {reviewTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
-                </td>
-                <td>{formatDate(product.createdAt)}</td>
-                <td style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
-                  <Link to={`/admin/products/edit/${product.id}`} style={{ backgroundColor: '#1976d2', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', textDecoration: 'none' }}>
-                    수정
-                  </Link>
-                  <button onClick={() => handleDelete(product.id)} style={{ backgroundColor: '#e53935', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}>
-                    삭제
-                  </button>
-                </td>
-              </tr>
+                  <Button size="sm" onClick={() => { bulkUpdate('reviewType', bulkReviewType); setBulkReviewType(''); }}>적용</Button>
+                </div>
+              </TableHead>
+              <TableHead>
+                <div className="bulk-control">
+                  <select value={bulkProductType} onChange={(e) => setBulkProductType(e.target.value)}>
+                    <option value="">상품 종류 일괄 변경</option>
+                    {productTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <Button size="sm" onClick={() => { bulkUpdate('productType', bulkProductType); setBulkProductType(''); }}>적용</Button>
+                </div>
+              </TableHead>
+              <TableHead>
+                <div className="bulk-control">
+                  <select value={bulkReviewOption} onChange={(e) => setBulkReviewOption(e.target.value)}>
+                    <option value="">리뷰 종류 일괄 변경</option>
+                    {fullReviewOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                  <Button size="sm" onClick={() => { bulkUpdate('reviewOption', bulkReviewOption); setBulkReviewOption(''); }}>적용</Button>
+                </div>
+              </TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+            <TableRow className="filter-row">
+              <TableHead></TableHead>
+              <TableHead><Input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></TableHead>
+              <TableHead><Input type="text" name="reviewType" value={filters.reviewType} onChange={handleFilterChange} /></TableHead>
+              <TableHead><Input type="text" name="productType" value={filters.productType} onChange={handleFilterChange} /></TableHead>
+              <TableHead><Input type="text" name="reviewOption" value={filters.reviewOption} onChange={handleFilterChange} /></TableHead>
+              <TableHead><Input type="text" name="reviewDate" value={filters.reviewDate} onChange={handleFilterChange} /></TableHead>
+              <TableHead><select name="progressStatus" value={filters.progressStatus} onChange={handleFilterChange}><option value="all">전체</option>{progressStatusOptions.map(s => <option key={s} value={s}>{s}</option>)}</select></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+          {processedProducts.length > 0 ? paginatedProducts.map(p => (
+              <TableRow key={p.id}>
+                <TableCell><input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => handleSelectOne(p.id)} /></TableCell>
+                <TableCell style={{textAlign: 'left'}}>{p.productName}</TableCell>
+                <TableCell>
+                  <select value={p.reviewType || '현영'} onChange={(e) => handleFieldChange(p.id, 'reviewType', e.target.value)}>
+                    {reviewTypeOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </TableCell>
+                <TableCell>
+                  <select value={p.productType || '실배송'} onChange={(e) => handleFieldChange(p.id, 'productType', e.target.value)}>
+                    {productTypeOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </TableCell>
+                <TableCell>
+                  <select value={p.reviewOption || '별점'} onChange={(e) => handleFieldChange(p.id, 'reviewOption', e.target.value)}>
+                    {(p.productType === '빈박스' ? limitedReviewOptions : fullReviewOptions).map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </TableCell>
+                <TableCell>{p.reviewDate}</TableCell>
+                <TableCell><select value={p.progressStatus || '진행전'} onChange={(e) => handleStatusChange(p.id, e.target.value)}><option value="">선택</option>{progressStatusOptions.map(s => (<option key={s} value={s}>{s}</option>))}</select></TableCell>
+                <TableCell>{formatDate(p.createdAt)}</TableCell>
+                <TableCell className="actions-cell">
+                  <Button size="sm" className="table-edit-btn" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>수정</Button>
+                  <Button size="sm" className="table-copy-btn" onClick={() => handleCopyGuide(p.guide)}>가이드복사</Button>
+                  <Button size="sm" variant="destructive" onClick={() => handleDelete(p.id)} className="table-delete-btn">삭제</Button>
+                </TableCell>
+              </TableRow>
             )) : (
-              <tr>
-                <td colSpan="8" style={{ padding: '50px', textAlign: 'center' }}>
-                  생성된 상품이 없습니다.
-                </td>
-              </tr>
+              <TableRow><TableCell colSpan="9" style={{ padding: '50px', textAlign: 'center' }}>생성된 상품이 없습니다.</TableCell></TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
+      </div>
+      <div className="pagination">
+        <Button variant="outline" size="sm" onClick={prevGroup} disabled={pageGroup === 0}>{'<<'}</Button>
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>{'<'}</Button>
+        {Array.from({ length: Math.min(pagesPerGroup, totalPages - pageGroup * pagesPerGroup) }, (_, i) => {
+          const pageNum = pageGroup * pagesPerGroup + i + 1;
+          return (
+            <Button
+              key={pageNum}
+              variant={currentPage === pageNum ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={() => goToPage(pageNum)}
+            >
+              {pageNum}
+            </Button>
+          );
+        })}
+        <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>{'>'}</Button>
+        <Button variant="outline" size="sm" onClick={nextGroup} disabled={(pageGroup + 1) * pagesPerGroup >= totalPages}>{'>>'}</Button>
       </div>
     </>
   );

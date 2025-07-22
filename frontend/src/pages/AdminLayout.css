@@ -1,4 +1,4 @@
-/* src/pages/AdminLayout.css (수정된 최종 버전) */
+/* src/pages/AdminLayout.css (메뉴 그룹핑 스타일 추가) */
 
 .admin-layout {
   display: flex;
@@ -6,7 +6,6 @@
   background-color: #fff;
   font-family: 'Pretendard', sans-serif;
 }
-
 aside {
   width: 220px;
   background-color: #f8f9fa;
@@ -15,7 +14,6 @@ aside {
   display: flex;
   flex-direction: column;
 }
-
 aside h1 {
   font-size: 24px;
   font-weight: 800;
@@ -23,7 +21,6 @@ aside h1 {
   margin: 0 0 32px;
   color: #343a40;
 }
-
 .admin-user-info {
   border: 1px solid #dee2e6;
   padding: 12px;
@@ -36,19 +33,26 @@ aside h1 {
   align-items: center;
   background-color: #fff;
 }
-
 .logout-icon {
   font-weight: bold;
   transform: rotate(45deg);
   display: inline-block;
 }
-
 aside nav {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-
+/* [추가] 메뉴 섹션 제목 스타일 */
+.menu-section-title {
+  margin-top: 24px;
+  margin-bottom: 8px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #868e96;
+  text-transform: uppercase;
+}
 aside nav a {
   padding: 12px 16px;
   text-decoration: none;
@@ -57,24 +61,19 @@ aside nav a {
   font-size: 15px;
   transition: background-color 0.2s;
 }
-
 aside nav a:hover {
   background-color: #e9ecef;
 }
-
-/* NavLink의 활성 스타일 */
 aside nav a.active {
   background-color: #000;
   color: #fff;
   font-weight: 600;
 }
-
 main {
   flex: 1;
   padding: 32px 40px;
-  overflow-x: auto; /* 테이블이 넓어질 경우 스크롤 */
+  overflow-x: auto;
 }
-
 main h2 {
   font-size: 28px;
   margin: 0 0 24px;
@@ -102,27 +101,30 @@ main h2 {
   cursor: pointer;
 }
 
-table {
+/* 공통 테이블 스타일은 별도 클래스에 적용하여
+   페이지별 테이블 스타일과 충돌하지 않도록 한다 */
+.admin-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
   border: 1px solid #dee2e6;
 }
 
-th, td {
+.admin-table th,
+.admin-table td {
   border-bottom: 1px solid #dee2e6;
   padding: 12px 10px;
   text-align: center;
   vertical-align: middle;
 }
 
-th {
+.admin-table th {
   background-color: #f8f9fa;
   font-weight: 600;
   color: #495057;
 }
 
-tbody tr:hover {
+.admin-table tbody tr:hover {
   background-color: #f1f3f5;
 }
 
@@ -197,6 +199,28 @@ tbody tr:hover {
   box-sizing: border-box; /* 패딩과 보더를 너비에 포함 */
   border: 1px solid #ccc;
   border-radius: 3px;
+}
+
+/* 일괄 변경 행 스타일 */
+.bulk-row th {
+  padding: 4px;
+  background-color: #f1f3f5;
+}
+
+.bulk-control {
+  display: flex;
+  gap: 4px;
+}
+
+.bulk-control select {
+  flex: 1;
+  padding: 4px;
+  font-size: 12px;
+}
+
+.bulk-control button {
+  padding: 4px 8px;
+  font-size: 12px;
 }
 
 /* 리뷰 확인 버튼 스타일 (기존과 동일하게 유지) */
@@ -314,4 +338,40 @@ tbody tr:hover {
     font-size: 13px; /* 가독성을 위해 약간 키움 */
   }
 }
+
+/* 공통 관리 버튼 스타일 */
+.actions-cell {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.actions-cell .edit-btn,
+.actions-cell .delete-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+}
+.actions-cell .edit-btn { background-color: #007bff; }
+.actions-cell .delete-btn { background-color: #dc3545; }
 /* ▲▲▲ 모바일 최적화 수정 완료 ▲▲▲ */
+.table-edit-btn,
+.table-delete-btn {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  font-size: 13px;
+  /* position 속성을 아예 사용하지 않아 기본값(static)을 유지합니다. */
+}
+
+.table-edit-btn {
+  background-color: #007bff; /* 파란색 */
+}
+
+.table-delete-btn {
+  background-color: #dc3545; /* 빨간색 */
+}

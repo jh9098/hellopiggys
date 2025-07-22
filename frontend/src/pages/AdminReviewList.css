@@ -1,25 +1,63 @@
-.admin-wrap {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 16px;
-    font-family: 'Pretendard', sans-serif;
-  }
-  
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 12px;
-  }
-  th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-    font-size: 14px;
-  }
-  th { background: #f5f5f5; }
+/* src/styles/AdminReviewList.css (가독성 개선 버전) */
 
-  @media (max-width: 480px) {
-    .admin-wrap { padding: 12px; }
-    th, td { font-size: 12px; padding: 6px; }
+.admin-wrap {
+  width: 100%;
+  max-width: 1280px; /* 너비를 좀 더 넓게 조정 */
+  margin: 0 auto;
+  padding: 24px; /* 전체적인 여백 증가 */
+  font-family: 'Pretendard', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* 제목과 테이블 사이 간격 */
+}
+
+.admin-wrap h2 {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.admin-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #e5e7eb; /* 테이블 전체 테두리 */
+  border-radius: 8px; /* 테이블 모서리 둥글게 */
+  overflow: hidden; /* radius 적용을 위해 */
+  font-size: 14px;
+}
+
+.admin-wrap th, 
+.admin-wrap td {
+  border-bottom: 1px solid #e5e7eb; /* 가로선만 사용 */
+  padding: 12px 16px; /* 셀 내부 여백 증가 */
+  text-align: left;
+  vertical-align: middle; /* 세로 중앙 정렬 */
+}
+
+.admin-wrap th { 
+  background-color: #f9fafb; /* 헤더 배경색 약간 변경 */
+  font-weight: 600;
+  color: #374151;
+}
+
+.admin-wrap tr:last-child td {
+    border-bottom: none; /* 마지막 행의 하단 테두리 제거 */
+}
+
+/* 마우스를 올렸을 때 행 배경색 변경 */
+.admin-wrap tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+@media (max-width: 768px) {
+  .admin-wrap { 
+    padding: 16px; 
   }
-  
+  .admin-wrap h2 {
+    font-size: 20px;
+  }
+  .admin-wrap th, 
+  .admin-wrap td { 
+    font-size: 12px; 
+    padding: 8px 10px; 
+  }
+}

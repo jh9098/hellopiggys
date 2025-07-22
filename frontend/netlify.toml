@@ -1,0 +1,12 @@
+# Netlify 빌드 및 함수 설정 파일
+
+[build]
+  # 빌드 명령 및 게시 디렉토리
+  command = "yarn && yarn build"
+  publish = "dist"
+  # 함수 코드가 있는 디렉토리
+  functions = "frontend/functions"
+
+[functions]
+  # Node.js 런타임 버전 명시
+  node_bundler = "esbuild"

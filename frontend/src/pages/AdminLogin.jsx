@@ -1,12 +1,15 @@
-import { useState } from 'react'; // useEffect를 import 문에서 제거
+// src/pages/AdminLogin.jsx (리디렉션 경로 수정)
+
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, signInWithEmailAndPassword, db, doc, getDoc } from '../firebaseConfig';
-import './AdminLogin.css';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-// 관리자 여부를 확인하는 비동기 함수
 const checkAdminStatus = async (user) => {
   if (!user) return false;
-  
   try {
     const adminDocRef = doc(db, 'admins', user.uid);
     const adminDocSnap = await getDoc(adminDocRef);
@@ -21,11 +24,7 @@ export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [err, setErr] = useState('');
-  const nav = useNavigate();
-
-  // PrivateRoute가 인증 상태 확인을 담당하므로, 
-  // AdminLogin 페이지에서는 로그인 로직만 처리합니다.
-  // 따라서 useEffect 훅이 필요 없습니다.
+  const navigate = useNavigate();
 
   const submit = async (e) => {
     e.preventDefault();
@@ -35,7 +34,9 @@ export default function AdminLogin() {
       const isAdmin = await checkAdminStatus(cred.user);
 
       if (isAdmin) {
-        nav('/admin/members', { replace: true }); // 로그인 성공 시 기본 페이지로 이동
+        // [수정] 구체적인 페이지 대신, 관리자 메인 경로로 이동
+        // App.jsx의 index route가 올바른 페이지로 다시 리디렉션해 줄 것임
+        navigate('/admin', { replace: true }); 
       } else {
         await auth.signOut();
         setErr('관리자 권한이 없습니다.');
@@ -51,26 +52,26 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="admin-login-wrap">
-      <div className="icon" />
-      <h2>수리강 리뷰 관리자</h2>
-      <form onSubmit={submit}>
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={pw}
-          onChange={(e) => setPw(e.target.value)}
-          required
-        />
-        <button type="submit">로그인</button>
-      </form>
-      {err && <p className="err">{err}</p>}
+    <div className="flex items-center justify-center min-h-screen p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-center">수리강 리뷰 관리자</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={submit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" value={pw} onChange={(e) => setPw(e.target.value)} required />
+            </div>
+            {err && <p className="text-sm text-destructive">{err}</p>}
+            <Button type="submit" className="w-full">로그인</Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

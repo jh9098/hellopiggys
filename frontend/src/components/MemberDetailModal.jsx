@@ -1,14 +1,15 @@
-// src/components/MemberDetailModal.jsx (정보 표시 강화)
+// src/components/MemberDetailModal.jsx (24시간 표기 수정)
 
 import React, { useState } from 'react';
-import './ReviewDetailModal.css'; // 기존 모달 CSS 재사용
+import './ReviewDetailModal.css';
 
-const formatDate = (timestamp) => {
+// [수정] 함수명을 formatTimestamp24h로 변경하고 옵션 추가
+const formatTimestamp24h = (timestamp) => {
     if (!timestamp) return 'N/A';
-    return new Date(timestamp.seconds * 1000).toLocaleString();
+    return new Date(timestamp.seconds * 1000).toLocaleString('ko-KR', { hour12: false });
 }
 
-export default function MemberDetailModal({ member, onClose }) {
+export default function MemberDetailModal({ member, onClose, onDelete }) {
   const [searchTerm, setSearchTerm] = useState('');
   if (!member) return null;
 
@@ -21,19 +22,21 @@ export default function MemberDetailModal({ member, onClose }) {
       <div className="review-detail-modal" onClick={(e) => e.stopPropagation()}>
         <button className="close-btn" onClick={onClose}>✖</button>
         <h3>회원 상세 정보</h3>
+        {onDelete && (
+          <button className="delete-btn" onClick={() => onDelete(member)} style={{ marginLeft: '10px' }}>회원 탈퇴</button>
+        )}
         
-        {/* --- 본계정 정보 --- */}
         <div className="modal-section">
           <h4>본계정 정보</h4>
           <div className="info-grid">
             <div><label>이름</label><p>{member.mainAccountName || '-'}</p></div>
             <div><label>전화번호</label><p>{member.mainAccountPhone || '-'}</p></div>
             <div><label>총 참여 횟수</label><p>{member.reviews.length || 0}회</p></div>
-            <div><label>최근 참여일</label><p>{formatDate(member.lastSubmissionDate)}</p></div>
+            {/* [수정] 헬퍼 함수 사용 */}
+            <div><label>최근 참여일</label><p>{formatTimestamp24h(member.lastSubmissionDate)}</p></div>
           </div>
         </div>
 
-        {/* --- 참여 이력 (리뷰 목록) --- */}
         <div className="modal-section">
           <h4>참여 이력 (최신순)</h4>
           <div style={{ marginBottom: '10px' }}>
@@ -50,16 +53,14 @@ export default function MemberDetailModal({ member, onClose }) {
               filteredReviews.map(review => (
                 <div key={review.id} className="sub-account-detail-item">
                   <p style={{ fontWeight: 'bold', marginBottom: '10px', borderBottom: '1px solid #ddd', paddingBottom: '5px' }}>
-                    {formatDate(review.createdAt)} 제출
+                    {/* [수정] 헬퍼 함수 사용 */}
+                    {formatTimestamp24h(review.createdAt)} 제출
                   </p>
 
-                  {/* 상품 정보 */}
                   <div className="info-grid half">
                     <div><label>상품명</label><p>{review.productName || '-'}</p></div>
-                    <div><label>리뷰 종류</label><p>{review.reviewType || '-'}</p></div>
                   </div>
 
-                  {/* 리뷰 참여 계정 (타계정) 정보 */}
                   {review.subAccountInfo && (
                     <>
                       <h5 style={{ marginTop: '15px', marginBottom: '5px' }}>리뷰 참여 계정</h5>
@@ -74,7 +75,6 @@ export default function MemberDetailModal({ member, onClose }) {
                     </>
                   )}
                   
-                  {/* 제출된 폼 데이터 */}
                   <h5 style={{ marginTop: '15px', marginBottom: '5px' }}>제출된 데이터</h5>
                   <div className="info-grid half">
                     <div><label>주문번호</label><p>{review.orderNumber || '-'}</p></div>
@@ -89,4 +89,6 @@ export default function MemberDetailModal({ member, onClose }) {
           </div>
         </div>
       </div>
-    </div>  );}
+    </div>  
+  );
+}

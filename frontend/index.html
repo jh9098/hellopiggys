@@ -4,19 +4,19 @@
     <meta charset="UTF-8" />
     <title>Review Platform</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- 기본 파비콘 (원하면 public 폴더에 favicon.ico 넣고 경로 수정) -->
     <link rel="icon" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
 
-    <!-- 전역 스타일 시작 (필요 없으면 제거) -->
+    <!-- [추가] 토스페이먼츠 결제 위젯 SDK 스크립트 -->
+    <script src="https://js.tosspayments.com/v1/payment-widget"></script>
+
+    <!-- 전역 스타일 시작 -->
     <style>
-      /* ▼▼▼ 이 부분을 추가합니다 ▼▼▼ */
       html, body {
-        /* 확대/축소(pinch-zoom)를 포함한 모든 터치 동작을 허용합니다. */
         touch-action: manipulation;
       }
-      /* ▲▲▲ 추가 완료 ▲▲▲ */
-
       body {
         margin: 0;
         font-family: "Pretendard", "Noto Sans KR", -apple-system, BlinkMacSystemFont,
@@ -27,11 +27,8 @@
     </style>
     <!-- 전역 스타일 끝 -->
   </head>
-
   <body>
     <div id="root"></div>
-
-    <!-- Vite: React 엔트리포인트 -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

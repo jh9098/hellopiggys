@@ -1,96 +1,151 @@
-// D:\hellopiggy\frontend\src\pages\ReviewerLogin.jsx (수정된 최종 버전)
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { httpsCallable } from 'firebase/functions';
-import { signInWithCustomToken } from 'firebase/auth';
-import { auth, db, functions, doc, setDoc } from '../firebaseConfig';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword
+} from 'firebase/auth';
+import { auth, db, doc, setDoc, getDoc } from '../firebaseConfig';
 import './ReviewerLogin.css';
+import { Button } from '@/components/ui/button';
 
 export default function ReviewerLogin() {
-  const [name, setName] = useState(localStorage.getItem('REVIEWER_NAME') || '');
-  const [phone, setPhone] = useState(localStorage.getItem('REVIEWER_PHONE') || '');
-  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const [isLoginView, setIsLoginView] = useState(true);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const nav = useNavigate();
-
-  // ▼▼▼ 로그인 로직(onSubmit)을 AccountModal과 동일한 커스텀 인증 방식으로 변경합니다. ▼▼▼
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    if (!name || !phone) return alert('이름과 전화번호를 입력하세요');
-
-    setIsLoading(true);
-
-    try {
-      // 1. Firebase Function을 가리킵니다.
-      const createTokenFunction = httpsCallable(functions, 'createCustomToken');
-      
-      // 2. 함수에 이름과 전화번호를 전달하여 호출합니다.
-      const result = await createTokenFunction({ name: name, phone: phone });
-      
-      // 3. 서버로부터 받은 커스텀 토큰으로 로그인합니다.
-      const { token, uid } = result.data; // uid는 '이름_전화번호' 형태가 됩니다.
-      await signInWithCustomToken(auth, token);
-      
-      // 4. users 컬렉션에 정보를 저장(업데이트)합니다.
-      await setDoc(doc(db, 'users', uid), {
-        name: name.trim(),
-        phone: phone.trim(),
-        uid: uid,
-      }, { merge: true });
-
-      // 5. 사용자 편의를 위해 이름/전화번호를 localStorage에 저장합니다.
-      localStorage.setItem('REVIEWER_NAME', name.trim());
-      localStorage.setItem('REVIEWER_PHONE', phone.trim());
-
-      // 6. 모든 작업이 성공하면 /my-reviews 페이지로 이동합니다.
-      nav('/my-reviews', { replace: true });
-
-    } catch (error) {
-      console.error("커스텀 로그인 실패:", error);
-      alert('로그인에 실패했습니다. 잠시 후 다시 시도해주세요.');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleKakaoLogin = () => {
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: import.meta.env.VITE_KAKAO_REST_KEY,
+      redirect_uri: import.meta.env.VITE_KAKAO_REDIRECT_URI,
+      scope: 'profile_nickname,phone_number',
+    });
+    window.location.href = `https://kauth.kakao.com/oauth/authorize?${params.toString()}`;
   };
 
-  useEffect(() => {
-    if (!name) document.getElementById('input-name')?.focus();
-  }, [name]);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSubmitting(true);
+
+    const emailForAuth = `${phone.trim()}@hellopiggy.com`;
+    try {
+      if (isLoginView) {
+        const cred = await signInWithEmailAndPassword(auth, emailForAuth, password);
+        navigate('/my-reviews', { replace: true });
+      } else {
+        if (!name.trim()) {
+          setError('이름을 입력해주세요.');
+          setSubmitting(false);
+          return;
+        }
+        const userByPhoneRef = doc(db, 'users_by_phone', phone.trim());
+        const snap = await getDoc(userByPhoneRef);
+        if (snap.exists()) {
+          setError('이미 등록된 전화번호입니다. 로그인해주세요.');
+          setSubmitting(false);
+          return;
+        }
+        if (password !== confirmPassword) {
+          setError('비밀번호가 일치하지 않습니다.');
+          setSubmitting(false);
+          return;
+        }
+        const cred = await createUserWithEmailAndPassword(auth, emailForAuth, password);
+        await setDoc(doc(db, 'users', cred.user.uid), {
+          name: name.trim(),
+          phone: phone.trim(),
+          uid: cred.user.uid,
+        });
+        await setDoc(userByPhoneRef, { uid: cred.user.uid });
+        navigate('/my-reviews', { replace: true });
+      }
+    } catch (err) {
+      console.error('로그인 오류:', err);
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+        setError('전화번호 또는 비밀번호가 올바르지 않습니다.');
+      } else if (err.code === 'auth/weak-password') {
+        setError('비밀번호는 6자리 이상이어야 합니다.');
+      } else if (err.code === 'auth/email-already-in-use') {
+        setError('이미 등록된 전화번호입니다. 로그인해주세요.');
+      } else {
+        setError('처리 중 오류가 발생했습니다.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="login-wrap">
       <div className="icon" />
       <h2 className="login-title">HELLO PIGGY</h2>
-      <form onSubmit={onSubmit}>
-        <div className="input-with-icon">
-          <span className="user-ico" />
-          <input
-            id="input-name"
-            name="name"
-            placeholder="이름을 입력해 주세요."
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-        </div>
+      <form onSubmit={handleSubmit}>
+        {!isLoginView && (
+          <div className="input-with-icon">
+            <span className="user-ico" />
+            <input
+              type="text"
+              name="name"
+              placeholder="이름"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+        )}
         <div className="input-with-icon">
           <span className="phone-ico" />
           <input
+            type="tel"
             name="phone"
-            placeholder="전화번호를 입력해 주세요."
+            placeholder="전화번호 ('-' 없이 입력)"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            inputMode="tel"
+            onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
             required
-            disabled={isLoading}
           />
         </div>
-        <button className="login-btn" type="submit" disabled={isLoading}>
-          {isLoading ? '로그인 중...' : '로그인'}
-        </button>
+        <div className="input-with-icon">
+          <input
+            type="password"
+            name="password"
+            placeholder="비밀번호"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        {!isLoginView && (
+          <div className="input-with-icon">
+            <input
+              type="password"
+              name="confirmPassword"
+              placeholder="비밀번호 재입력"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+          </div>
+        )}
+        <Button className="login-btn" type="submit" disabled={submitting}>
+          {submitting ? '처리 중...' : isLoginView ? '로그인' : '회원가입'}
+        </Button>
+        {error && <p style={{color:'red', marginTop:'10px'}}>{error}</p>}
       </form>
+      <div className="view-toggle" style={{ marginTop: '20px' }}>
+        {isLoginView ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'}
+        <Button onClick={() => { setIsLoginView(!isLoginView); setError(''); }} style={{ marginLeft: '10px' }} variant="link">
+          {isLoginView ? '회원가입' : '로그인'}
+        </Button>
+      </div>
+      <Button onClick={handleKakaoLogin} style={{ marginTop: '20px' }}>
+        카카오 로그인
+      </Button>
     </div>
   );
-} 
+}

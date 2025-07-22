@@ -1,30 +1,51 @@
-// src/pages/MyReviews.jsx (상품/리뷰 종류 표시 추가 완료)
+// src/pages/MyReviews.jsx (수정 완료)
 
 import { useEffect, useState } from 'react';
 import imageCompression from 'browser-image-compression';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import {
-  auth, onAuthStateChanged, db,
-  collection, query, where, orderBy, getDocs, doc, getDoc,
-  updateDoc, ref, uploadBytes, getDownloadURL, deleteField, deleteDoc,
-  getStorageInstance
+  auth,
+  onAuthStateChanged,
+  db,
+  storage,
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteField,
+  deleteDoc,
+  arrayRemove,
 } from '../firebaseConfig';
 import LoginModal from '../components/LoginModal';
 import './MyReviews.css';
 
+const formatTimestamp24h = (timestamp) => {
+  if (!timestamp || !timestamp.seconds) return '';
+  return new Date(timestamp.seconds * 1000).toLocaleString('ko-KR', { hour12: false });
+};
+
 function GuideToggle({ text }) {
   const [expanded, setExpanded] = useState(false);
+  if (!text) return null;
   const lines = text.split('\n');
   const preview = lines.slice(0, 4).join('\n');
   const hasMore = lines.length > 4;
   return (
     <div className="guide-box">
       <strong>가이드:</strong>
-      <p>{expanded || !hasMore ? text : preview}</p>
+      <p style={{ whiteSpace: 'pre-line' }}>{expanded || !hasMore ? text : preview}</p>
       {hasMore && (
-        <button className="toggle-btn" onClick={() => setExpanded(!expanded)}>
+        <Button className="toggle-btn" onClick={() => setExpanded(!expanded)}>
           {expanded ? '접기 ▲' : '더보기 ▼'}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -47,25 +68,26 @@ const bankOptions = [
   '전북', '농협', 'SC', '아이엠뱅크', '신협', '제주', '부산', '씨티', 'HSBC'
 ];
 
-const initialImageFields = [
+const imageFields = [
   { key: 'keywordAndLikeImagesUrls', label: '키워드 & 찜 인증' },
   { key: 'orderImageUrls', label: '구매 인증' },
   { key: 'cashcardImageUrls', label: '현영/매출전표' },
+  { key: 'confirmImageUrls', label: '리뷰 완료 인증' },
 ];
+
 
 export default function MyReviews() {
   const navigate = useNavigate();
-  const storage = getStorageInstance();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
-  const [products, setProducts] = useState([]); // 진행중인 상품 목록
+  const [products, setProducts] = useState([]);
   const [modalType, setModalType] = useState(null);
   const [currentReview, setCurrentReview] = useState(null); 
   const [isEditing, setIsEditing] = useState(false);
   const [editableData, setEditableData] = useState({});
   const [files, setFiles] = useState([]);
   const [editImages, setEditImages] = useState({});
-  const [editPreviews, setEditPreviews] = useState({});
+  const [imagesToDelete, setImagesToDelete] = useState({});
   const [uploading, setUploading] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -92,6 +114,7 @@ export default function MyReviews() {
               const subDocSnap = await getDoc(subDocRef);
               if (subDocSnap.exists()) {
                 const subData = subDocSnap.data();
+                delete subData.createdAt;
                 reviewData.subAccountInfo = subData;
                 Object.assign(reviewData, subData);
               }
@@ -110,20 +133,16 @@ export default function MyReviews() {
         }
       } else {
         setLoading(false);
+        setRows([]);
       }
     });
     return () => unsubscribe();
   }, []);
 
-  // 진행중인 상품 불러오기
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const q = query(
-          collection(db, 'products'),
-          where('progressStatus', '==', '진행중'),
-          orderBy('createdAt', 'desc')
-        );
+        const q = query(collection(db, 'products'), where('progressStatus', '==', '진행중'), orderBy('createdAt', 'desc'));
         const snap = await getDocs(q);
         setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (err) {
@@ -132,11 +151,21 @@ export default function MyReviews() {
     };
     fetchProducts();
   }, []);
+  
+  const resetModalState = () => {
+    setModalType(null);
+    setCurrentReview(null);
+    setFiles([]);
+    setEditImages({});
+    setImagesToDelete({});
+    setUploading(false);
+    setIsEditing(false);
+  };
 
   const handleLogout = () => auth.signOut();
   const handleLoginSuccess = () => setIsLoginModalOpen(false);
   const openModal = (type, review) => { setCurrentReview(review); setModalType(type); setIsEditing(false); };
-  const closeModal = () => { setModalType(null); setCurrentReview(null); setFiles([]); setEditImages({}); setEditPreviews({}); setUploading(false); setIsEditing(false); };
+  const closeModal = () => { resetModalState(); };
   const openImagePreview = (url) => setImagePreview(url);
   const closeImagePreview = () => setImagePreview(null);
   
@@ -149,10 +178,10 @@ export default function MyReviews() {
       reviewType: currentReview.productInfo?.reviewType,
     });
     setEditImages({});
-    setEditPreviews({});
+    setImagesToDelete({});
   };
 
-  const handleCancelEdit = () => { setIsEditing(false); setEditImages({}); setEditPreviews({}); };
+  const handleCancelEdit = () => { setIsEditing(false); setEditImages({}); setImagesToDelete({}); };
 
   const handleDeleteReview = async (id) => {
     if (!window.confirm('이 리뷰를 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.')) return;
@@ -168,7 +197,7 @@ export default function MyReviews() {
   
   const handleDataChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'phoneNumber' || name === 'bankNumber' || name === 'orderNumber' || name === 'rewardAmount') {
+    if (['phoneNumber', 'bankNumber', 'orderNumber', 'rewardAmount'].includes(name)) {
       setEditableData({ ...editableData, [name]: value.replace(/[^0-9]/g, '') });
     } else {
       setEditableData({ ...editableData, [name]: value });
@@ -187,10 +216,11 @@ export default function MyReviews() {
   };
 
   const onFile = (e) => setFiles(Array.from(e.target.files || []));
-
+  
   const onEditFileChange = async (e) => {
     const { name, files } = e.target;
     if (!files || files.length === 0) return;
+    
     const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
     const processed = [];
     for (const file of files) {
@@ -203,10 +233,20 @@ export default function MyReviews() {
     }
     const selected = processed.slice(0, 5);
     setEditImages(prev => ({ ...prev, [name]: selected }));
-    const urls = selected.map(f => URL.createObjectURL(f));
-    setEditPreviews(prev => ({ ...prev, [name]: urls }));
   };
-  
+
+  const handleDeleteExistingImage = (fieldKey, urlToDelete) => {
+    if (!window.confirm('이 이미지를 삭제하시겠습니까? 저장을 눌러야 최종 반영됩니다.')) return;
+    setCurrentReview(prev => ({
+      ...prev,
+      [fieldKey]: prev[fieldKey].filter(url => url !== urlToDelete)
+    }));
+    setImagesToDelete(prev => ({
+      ...prev,
+      [fieldKey]: [...(prev[fieldKey] || []), urlToDelete]
+    }));
+  };
+
   const handleSave = async () => {
     if (!currentReview) return;
     setUploading(true);
@@ -220,47 +260,60 @@ export default function MyReviews() {
         orderNumber: editableData.orderNumber,
         participantId: editableData.participantId,
         productId: editableData.productId,
-        productName: editableData.productName,
-        reviewType: editableData.reviewType,
+        productName: editableData.productName || '상품명 없음',
+        reviewType: editableData.reviewType || '현영',
       };
+
+      for (const fieldKey in imagesToDelete) {
+        if (imagesToDelete[fieldKey].length > 0) {
+          fieldsToUpdateInReview[fieldKey] = arrayRemove(...imagesToDelete[fieldKey]);
+        }
+      }
+
       const imageUrlMap = {};
-      for (const { key } of initialImageFields) {
+      for (const { key } of imageFields) {
         if (editImages[key] && editImages[key].length > 0) {
-          const urls = [];
+          const newUrls = [];
           for (const f of editImages[key]) {
             const storageRef = ref(storage, `reviewImages/${Date.now()}_${f.name}`);
             await uploadBytes(storageRef, f);
-            urls.push(await getDownloadURL(storageRef));
+            newUrls.push(await getDownloadURL(storageRef));
           }
-          imageUrlMap[key] = [...(currentReview[key] || []), ...urls];
+          imageUrlMap[key] = [...(currentReview[key] || []), ...newUrls];
         }
       }
-      await updateDoc(doc(db, 'reviews', currentReview.id), { ...fieldsToUpdateInReview, ...imageUrlMap });
+      
+      const finalUpdateData = { ...fieldsToUpdateInReview, ...imageUrlMap };
+      if (currentReview.status === 'uploading_images') {
+        finalUpdateData.status = 'submitted';
+      }
+      await updateDoc(doc(db, 'reviews', currentReview.id), finalUpdateData);
+
+      const updatedReviewData = {
+        ...currentReview,
+        ...editableData,
+        ...imageUrlMap,
+        ...(currentReview.status === 'uploading_images' ? { status: 'submitted' } : {})
+      };
       const updatedRows = rows.map(row =>
         row.id === currentReview.id
           ? {
-              ...row,
-              ...editableData,
-              ...imageUrlMap,
+              ...updatedReviewData,
               productInfo: products.find(p => p.id === editableData.productId) || row.productInfo,
               subAccountInfo: { ...row.subAccountInfo, ...editableData },
             }
           : row
       );
       setRows(updatedRows);
-      setCurrentReview({
-        ...currentReview,
-        ...editableData,
-        ...imageUrlMap,
-        productInfo: products.find(p => p.id === editableData.productId) || currentReview.productInfo,
-        subAccountInfo: { ...currentReview.subAccountInfo, ...editableData },
-      });
-      setEditImages({});
-      setEditPreviews({});
+      setCurrentReview(updatedReviewData);
+      
       alert('수정이 완료되었습니다.');
       setIsEditing(false);
+      setEditImages({});
+      setImagesToDelete({});
     } catch (e) {
       alert('수정 실패: ' + e.message);
+      console.error(e);
     } finally {
       setUploading(false);
     }
@@ -295,9 +348,9 @@ export default function MyReviews() {
       <div className="my-wrap" style={{ textAlign: 'center', paddingTop: '50px' }}>
         <h2>내 리뷰 목록</h2>
         <p>리뷰를 확인하려면 로그인이 필요합니다.</p>
-        <button className="login-open-btn" onClick={() => setIsLoginModalOpen(true)}>
+        <Button className="login-open-btn" onClick={() => setIsLoginModalOpen(true)}>
           로그인 / 회원가입
-        </button>
+        </Button>
         {isLoginModalOpen && (
           <LoginModal onClose={() => setIsLoginModalOpen(false)} onLoginSuccess={handleLoginSuccess} />
         )}
@@ -311,12 +364,14 @@ export default function MyReviews() {
       <div className="page-header">
         <h2>내 리뷰 목록</h2>
         <div className="header-actions">
-          <button className="action-btn" onClick={() => navigate('/link')}>
+          {/* ▼▼▼ "구매폼 작성" 버튼의 navigate 경로를 수정합니다 ▼▼▼ */}
+          <Button className="action-btn" onClick={() => navigate('/reviewer/link')}>
             구매폼 작성
-          </button>
-          <button className="logout" onClick={handleLogout}>
+          </Button>
+          {/* ▲▲▲ 수정 완료 ▲▲▲ */}
+          <Button className="logout" onClick={handleLogout}>
             로그아웃 ➡
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -326,34 +381,24 @@ export default function MyReviews() {
         const participantType = r.subAccountInfo ? participantName : '본계정';
         return (
           <div className={`card ${statusInfo.className}`} key={r.id}>
-            <div className="card-head"><div><span className="badge">{statusInfo.text}</span><span className="badge secondary">{participantType}</span></div><span className="timestamp">{r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleString() : ''}</span></div>
+            <div className="card-head"><div><span className="badge">{statusInfo.text}</span><span className="badge secondary">{participantType}</span></div><span className="timestamp">{formatTimestamp24h(r.createdAt)}</span></div>
             {r.productInfo && (
               <div className="product-details">
                 <h4>{r.productInfo.productName}</h4>
                 <p>
                   <strong>결제 종류:</strong> {r.productInfo.reviewType}
                 </p>
-                {/* ▼▼▼ 여기가 수정된 부분입니다 ▼▼▼ */}
-                {r.productType && (
-                  <p>
-                    <strong>상품 종류:</strong> {r.productType}
-                  </p>
-                )}
-                {r.reviewOption && (
-                  <p>
-                    <strong>리뷰 종류:</strong> {r.reviewOption}
-                  </p>
-                )}
-                {/* ▲▲▲ 수정 완료 ▲▲▲ */}
+                {r.productType && ( <p><strong>상품 종류:</strong> {r.productType}</p> )}
+                {r.reviewOption && ( <p><strong>리뷰 종류:</strong> {r.reviewOption}</p> )}
                 {r.productInfo.guide && <GuideToggle text={r.productInfo.guide} />}
               </div>
             )}
             {statusInfo.reason && <div className="rejection-reason"><strong>반려 사유:</strong> {statusInfo.reason}</div>}
             <div className="price">{Number(r.rewardAmount || 0).toLocaleString()}원</div>
             <div className="btn-wrap">
-              <button onClick={() => openModal('detail', r)}>제출 내역 상세(수정)</button>
-              <button className="outline" onClick={() => openModal('upload', r)} disabled={r.status !== 'submitted' && r.status !== 'rejected'}>리뷰 인증하기</button>
-              <button className="delete" onClick={() => handleDeleteReview(r.id)}>삭제</button>
+              <Button onClick={() => openModal('detail', r)}>제출 내역 상세(수정)</Button>
+              <Button className="outline" onClick={() => openModal('upload', r)} disabled={r.status !== 'submitted' && r.status !== 'rejected'}>리뷰 인증하기</Button>
+              <Button className="delete" onClick={() => handleDeleteReview(r.id)}>삭제</Button>
             </div>
           </div>
         );
@@ -362,8 +407,8 @@ export default function MyReviews() {
       {modalType && (
         <div className="modal-back">
           <div className="modal">
-            <button className="close" onClick={closeModal}>✖</button>
-            {modalType === 'detail' && (
+            <Button className="close" onClick={closeModal}>✖</Button>
+            {modalType === 'detail' && currentReview && (
               <div className="detail-view">
                 <h3>제출 내역 상세(수정)</h3>
                 <div className="form-grid">
@@ -392,12 +437,9 @@ export default function MyReviews() {
                   )}
                 </div>
                 {[
-                  { key: 'orderNumber', label: '주문번호' },
-                  { key: 'participantId', label: '쿠팡 ID'},
-                  { key: 'address', label: '주소' },
-                  { key: 'bankNumber', label: '계좌번호' }, 
-                  { key: 'accountHolderName', label: '예금주' }, 
-                  { key: 'rewardAmount', label: '금액' }
+                  { key: 'orderNumber', label: '주문번호' }, { key: 'participantId', label: '쿠팡 ID'},
+                  { key: 'address', label: '주소' }, { key: 'bankNumber', label: '계좌번호' }, 
+                  { key: 'accountHolderName', label: '예금주' }, { key: 'rewardAmount', label: '금액' }
                 ].map(({ key, label }) => (
                   <div className="field" key={key}>
                     <label>{label}</label>
@@ -414,63 +456,59 @@ export default function MyReviews() {
                   ) : (<p>{currentReview?.bank}</p>)}
                 </div>
                 
-                {initialImageFields.map(({ key, label }) => (
+                {imageFields.map(({ key, label }) => (
                   <div className="field full-width" key={key}>
                     <label>{label}</label>
                     {isEditing && (
                       <>
                         <input type="file" accept="image/*" name={key} multiple onChange={onEditFileChange} />
-                        <div className="preview-container">
-                          {editPreviews[key] && editPreviews[key].map((src, i) => (
-                            <img key={i} src={src} alt={`${label} new ${i + 1}`} className="thumb" />
-                          ))}
+                        <div className="file-list">
+                          {editImages[key] && editImages[key].length > 0 ? (
+                            editImages[key].map((file, i) => (
+                              <div key={`${file.name}-${i}`}>{i + 1}. {file.name}</div>
+                            ))
+                          ) : (
+                            <div className="file-list-placeholder">새로 추가할 파일 없음</div>
+                          )}
                         </div>
                       </>
                     )}
                     {currentReview?.[key] && currentReview[key].length > 0 && (
                       <div className="preview-container">
                         {currentReview[key].map((url, i) => (
-                          <img
-                            key={i}
-                            src={url}
-                            alt={`${label} ${i + 1}`}
-                            className="thumb"
-                            onClick={() => openImagePreview(url)}
-                            style={{ cursor: 'pointer' }}
-                          />
+                          <div key={i} className="image-item-wrapper">
+                            <img
+                              src={url}
+                              alt={`${label} ${i + 1}`}
+                              className="thumb"
+                              onClick={() => openImagePreview(url)}
+                              style={{ cursor: 'pointer' }}
+                            />
+                            {isEditing && (
+                              <Button
+                                className="delete-image-btn"
+                                onClick={() => handleDeleteExistingImage(key, url)}
+                              >
+                                ✖
+                              </Button>
+                            )}
+                          </div>
                         ))}
                       </div>
                     )}
                   </div>
                 ))}
-                
-                {currentReview.confirmImageUrls && currentReview.confirmImageUrls.length > 0 && (
-                  <div className="field full-width">
-                    <label>리뷰 완료 인증</label>
-                    <div className="preview-container">
-                      {currentReview.confirmImageUrls.map((url, i) => (
-                        <img
-                          key={i}
-                          src={url}
-                          alt={`리뷰인증 ${i + 1}`}
-                          className="thumb"
-                          onClick={() => openImagePreview(url)}
-                          style={{ cursor: 'pointer' }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
+
                 <div className="modal-actions">
                   {isEditing ? (
                     <>
-                      <button onClick={handleSave} disabled={uploading}>{uploading ? '저장 중...' : '저장'}</button>
-                      <button onClick={handleCancelEdit} className="secondary">취소</button>
+                      <Button onClick={handleSave} disabled={uploading}>{uploading ? '저장 중...' : '저장'}</Button>
+                      <Button onClick={handleCancelEdit} className="secondary">취소</Button>
                     </>
                   ) : (
                     <>
-                      <button onClick={handleEdit} disabled={currentReview?.status === 'verified' || currentReview?.status === 'settled'}>수정</button>
-                      <button onClick={closeModal} className="secondary">닫기</button>
+                      <Button onClick={handleEdit} disabled={currentReview?.status === 'verified' || currentReview?.status === 'settled'}>수정</Button>
+                      <Button onClick={closeModal} className="secondary">닫기</Button>
                     </>
                   )}
                 </div>
@@ -480,7 +518,7 @@ export default function MyReviews() {
               <>
                 <h3>리뷰 인증 이미지 업로드</h3>
                 <input type="file" accept="image/*" multiple onChange={onFile} />
-                <button onClick={uploadConfirm} disabled={uploading || files.length === 0} style={{ marginTop: 16 }}>{uploading ? '업로드 중…' : '완료'}</button>
+                <Button onClick={uploadConfirm} disabled={uploading || files.length === 0} style={{ marginTop: 16 }}>{uploading ? '업로드 중…' : '완료'}</Button>
               </>
             )}
           </div>
@@ -490,10 +528,11 @@ export default function MyReviews() {
     {imagePreview && (
       <div className="modal-back" onClick={closeImagePreview}>
         <div className="modal" onClick={(e) => e.stopPropagation()}>
-          <button className="close" onClick={closeImagePreview}>✖</button>
+          <Button className="close" onClick={closeImagePreview}>✖</Button>
           <img src={imagePreview} alt="미리보기" style={{ width: '100%' }} />
         </div>
       </div>
     )}
     </>
-  );}
+  );
+}
