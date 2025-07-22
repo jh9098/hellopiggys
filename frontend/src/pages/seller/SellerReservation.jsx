@@ -137,6 +137,16 @@ export default function SellerReservationPage() {
     const [showSaveSuccess, setShowSaveSuccess] = useState(false);
     const [savedTemplates, setSavedTemplates] = useState([]);
     const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+    const [templateSearch, setTemplateSearch] = useState('');
+    const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
+
+    const filteredTemplates = useMemo(() => {
+        const keyword = templateSearch.trim().toLowerCase();
+        if (!keyword) return savedTemplates;
+        return savedTemplates.filter(t =>
+            `${t.productName} ${t.productOption}`.toLowerCase().includes(keyword)
+        );
+    }, [savedTemplates, templateSearch]);
     
     // [추가] 애니메이션을 위한 ref와 state
     const animationContainerRef = useRef(null);
@@ -297,6 +307,32 @@ export default function SellerReservationPage() {
         } catch (err) {
             console.error('템플릿 저장 오류:', err);
         }
+    };
+
+    const handleDeleteTemplate = async (id) => {
+        try {
+            await deleteDoc(doc(db, 'productTemplates', id));
+        } catch (err) {
+            console.error('템플릿 삭제 오류:', err);
+        }
+    };
+
+    const handleDeleteSelectedTemplates = async () => {
+        if (selectedTemplateIds.length === 0) return;
+        const batch = writeBatch(db);
+        selectedTemplateIds.forEach(tid => batch.delete(doc(db, 'productTemplates', tid)));
+        try {
+            await batch.commit();
+            setSelectedTemplateIds([]);
+        } catch (err) {
+            console.error('템플릿 삭제 오류:', err);
+        }
+    };
+
+    const handleSelectTemplate = (id, checked) => {
+        setSelectedTemplateIds(prev =>
+            checked ? [...prev, id] : prev.filter(tid => tid !== id)
+        );
     };
     const handleAddCampaign = (e) => {
         e.preventDefault();
@@ -612,8 +648,8 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                     <Label htmlFor="productName">상품명</Label><Input id="productName" name="productName" value={formState.productName} onChange={(e) => handleFormChange('productName', e.target.value)} required />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div><Label htmlFor="productPrice">상품가</Label><Input id="productPrice" type="number" name="productPrice" value={formState.productPrice} onChange={(e) => handleFormChange('productPrice', e.target.value)} placeholder="0" /></div>
                                     <div><Label htmlFor="productOption">옵션</Label><Input id="productOption" name="productOption" value={formState.productOption} onChange={(e) => handleFormChange('productOption', e.target.value)} /></div>
+                                    <div><Label htmlFor="productPrice">상품가</Label><Input id="productPrice" type="number" name="productPrice" value={formState.productPrice} onChange={(e) => handleFormChange('productPrice', e.target.value)} placeholder="0" /></div>
                                 </div>
                                 <div>
                                     <Label htmlFor="keywords">키워드 (1개)</Label>
@@ -838,35 +874,67 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                 <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
                     <DialogContent className="sm:max-w-lg">
                         <DialogHeader>
-                            <DialogTitle>저장된 상품 불러오기</DialogTitle>
+                            <div className="flex items-center justify-between space-x-2">
+                                <DialogTitle>저장된 상품 불러오기</DialogTitle>
+                                <div className="flex items-center space-x-2">
+                                    <Input
+                                        placeholder="검색"
+                                        value={templateSearch}
+                                        onChange={e => setTemplateSearch(e.target.value)}
+                                        className="h-8"
+                                    />
+                                    <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={handleDeleteSelectedTemplates}
+                                        disabled={selectedTemplateIds.length === 0}
+                                    >
+                                        선택삭제
+                                    </Button>
+                                </div>
+                            </div>
                         </DialogHeader>
                         <div className="space-y-2 max-h-80 overflow-y-auto">
-                            {savedTemplates.length === 0 ? (
+                            {filteredTemplates.length === 0 ? (
                                 <p className="text-center text-muted-foreground py-8">저장된 상품이 없습니다.</p>
                             ) : (
-                                savedTemplates.map(t => {
+                                filteredTemplates.map(t => {
                                     const { id, sellerUid, createdAt, updatedAt, ...rest } = t;
                                     return (
-                                        <div key={id} className="flex items-center justify-between border-b py-2">
-                                            <div>
+                                        <div key={id} className="flex items-center justify-between border-b py-2 space-x-2">
+                                            <Checkbox
+                                                checked={selectedTemplateIds.includes(id)}
+                                                onCheckedChange={checked => handleSelectTemplate(id, checked)}
+                                                aria-label="템플릿 선택"
+                                            />
+                                            <div className="flex-1">
                                                 <p className="font-medium">{t.productName}</p>
                                                 <p className="text-sm text-muted-foreground">{t.productOption}</p>
                                             </div>
-                                            <Button
-                                                size="sm"
-                                                onClick={() => {
-                                                    const date = rest.date instanceof Date
-                                                        ? rest.date
-                                                        : rest.date?.seconds
-                                                            ? new Date(rest.date.seconds * 1000)
-                                                            : new Date();
-                                                    const { date: _, sellerUid: __, createdAt: ___, updatedAt: ____, ...others } = rest;
-                                                    setFormState((prev) => ({ ...prev, ...others, date }));
-                                                    setShowTemplateDialog(false);
-                                                }}
-                                            >
-                                                선택
-                                            </Button>
+                                            <div className="flex items-center space-x-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleDeleteTemplate(id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const date = rest.date instanceof Date
+                                                            ? rest.date
+                                                            : rest.date?.seconds
+                                                                ? new Date(rest.date.seconds * 1000)
+                                                                : new Date();
+                                                        const { date: _, sellerUid: __, createdAt: ___, updatedAt: ____, ...others } = rest;
+                                                        setFormState((prev) => ({ ...prev, ...others, date }));
+                                                        setShowTemplateDialog(false);
+                                                    }}
+                                                >
+                                                    선택
+                                                </Button>
+                                            </div>
                                         </div>
                                     );
                                 })
