@@ -91,6 +91,11 @@ export default function AdminProductManagementPage() {
     return list;
   }, [campaigns, sortField, sortDirection]);
 
+  const handleSort = (field) => {
+    setSortDirection((prev) => (sortField === field ? (prev === 'asc' ? 'desc' : 'asc') : 'asc'));
+    setSortField(field);
+  };
+
   const filteredCampaigns = sortedCampaigns.filter(c => {
     const statusMatch = statusFilter ? c.status === statusFilter : true;
     const searchMatch = searchTerm ? JSON.stringify(c).toLowerCase().includes(searchTerm.toLowerCase()) : true;
@@ -332,19 +337,13 @@ export default function AdminProductManagementPage() {
                 {/* [수정 1] 컬럼명 변경 */}
                 <th
                   className={thClass + ' cursor-pointer'}
-                  onClick={() => {
-                    setSortField('createdAt');
-                    setSortDirection((d) => (sortField === 'createdAt' && d === 'asc' ? 'desc' : 'asc'));
-                  }}
+                  onClick={() => handleSort('createdAt')}
                 >
                   예약 등록 일자 {sortField === 'createdAt' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
                 </th>
                 <th
                   className={thClass + ' cursor-pointer'}
-                  onClick={() => {
-                    setSortField('date');
-                    setSortDirection((d) => (sortField === 'date' && d === 'asc' ? 'desc' : 'asc'));
-                  }}
+                  onClick={() => handleSort('date')}
                 >
                   진행일자 {sortField === 'date' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
                 </th>
