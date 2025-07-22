@@ -781,7 +781,7 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                         rowSpan={campaigns.length}
                                         className="font-semibold text-center align-middle"
                                     >
-                                        {totalAmount.toLocaleString()}원
+                                        {remainingPayment.toLocaleString()}원
                                     </TableCell>
                                 )}
                                 <TableCell>
@@ -849,7 +849,7 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                         <TableHead className="w-[60px] text-center">입금</TableHead>
                                         <TableHead className="w-[100px] text-center">상태</TableHead>
                                         <TableHead className="w-[120px] text-center">개별견적</TableHead>
-                                        <TableHead className="w-[120px] text-center">최종금액</TableHead>
+                                        <TableHead className="w-[120px] text-center">결제금액</TableHead>
                                         <TableHead className="w-[80px] text-center">관리</TableHead>
                                     </TableRow>
                                 </TableHeader>
