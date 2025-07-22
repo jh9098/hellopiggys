@@ -1,7 +1,7 @@
 // src/pages/admin/AdminProductManagement.jsx (요청사항 반영 최종본)
 
 import { useState, useEffect, useMemo } from 'react';
-import { db, collection, query, onSnapshot, doc, updateDoc, orderBy, writeBatch, increment, serverTimestamp } from '../../firebaseConfig';
+import { db, collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, writeBatch, increment, serverTimestamp } from '../../firebaseConfig';
 import Papa from 'papaparse';
 import { Button } from '@/components/ui/button';
 import '../../components/ReviewDetailModal.css';
@@ -296,6 +296,22 @@ export default function AdminProductManagementPage() {
     }
   };
 
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return alert('삭제할 캠페인을 선택해주세요.');
+    if (!window.confirm(`선택된 ${selectedIds.length}개의 캠페인을 삭제하시겠습니까?`)) return;
+    try {
+      for (const id of selectedIds) {
+        await deleteDoc(doc(db, 'campaigns', id));
+      }
+      setCampaigns(prev => prev.filter(c => !selectedIds.includes(c.id)));
+      setSelectedIds([]);
+      alert('선택한 캠페인이 삭제되었습니다.');
+    } catch (error) {
+      console.error('캠페인 삭제 오류:', error);
+      alert('캠페인 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
   const openDetailModal = (text) => setDetailText(text);
   const closeDetailModal = () => setDetailText(null);
 
@@ -342,7 +358,7 @@ export default function AdminProductManagementPage() {
         <h2 className="text-2xl font-bold">캠페인 관리 ({filteredCampaigns.length})</h2>
         <div className="flex items-center space-x-2">
             <Button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">선택 항목 인증</Button>
-            <Button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">삭제</Button>
+            <Button onClick={handleDeleteSelected} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">삭제</Button>
             <Button onClick={handleDownloadExcel} className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700">엑셀 다운로드</Button>
         </div>
       </div>
