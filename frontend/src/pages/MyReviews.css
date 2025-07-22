@@ -1,4 +1,4 @@
-/* src/pages/MyReviews.css (최종 버전) */
+/* src/pages/MyReviews.css (색상 테마 적용 최종본) */
 
 /* 기본 페이지 레이아웃 */
 .my-wrap {
@@ -64,19 +64,39 @@
   border-radius: 12px;
   margin: 0 0 16px 0;
   background: #fff;
-  transition: opacity 0.3s, background-color 0.3s;
+  transition: all 0.3s ease;
   border-left: 5px solid transparent;
   display: flex;
   flex-direction: column;
   padding: 16px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
+
+/* ▼▼▼ [수정] 상태별 테두리 및 뱃지 색상 ▼▼▼ */
+/* 구매중 (신규) */
 .card.buying { border-left-color: #FF9800; }
+.card.buying .badge { background-color: #FF9800; }
+
+/* 구매완료 */
 .card.submitted { border-left-color: #2196F3; }
+.card.submitted .badge { background-color: #2196F3; }
+
+/* 리뷰완료 */
 .card.review-completed { border-left-color: #FFC107; }
+.card.review-completed .badge { background-color: #FFC107; color: #333; }
+
+/* 리뷰인증완료 */
 .card.verified { border-left-color: #4CAF50; }
+.card.verified .badge { background-color: #4CAF50; }
+
+/* 리뷰반려 */
 .card.rejected { border-left-color: #F44336; background-color: #fff5f5; }
+.card.rejected .badge { background-color: #F44336; }
+
+/* 정산완료 */
 .card.settled { opacity: 0.7; border-left-color: #9E9E9E; background-color: #fafafa; }
+.card.settled .badge { background-color: #9E9E9E; }
+/* ▲▲▲ 수정 완료 ▲▲▲ */
 
 /* 카드 헤더 */
 .card-head {
@@ -105,12 +125,6 @@
   font-weight: 600;
   line-height: 1.5;
 }
-.card.buying .badge { background-color: #FF9800; }
-.card.submitted .badge { background-color: #2196F3; }
-.card.review-completed .badge { background-color: #FFC107; color: #333; }
-.card.verified .badge { background-color: #4CAF50; }
-.card.rejected .badge { background-color: #F44336; }
-.card.settled .badge { background-color: #9E9E9E; }
 .badge.secondary {
   background-color: #78909c;
   color: #fff;
@@ -124,57 +138,17 @@
   margin-bottom: 16px;
   border: 1px solid #e9ecef;
 }
-.product-details h4 {
-  margin: 0 0 10px;
-  font-size: 16px;
-}
-.product-details p {
-  margin: 0 0 6px;
-  font-size: 14px;
-  color: #495057;
-  line-height: 1.5;
-}
-.guide-box {
-  margin-top: 12px;
-  border-top: 1px solid #e0e0e0;
-  padding-top: 12px;
-}
-.guide-box p {
-  white-space: pre-wrap;
-}
-.guide-box .toggle-btn {
-  margin-top: 8px;
-  background: none;
-  border: none;
-  color: #007bff;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 0;
-  height: auto;
-}
-.guide-box .toggle-btn:hover {
-  text-decoration: underline;
-}
+.product-details h4 { margin: 0 0 10px; font-size: 16px; }
+.product-details p { margin: 0 0 6px; font-size: 14px; color: #495057; line-height: 1.5; }
+.guide-box { margin-top: 12px; border-top: 1px solid #e0e0e0; padding-top: 12px; }
+.guide-box p { white-space: pre-wrap; }
+.guide-box .toggle-btn { margin-top: 8px; background: none; border: none; color: #007bff; cursor: pointer; font-size: 14px; padding: 0; height: auto; }
+.guide-box .toggle-btn:hover { text-decoration: underline; }
 
 /* 가격 및 반려 사유 */
-.price {
-  font-size: 20px;
-  font-weight: bold;
-  text-align: right;
-  margin-bottom: 16px;
-  color: #111;
-}
-.rejection-reason {
-  background-color: #ffebee;
-  border: 1px solid #ef9a9a;
-  padding: 12px;
-  margin-bottom: 16px;
-  border-radius: 4px;
-  font-size: 14px;
-}
-.rejection-reason strong {
-  color: #c62828;
-}
+.price { font-size: 20px; font-weight: bold; text-align: right; margin-bottom: 16px; color: #111; }
+.rejection-reason { background-color: #ffebee; border: 1px solid #ef9a9a; padding: 12px; margin-bottom: 16px; border-radius: 4px; font-size: 14px; }
+.rejection-reason strong { color: #c62828; }
 
 /* 버튼 영역 */
 .btn-wrap {
@@ -184,34 +158,54 @@
   padding-top: 16px;
   border-top: 1px solid #eee;
 }
+
+/* ▼▼▼ [수정] 버튼 기본 스타일 및 상태별 색상 적용 ▼▼▼ */
+/* 모든 버튼의 공통 스타일 */
 .btn-wrap button {
   flex: 1;
   padding: 12px 0;
   border: none;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   border-radius: 6px;
   cursor: pointer;
-  background: #007bff;
   color: #fff;
+  transition: background-color 0.2s;
 }
+
+/* 기본 버튼 (상세/수정) - 상태에 따라 색상 변경 */
+.btn-wrap button:not(.outline):not(.delete) {
+  background-color: #6c757d; /* 기본 회색 */
+}
+
+/* '리뷰 인증하기' 버튼 */
+.btn-wrap button.outline {
+  background: #343a40; /* 짙은 회색 */
+}
+
+/* '삭제' 버튼 */
+.btn-wrap button.delete {
+  background: #dc3545; /* 부드러운 빨강 */
+}
+
+/* 비활성화 버튼 */
 .btn-wrap button:disabled {
-  background-color: #f5f5f5;
-  color: #bdbdbd;
+  background-color: #f5f5f5 !important;
+  color: #bdbdbd !important;
   cursor: not-allowed;
   border: 1px solid #e0e0e0;
 }
-.btn-wrap button.outline {
-  background: #333;
-  color: #fff;
-}
-.btn-wrap button.delete {
-  background: #e53935;
-  color: #fff;
-}
 
+/* 상태별 메인 버튼 색상 오버라이드 */
+.card.buying .btn-wrap button:not(.outline):not(.delete) { background-color: #FF9800; }
+.card.submitted .btn-wrap button:not(.outline):not(.delete) { background-color: #2196F3; }
+.card.review-completed .btn-wrap button:not(.outline):not(.delete) { background-color: #FFC107; color: #333; }
+.card.verified .btn-wrap button:not(.outline):not(.delete) { background-color: #4CAF50; }
+.card.rejected .btn-wrap button:not(.outline):not(.delete) { background-color: #F44336; }
+/* 정산완료(settled)는 모든 버튼이 비활성화되므로 별도 색상 지정이 불필요합니다. */
+/* ▲▲▲ 수정 완료 ▲▲▲ */
 
-/* 모달 공통 스타일 */
+/* 모달 및 기타 스타일 (기존과 동일) */
 .modal-back {
   position: fixed;
   inset: 0;
@@ -247,163 +241,28 @@
   height: 32px;
   line-height: 32px;
 }
-.modal .close:hover {
-  color: #333;
-}
-
-/* 구매내역 모달 상세 스타일 */
-.detail-view h3 {
-  text-align: center;
-  margin-top: 0;
-  margin-bottom: 24px;
-  font-size: 18px;
-  font-weight: 600;
-}
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-.detail-view .field {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 12px;
-}
-.detail-view .field label {
-  font-size: 14px;
-  color: #555;
-  margin-bottom: 6px;
-}
-.detail-view .field p {
-  margin: 0;
-  padding: 10px 8px;
-  font-size: 15px;
-  border: 1px solid transparent;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-}
-.detail-view .field input,
-.detail-view .field select {
-  padding: 8px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #fff;
-  height: 40px;
-}
-.modal-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 24px;
-}
-.modal-actions button {
-  flex: 1;
-  padding: 12px;
-  font-size: 16px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-}
-.modal-actions button:first-child {
-  background: #000;
-  color: #fff;
-}
-.modal-actions button.secondary {
-  background: #e0e0e0;
-  color: #333;
-}
-.modal-actions button:disabled {
-  background: #f5f5f5;
-  color: #bdbdbd;
-  cursor: not-allowed;
-}
-
-/* 여러 이미지 표시를 위한 스타일 */
-.detail-view .field.full-width {
-  grid-column: 1 / -1;
-}
-.preview-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 4px;
-  padding: 10px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-}
-.detail-view .thumb {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  background-color: #fff;
-  cursor: zoom-in;
-}
-
-/* 로그인 모달 열기 버튼 */
-.login-open-btn {
-  padding: 14px 20px;
-  font-size: 18px;
-  border: none;
-  border-radius: 8px;
-  background: #000;
-  color: #fff;
-  cursor: pointer;
-  margin-top: 20px;
-}
-
-/* 파일 이름 목록 스타일 */
-.file-list {
-  margin-top: 8px;
-  font-size: 13px;
-  color: #555;
-  background-color: #f8f9fa;
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #e9ecef;
-  min-height: 40px;
-}
-.file-list-placeholder {
-  color: #999;
-  font-style: italic;
-}
-
-/* 기존 이미지 래퍼 및 삭제 버튼 */
-.image-item-wrapper {
-  position: relative;
-  display: inline-block;
-}
-.delete-image-btn {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background-color: rgba(244, 67, 54, 0.9);
-  color: white;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: bold;
-  line-height: 1;
-  padding: 0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-.delete-image-btn:hover {
-  background-color: #F44336;
-}
+.modal .close:hover { color: #333; }
+.detail-view h3 { text-align: center; margin-top: 0; margin-bottom: 24px; font-size: 18px; font-weight: 600; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.detail-view .field { display: flex; flex-direction: column; margin-bottom: 12px; }
+.detail-view .field label { font-size: 14px; color: #555; margin-bottom: 6px; }
+.detail-view .field p { margin: 0; padding: 10px 8px; font-size: 15px; border: 1px solid transparent; background-color: #f8f9fa; border-radius: 4px; min-height: 40px; display: flex; align-items: center; }
+.detail-view .field input, .detail-view .field select { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; background: #fff; height: 40px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 24px; }
+.modal-actions button { flex: 1; padding: 12px; font-size: 16px; border-radius: 6px; border: none; cursor: pointer; }
+.modal-actions button:first-child { background: #000; color: #fff; }
+.modal-actions button.secondary { background: #e0e0e0; color: #333; }
+.modal-actions button:disabled { background: #f5f5f5; color: #bdbdbd; cursor: not-allowed; }
+.detail-view .field.full-width { grid-column: 1 / -1; }
+.preview-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; padding: 10px; background-color: #f8f9fa; border-radius: 4px; }
+.detail-view .thumb { width: 80px; height: 80px; object-fit: cover; border: 1px solid #eee; border-radius: 4px; background-color: #fff; cursor: zoom-in; }
+.login-open-btn { padding: 14px 20px; font-size: 18px; border: none; border-radius: 8px; background: #000; color: #fff; cursor: pointer; margin-top: 20px; }
+.file-list { margin-top: 8px; font-size: 13px; color: #555; background-color: #f8f9fa; padding: 8px; border-radius: 4px; border: 1px solid #e9ecef; min-height: 40px; }
+.file-list-placeholder { color: #999; font-style: italic; }
+.image-item-wrapper { position: relative; display: inline-block; }
+.delete-image-btn { position: absolute; top: -5px; right: -5px; width: 20px; height: 20px; border-radius: 50%; background-color: rgba(244, 67, 54, 0.9); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; line-height: 1; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.delete-image-btn:hover { background-color: #F44336; }
 
 @media (max-width: 480px) {
-  /* 모바일에서 2단 그리드를 1단으로 변경 */
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
+  .form-grid { grid-template-columns: 1fr; }
 }
