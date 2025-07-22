@@ -731,14 +731,52 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                 {/* --- 이하 코드는 변경사항 없음 --- */}
                 <Card>
                     <CardHeader><CardTitle>견적 목록(스프레드시트)</CardTitle><CardDescription>결제를 진행할 캠페인 목록입니다.<br/>- 품절 등으로 진행 불가 시 상품가만 예치금으로 전환됩니다.<br/>- 대표님 귀책 사유로 세금계산서 변경 시 수수료 10,000원 부과됩니다.<br/>- 견적 상세 = [체험단 진행비 + 상품가 × (1 + 대행수수료 10%)] × 수량 {isVatApplied && "× (1 + 부가세 10%)"}</CardDescription></CardHeader>
-                    <CardContent><div className="border rounded-md"><Table><TableHeader><TableRow>{['일자', '구분', '리뷰', '수량', '상품명', '상품가', '최종금액', '삭제'].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow></TableHeader><TableBody>{campaigns.length === 0 ? (<TableRow><TableCell colSpan="8" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>) : (campaigns.map((c) => {
+                    <CardContent><div className="border rounded-md"><Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>일자</TableHead>
+                                <TableHead className="text-center">구분</TableHead>
+                                <TableHead className="text-center">리뷰</TableHead>
+                                <TableHead className="text-center">수량</TableHead>
+                                <TableHead>상품명</TableHead>
+                                <TableHead className="text-center">결제 금액</TableHead>
+                                <TableHead>삭제</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>{campaigns.length === 0 ? (<TableRow><TableCell colSpan="7" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>) : (campaigns.map((c) => {
                         const cDate = c.date instanceof Date ? c.date : new Date();
                         const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
                         const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
                         const subtotal = (reviewFee + productPriceWithAgencyFee) * Number(c.quantity);
                         const finalAmount = isVatApplied ? subtotal * 1.1 : subtotal;
                         
-                        return (<TableRow key={c.id}><TableCell className={cDate.getDay() === 0 ? 'text-destructive font-semibold' : ''}>{formatDateWithDay(cDate)}</TableCell><TableCell><Badge variant="outline">{c.deliveryType}</Badge></TableCell><TableCell><Badge>{c.reviewType}</Badge></TableCell><TableCell>{c.quantity}</TableCell><TableCell className="font-medium">{c.productName}</TableCell><TableCell className="text-right">{Number(c.productPrice).toLocaleString()}원</TableCell><TableCell className="font-semibold text-right">{Math.round(finalAmount).toLocaleString()}원</TableCell><TableCell><Button variant="ghost" size="icon" onClick={() => handleDeleteCampaign(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell></TableRow>);
+                        return (
+                            <TableRow key={c.id}>
+                                <TableCell className={cDate.getDay() === 0 ? 'text-destructive font-semibold' : ''}>
+                                    {formatDateWithDay(cDate)}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <Badge variant="outline">{c.deliveryType}</Badge>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <Badge>{c.reviewType}</Badge>
+                                </TableCell>
+                                <TableCell className="text-center">{c.quantity}</TableCell>
+                                <TableCell className="font-medium">{c.productName}</TableCell>
+                                <TableCell className="font-semibold text-center">
+                                    {Math.round(finalAmount).toLocaleString()}원
+                                </TableCell>
+                                <TableCell>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleDeleteCampaign(c.id)}
+                                    >
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        );
                     }))}</TableBody></Table></div></CardContent>
                     {campaigns.length > 0 && (<CardFooter className="flex flex-col items-end gap-2 text-right">
                         <div className="text-sm text-muted-foreground">공급가액 합계: {totalSubtotal.toLocaleString()}원</div>
