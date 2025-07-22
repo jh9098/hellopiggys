@@ -356,6 +356,7 @@ export default function SellerReservationPage() {
         const batch = writeBatch(db);
         const sellerDocRef = doc(db, 'sellers', user.uid);
         const isFullDepositPayment = remainingPayment <= 0;
+        const groupId = nanoid();
 
         campaigns.forEach(campaign => {
             const campaignRef = doc(collection(db, 'campaigns'));
@@ -370,6 +371,7 @@ export default function SellerReservationPage() {
             batch.set(campaignRef, {
                 ...campaignData,
                 sellerUid: user.uid,
+                groupId,
                 createdAt: serverTimestamp(),
                 status: '예약 대기',
                 paymentReceived: isFullDepositPayment,
@@ -739,16 +741,18 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                 <TableHead className="text-center">리뷰</TableHead>
                                 <TableHead className="text-center">수량</TableHead>
                                 <TableHead>상품명</TableHead>
+                                <TableHead className="text-center">개별견적</TableHead>
                                 <TableHead className="text-center">결제 금액</TableHead>
                                 <TableHead>삭제</TableHead>
                             </TableRow>
                         </TableHeader>
-                        <TableBody>{campaigns.length === 0 ? (<TableRow><TableCell colSpan="7" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>) : (campaigns.map((c) => {
+                        <TableBody>{campaigns.length === 0 ? (<TableRow><TableCell colSpan="8" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>) : (campaigns.map((c) => {
                         const cDate = c.date instanceof Date ? c.date : new Date();
                         const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
                         const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
-                        const subtotal = (reviewFee + productPriceWithAgencyFee) * Number(c.quantity);
-                        const finalAmount = isVatApplied ? subtotal * 1.1 : subtotal;
+                        const subtotal = reviewFee + productPriceWithAgencyFee;
+                        const unitFinal = isVatApplied ? subtotal * 1.1 : subtotal;
+                        const finalAmount = unitFinal * Number(c.quantity);
                         
                         return (
                             <TableRow key={c.id}>
@@ -763,6 +767,9 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                 </TableCell>
                                 <TableCell className="text-center">{c.quantity}</TableCell>
                                 <TableCell className="font-medium">{c.productName}</TableCell>
+                                <TableCell className="text-center">
+                                    {Math.round(unitFinal).toLocaleString()}원
+                                </TableCell>
                                 <TableCell className="font-semibold text-center">
                                     {Math.round(finalAmount).toLocaleString()}원
                                 </TableCell>
@@ -825,13 +832,14 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                         <TableHead className="w-[60px] text-center">수량</TableHead>
                                         <TableHead className="w-[60px] text-center">입금</TableHead>
                                         <TableHead className="w-[100px] text-center">상태</TableHead>
+                                        <TableHead className="w-[120px] text-center">개별견적</TableHead>
                                         <TableHead className="w-[120px] text-center">최종금액</TableHead>
                                         <TableHead className="w-[80px] text-center">관리</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {savedCampaigns.length === 0 ? (
-                                        <TableRow><TableCell colSpan="10" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan="11" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
                                     ) : (
                                         savedCampaigns.map(c => {
                                             const row = editedRows[c.id] || {};
@@ -841,8 +849,9 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                             const cDate = c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date();
                                             const reviewFee = getBasePrice(deliveryType, reviewType) + (cDate.getDay() === 0 ? 600 : 0);
                                             const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
-                                            const subtotal = (reviewFee + productPriceWithAgencyFee) * quantity;
-                                            const finalAmount = c.isVatApplied ? subtotal * 1.1 : subtotal;
+                                            const unitSubtotal = reviewFee + productPriceWithAgencyFee;
+                                            const unitFinal = c.isVatApplied ? unitSubtotal * 1.1 : unitSubtotal;
+                                            const finalAmount = unitFinal * quantity;
 
                                             return (
                                                 <TableRow key={c.id}>
@@ -892,6 +901,7 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                                         />
                                                     </TableCell>
                                                     <TableCell className="text-center"><Badge variant={c.status === '예약 확정' ? 'default' : c.status === '예약 대기' ? 'secondary' : 'destructive'}>{c.status}</Badge></TableCell>
+                                                    <TableCell className="text-center">{Math.round(unitFinal || 0).toLocaleString()}원</TableCell>
                                                     <TableCell className="text-center">{Math.round(finalAmount || 0).toLocaleString()}원</TableCell>
                                                     <TableCell className="text-center space-x-2">
                                                         <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmation({ type: 'single', ids: [c.id] })}>
