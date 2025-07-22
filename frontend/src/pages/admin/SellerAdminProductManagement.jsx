@@ -85,6 +85,21 @@ export default function AdminProductManagementPage() {
     return filteredCampaigns.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredCampaigns, currentPage]);
 
+  function computeAmounts(c) {
+    const basePrice = getBasePrice(c.deliveryType, c.reviewType);
+    const dateObj = c.date?.seconds ? new Date(c.date.seconds * 1000) : c.date ? new Date(c.date) : new Date();
+    const sundayExtraCharge = dateObj.getDay() === 0 ? 600 : 0;
+    const reviewFee = c.reviewFee ?? basePrice + sundayExtraCharge;
+    const productPrice = Number(c.productPrice || 0);
+    const productPriceWithAgency = c.productPriceWithAgencyFee ?? productPrice * 1.1;
+    const quantity = Number(c.quantity || 0);
+    const subtotal = (reviewFee + productPriceWithAgency) * quantity;
+    const itemTotal = c.subtotal ?? c.itemTotal ?? Math.round(subtotal);
+    const finalItemAmount = c.finalTotalAmount ?? c.finalItemAmount ?? Math.round((c.isVatApplied ? itemTotal * 1.1 : itemTotal));
+    const commission = finalItemAmount - itemTotal;
+    return { basePrice, sundayExtraCharge, reviewFee, productPrice, quantity, itemTotal, finalItemAmount, commission };
+  }
+
   const groupedCampaigns = useMemo(() => {
     const groups = {};
     paginatedCampaigns.forEach((c) => {
@@ -233,20 +248,8 @@ export default function AdminProductManagementPage() {
     return 0;
   };
 
-  function computeAmounts(c) {
-    const basePrice = getBasePrice(c.deliveryType, c.reviewType);
-    const dateObj = c.date?.seconds ? new Date(c.date.seconds * 1000) : c.date ? new Date(c.date) : new Date();
-    const sundayExtraCharge = dateObj.getDay() === 0 ? 600 : 0;
-    const reviewFee = c.reviewFee ?? basePrice + sundayExtraCharge;
-    const productPrice = Number(c.productPrice || 0);
-    const productPriceWithAgency = c.productPriceWithAgencyFee ?? productPrice * 1.1;
-    const quantity = Number(c.quantity || 0);
-    const subtotal = (reviewFee + productPriceWithAgency) * quantity;
-    const itemTotal = c.subtotal ?? c.itemTotal ?? Math.round(subtotal);
-    const finalItemAmount = c.finalTotalAmount ?? c.finalItemAmount ?? Math.round((c.isVatApplied ? itemTotal * 1.1 : itemTotal));
-    const commission = finalItemAmount - itemTotal;
-    return { basePrice, sundayExtraCharge, reviewFee, productPrice, quantity, itemTotal, finalItemAmount, commission };
-  }
+
+
 
   const openDetailModal = (text) => setDetailText(text);
   const closeDetailModal = () => setDetailText(null);
