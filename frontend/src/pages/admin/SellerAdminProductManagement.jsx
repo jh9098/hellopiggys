@@ -349,7 +349,7 @@ export default function AdminProductManagementPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-                {groupedCampaigns.flatMap((group, gIdx) =>
+                {groupedCampaigns.map((group, gIdx) =>
                   group.items.map((c, index) => {
                     const { basePrice, sundayExtraCharge, productPrice, quantity, itemTotal, finalItemAmount, commission } = computeAmounts(c);
                     return (
@@ -399,7 +399,7 @@ export default function AdminProductManagementPage() {
                       <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
                     </tr>
                   );
-                })
+                  }))
                 )}
             </tbody>
           </table>
