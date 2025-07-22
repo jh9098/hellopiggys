@@ -525,18 +525,6 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
         setConfirmationDialogData({ ids: targets, checked: true });
     };
 
-    if (isLoading) return <div className="flex justify-center items-center h-screen"><p>데이터를 불러오는 중입니다...</p></div>;
-    
-    const { totalSubtotal, totalVat, totalAmount, amountToUseFromDeposit, remainingPayment } = calculateTotals(campaigns);
-    const totalFinalForEstimate = campaigns.reduce((sum, c) => {
-        const cDate = c.date instanceof Date ? c.date : new Date();
-        const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
-        const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
-        const subtotal = (reviewFee + productPriceWithAgencyFee) * Number(c.quantity);
-        const finalAmount = isVatApplied ? subtotal * 1.1 : subtotal;
-        return sum + Math.round(finalAmount);
-    }, 0);
-
     const groupedSavedCampaigns = useMemo(() => {
         const groups = {};
         savedCampaigns.forEach((c) => {
@@ -552,6 +540,18 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
         });
         return Object.values(groups).sort((a, b) => (b.key - a.key));
     }, [savedCampaigns]);
+
+    if (isLoading) return <div className="flex justify-center items-center h-screen"><p>데이터를 불러오는 중입니다...</p></div>;
+
+    const { totalSubtotal, totalVat, totalAmount, amountToUseFromDeposit, remainingPayment } = calculateTotals(campaigns);
+    const totalFinalForEstimate = campaigns.reduce((sum, c) => {
+        const cDate = c.date instanceof Date ? c.date : new Date();
+        const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
+        const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
+        const subtotal = (reviewFee + productPriceWithAgencyFee) * Number(c.quantity);
+        const finalAmount = isVatApplied ? subtotal * 1.1 : subtotal;
+        return sum + Math.round(finalAmount);
+    }, 0);
 
     const pendingDepositCount = savedCampaigns.filter(c => selectedSavedCampaigns.includes(c.id) && !c.paymentReceived).length;
 
