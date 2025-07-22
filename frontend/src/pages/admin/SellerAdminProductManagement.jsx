@@ -80,10 +80,107 @@ export default function AdminProductManagementPage() {
     return statusMatch && searchMatch;
   });
 
-  const paginatedCampaigns = useMemo(() => {
+  const getBasePrice = (deliveryType, reviewType) => {
+    if (deliveryType === '실배송') {
+      switch (reviewType) {
+        case '별점': return 1600;
+        case '텍스트': return 1700;
+        case '포토': return 1800;
+        case '프리미엄(포토)': return 4000;
+        case '프리미엄(영상)': return 5000;
+        default: return 0;
+      }
+    } else if (deliveryType === '빈박스') {
+      return (reviewType === '별점' || reviewType === '텍스트') ? 5400 : 0;
+    }
+    return 0;
+  };
+
+  const computeAmounts = (c) => {
+    const basePrice = getBasePrice(c.deliveryType, c.reviewType);
+    const dateObj = c.date?.seconds ? new Date(c.date.seconds * 1000) : c.date ? new Date(c.date) : new Date();
+    const sundayExtraCharge = dateObj.getDay() === 0 ? 600 : 0;
+    const reviewFee = c.reviewFee ?? basePrice + sundayExtraCharge;
+    const productPrice = Number(c.productPrice || 0);
+    const productPriceWithAgency = c.productPriceWithAgencyFee ?? productPrice * 1.1;
+    const quantity = Number(c.quantity || 0);
+    const subtotal = (reviewFee + productPriceWithAgency) * quantity;
+    const itemTotal = c.subtotal ?? c.itemTotal ?? Math.round(subtotal);
+    const finalItemAmount = c.finalTotalAmount ?? c.finalItemAmount ?? Math.round((c.isVatApplied ? itemTotal * 1.1 : itemTotal));
+    const commission = finalItemAmount - itemTotal;
+    return { basePrice, sundayExtraCharge, reviewFee, productPrice, quantity, itemTotal, finalItemAmount, commission };
+  };
+
+  const groupedAndPaginatedCampaigns = useMemo(() => {
+    // 1. Grouping by createdAt timestamp (like in SellerReservation)
+    const groups = {};
+    filteredCampaigns.forEach((c) => {
+        const key = c.createdAt?.seconds || c.id; // Fallback to id for old/malformed data
+        if (!groups[key]) {
+            groups[key] = {
+                key,
+                items: [],
+                total: 0,
+                createdAt: c.createdAt // For sorting
+            };
+        }
+        groups[key].items.push(c);
+        const { finalItemAmount } = computeAmounts(c);
+        groups[key].total += finalItemAmount;
+    });
+
+    // 2. Sort groups by creation time (descending)
+    const sortedGroups = Object.values(groups).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+    // 3. Flatten the structure with group information
+    const flattened = [];
+    let groupCounter = 1;
+    sortedGroups.forEach(group => {
+        group.items.forEach((item, iIdx) => {
+            flattened.push({
+                ...item,
+                groupInfo: {
+                    isFirstInGroup: iIdx === 0,
+                    size: group.items.length,
+                    total: group.total,
+                    id: group.key,
+                    displayIndex: groupCounter,
+                }
+            });
+        });
+        groupCounter++;
+    });
+
+    // 4. Paginate the flattened list
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredCampaigns.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredCampaigns, currentPage]);
+    const paginatedFlattened = flattened.slice(startIndex, startIndex + itemsPerPage);
+
+    // 5. Post-process the paginated list to calculate correct rowSpans for the current page
+    const finalPaginatedItems = [];
+    const processedGroupIdsOnPage = new Set();
+
+    paginatedFlattened.forEach(item => {
+        const { groupInfo } = item;
+        let rowSpan = 0;
+        let shouldRenderGroupCells = false;
+        
+        if (!processedGroupIdsOnPage.has(groupInfo.id)) {
+            shouldRenderGroupCells = true;
+            processedGroupIdsOnPage.add(groupInfo.id);
+            rowSpan = paginatedFlattened.filter(pItem => pItem.groupInfo.id === groupInfo.id).length;
+        }
+
+        finalPaginatedItems.push({
+            ...item,
+            renderInfo: {
+                shouldRender: shouldRenderGroupCells,
+                rowSpan: rowSpan,
+            }
+        });
+    });
+
+    return finalPaginatedItems;
+  }, [filteredCampaigns, currentPage, itemsPerPage]);
 
   const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
   useEffect(() => {
@@ -96,7 +193,7 @@ export default function AdminProductManagementPage() {
   
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedIds(paginatedCampaigns.map(c => c.id));
+      setSelectedIds(groupedAndPaginatedCampaigns.map(c => c.id));
     } else {
       setSelectedIds([]);
     }
@@ -199,37 +296,6 @@ export default function AdminProductManagementPage() {
     }
   };
 
-  const getBasePrice = (deliveryType, reviewType) => {
-    if (deliveryType === '실배송') {
-      switch (reviewType) {
-        case '별점': return 1600;
-        case '텍스트': return 1700;
-        case '포토': return 1800;
-        case '프리미엄(포토)': return 4000;
-        case '프리미엄(영상)': return 5000;
-        default: return 0;
-      }
-    } else if (deliveryType === '빈박스') {
-      return (reviewType === '별점' || reviewType === '텍스트') ? 5400 : 0;
-    }
-    return 0;
-  };
-
-  const computeAmounts = (c) => {
-    const basePrice = getBasePrice(c.deliveryType, c.reviewType);
-    const dateObj = c.date?.seconds ? new Date(c.date.seconds * 1000) : c.date ? new Date(c.date) : new Date();
-    const sundayExtraCharge = dateObj.getDay() === 0 ? 600 : 0;
-    const reviewFee = c.reviewFee ?? basePrice + sundayExtraCharge;
-    const productPrice = Number(c.productPrice || 0);
-    const productPriceWithAgency = c.productPriceWithAgencyFee ?? productPrice * 1.1;
-    const quantity = Number(c.quantity || 0);
-    const subtotal = (reviewFee + productPriceWithAgency) * quantity;
-    const itemTotal = c.subtotal ?? c.itemTotal ?? Math.round(subtotal);
-    const finalItemAmount = c.finalTotalAmount ?? c.finalItemAmount ?? Math.round((c.isVatApplied ? itemTotal * 1.1 : itemTotal));
-    const commission = finalItemAmount - itemTotal;
-    return { basePrice, sundayExtraCharge, reviewFee, productPrice, quantity, itemTotal, finalItemAmount, commission };
-  };
-
   const openDetailModal = (text) => setDetailText(text);
   const closeDetailModal = () => setDetailText(null);
 
@@ -254,8 +320,7 @@ export default function AdminProductManagementPage() {
         '닉네임': sellersMap[c.sellerUid]?.nickname || '',
         '전화번호': toText(sellersMap[c.sellerUid]?.phone || ''),
         '입금확인': c.depositConfirmed ? 'Y' : 'N',
-        '견적 상세': `(리뷰 ${basePrice.toLocaleString()}${sundayExtraCharge > 0 ? ` + 공휴일 ${sundayExtraCharge.toLocaleString()}` : ''} + 상품가 ${productPrice.toLocaleString()} x 1.1) x ${quantity}개${c.isVatApplied ? ' x 1.1' : ''}`,
-        '총 견적': `${finalItemAmount.toLocaleString()}원`,
+        '개별견적': `${finalItemAmount.toLocaleString()}원`,
         '작업': '반려',
       };
     });
@@ -299,16 +364,15 @@ export default function AdminProductManagementPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={paginatedCampaigns.length > 0 && paginatedCampaigns.every(c => selectedIds.includes(c.id))} /></th>
+                <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={groupedAndPaginatedCampaigns.length > 0 && groupedAndPaginatedCampaigns.every(c => selectedIds.includes(c.id))} /></th>
+                <th className={thClass}>상품군</th>
                 <th className={thClass}>순번</th>
-                {/* [수정 1] 컬럼명 변경 */}
                 <th className={thClass}>예약 등록 일자</th>
                 <th className={thClass}>진행일자</th>
                 <th className={thClass}>구분</th>
                 <th className={thClass}>리뷰 종류</th>
                 <th className={thClass}>체험단 개수</th>
                 <th className={thClass}>상품명</th>
-                {/* [수정 3] 컬럼 순서 변경 */}
                 <th className={thClass}>옵션</th>
                 <th className={thClass}>상품가</th>
                 <th className={thClass}>키워드</th>
@@ -317,59 +381,65 @@ export default function AdminProductManagementPage() {
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-red-50">판매자<br/>입금체크</th>
                 <th className={thClass}>닉네임</th>
                 <th className={thClass}>전화번호</th>
-                {/* [수정 2] 컬럼명 변경 */}
                 <th className={thClass}>입금확인<br/>(예약확정)</th>
-                <th className={thClass} style={{ minWidth: '90px' }}>견적 상세</th>
-                <th className={thClass} style={{ minWidth: '90px' }}>총 견적</th>
-                {/* [수정 4] 불필요한 컬럼 제거 */}
+                <th className={thClass}>개별견적</th>
+                <th className={thClass}>결제금액</th>
                 <th className={thClass}>작업</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedCampaigns.map((c, index) => {
-                  const { basePrice, sundayExtraCharge, productPrice, quantity, itemTotal, finalItemAmount, commission } = computeAmounts(c);
-                  return (
-                    <tr key={c.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                      {/* [수정 1] 날짜 포맷팅 적용 */}
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{formatDate(c.createdAt)}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '-'}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">{c.deliveryType}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">{c.reviewType}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">{c.quantity}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.productName}</td>
-                      {/* [수정 3] 컬럼 순서 변경 */}
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">{c.productOption}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">{Number(c.productPrice).toLocaleString()}원</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">{c.keywords}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm"><a href={toAbsoluteUrl(c.productUrl)} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">링크</a></td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.status === '리뷰완료' ? 'bg-blue-100 text-blue-800' : c.status === '예약 확정' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{c.status}</span>
-                        {c.status === '예약 확정' && (
-                          <button onClick={() => handleCancelReservation(c.id)} className="ml-2 text-red-600 underline text-xs">취소</button>
-                        )}
-                      </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-center bg-red-50">{c.paymentReceived ? '✔️' : ''}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[c.sellerUid]?.nickname}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[c.sellerUid]?.phone}</td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">
-                        <input 
-                            type="checkbox" 
-                            checked={!!c.depositConfirmed} 
-                            onChange={(e) => handleConfirmDeposit(c.id, e.target.checked)} 
-                            disabled={c.status === '예약 확정'}
-                        />
-                      </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm" style={{ minWidth: '90px' }}>
-                        <button onClick={() => openDetailModal(`(리뷰 ${basePrice.toLocaleString()}${sundayExtraCharge > 0 ? ` + 공휴일 ${sundayExtraCharge.toLocaleString()}` : ''} + 상품가 ${productPrice.toLocaleString()} x 1.1) x ${quantity}개${c.isVatApplied ? ' x 1.1' : ''}`)} className="text-blue-600 underline">상세보기</button>
-                      </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm" style={{ minWidth: '90px' }}>{finalItemAmount.toLocaleString()}원</td>
-                      {/* [수정 4] 불필요한 컬럼 제거 */}
-                      <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
-                    </tr>
-                  );
-                })}
+                {groupedAndPaginatedCampaigns.length === 0 ? (
+                    <tr><td colSpan="21" className="text-center py-10">데이터가 없습니다.</td></tr>
+                ) : (
+                    groupedAndPaginatedCampaigns.map((c, index) => {
+                      const { finalItemAmount } = computeAmounts(c);
+                      return (
+                        <tr key={c.id} className="hover:bg-gray-50">
+                          <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
+                          
+                          {c.renderInfo.shouldRender && (
+                            <td rowSpan={c.renderInfo.rowSpan} className="px-3 py-4 whitespace-nowrap text-sm text-center align-middle font-semibold">{`상품군 ${c.groupInfo.displayIndex}`}</td>
+                          )}
+
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{formatDate(c.createdAt)}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '-'}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">{c.deliveryType}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">{c.reviewType}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">{c.quantity}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.productName}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">{c.productOption}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">{Number(c.productPrice).toLocaleString()}원</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">{c.keywords}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm"><a href={toAbsoluteUrl(c.productUrl)} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">링크</a></td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.status === '리뷰완료' ? 'bg-blue-100 text-blue-800' : c.status === '예약 확정' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{c.status}</span>
+                            {c.status === '예약 확정' && (
+                              <button onClick={() => handleCancelReservation(c.id)} className="ml-2 text-red-600 underline text-xs">취소</button>
+                            )}
+                          </td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-center bg-red-50">{c.paymentReceived ? '✔️' : ''}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[c.sellerUid]?.nickname}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[c.sellerUid]?.phone}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">
+                            <input 
+                                type="checkbox" 
+                                checked={!!c.depositConfirmed} 
+                                onChange={(e) => handleConfirmDeposit(c.id, e.target.checked)} 
+                                disabled={c.status === '예약 확정'}
+                            />
+                          </td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">{finalItemAmount.toLocaleString()}원</td>
+                          
+                          {c.renderInfo.shouldRender && (
+                             <td rowSpan={c.renderInfo.rowSpan} className="px-3 py-4 whitespace-nowrap text-sm text-right align-middle font-semibold">{c.groupInfo.total.toLocaleString()}원</td>
+                          )}
+
+                          <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
+                        </tr>
+                      );
+                    })
+                )}
             </tbody>
           </table>
         )}
