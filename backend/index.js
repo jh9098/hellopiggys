@@ -138,6 +138,52 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
   }
 });
 
+/* 계정 병합 (관리자 전용) */
+app.post('/api/merge-accounts', adminAuth, async (req, res) => {
+  const { destUid, destPhone, sourceUid, sourcePhone } = req.body || {};
+  if (!destUid || !destPhone || !sourceUid || !sourcePhone) {
+    return res.status(400).json({ error: 'missing params' });
+  }
+  try {
+    const destUserRef = db.collection('users').doc(destUid);
+    const sourceUserRef = db.collection('users').doc(sourceUid);
+    const [destUserSnap, sourceUserSnap, destPhoneSnap, sourcePhoneSnap] = await Promise.all([
+      destUserRef.get(),
+      sourceUserRef.get(),
+      db.collection('users_by_phone').doc(destPhone).get(),
+      db.collection('users_by_phone').doc(sourcePhone).get(),
+    ]);
+    if (!destUserSnap.exists || !sourceUserSnap.exists) {
+      return res.status(404).json({ error: 'user not found' });
+    }
+    if (!destPhoneSnap.exists || !sourcePhoneSnap.exists) {
+      return res.status(404).json({ error: 'phone not found' });
+    }
+    if (destPhoneSnap.data().uid !== destUid || sourcePhoneSnap.data().uid !== sourceUid) {
+      return res.status(400).json({ error: 'uid mismatch' });
+    }
+
+    const updateCollection = async (col) => {
+      const snap = await db.collection(col).where('mainAccountId', '==', sourceUid).get();
+      const batch = db.batch();
+      snap.forEach((d) => batch.update(d.ref, { mainAccountId: destUid }));
+      await batch.commit();
+    };
+
+    await updateCollection('reviews');
+    await updateCollection('subAccounts');
+    await updateCollection('addresses');
+
+    await sourceUserRef.delete();
+    await db.collection('users_by_phone').doc(sourcePhone).delete();
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[POST] /api/merge-accounts', err);
+    res.status(500).json({ error: 'internal' });
+  }
+});
+
 /* ---------- 서버 스타트 ---------- */
 app.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);
