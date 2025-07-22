@@ -1,6 +1,4 @@
-// src/pages/seller/SellerReservation.jsx (요청사항 최종 반영본)
-
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, memo } from 'react'; // 'memo'를 import합니다.
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, signOut, deleteDoc, addDoc } from '../../firebaseConfig';
 import { nanoid } from 'nanoid';
@@ -59,7 +57,9 @@ const formatDateWithDay = (date) => {
     return format(date, 'yyyy.MM.dd(EEE)', { locale: ko });
 };
 
-// [수정] 컴포넌트들을 메인 컴포넌트 밖으로 이동
+
+// --- 독립 컴포넌트들 ---
+
 function CoupangSearchResults({ results, isLoading, error }) {
     if (isLoading) return <div className="p-4 text-center text-muted-foreground">검색 중입니다...</div>;
     if (error) return <div className="p-4 text-center text-destructive">{error}</div>;
@@ -106,7 +106,6 @@ function CoupangSearchResults({ results, isLoading, error }) {
     );
 }
 
-// ✅ [수정] PriceListDialog 컴포넌트를 SellerReservationPage 밖으로 이동시켰습니다.
 function PriceListDialog() {
     return (
         <Dialog>
@@ -116,9 +115,30 @@ function PriceListDialog() {
     );
 }
 
+// ✅ [수정] FullCalendar의 dayCellContent를 위한 독립적인 메모이제이션 컴포넌트 생성
+const DayCellContent = memo(({ dayCellInfo, capacities, calendarCampaigns }) => {
+    const dateStr = formatDateForCalendar(dayCellInfo.date);
+    const capacity = capacities[dateStr] || 0;
+    const dailyEvents = calendarCampaigns.filter(c => c.status === '예약 확정' && formatDateForCalendar(c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date)) === dateStr);
+    const totalQuantity = dailyEvents.reduce((sum, event) => sum + Number(event.quantity || 0), 0);
+    const remaining = capacity - totalQuantity;
+    const remainingColor = remaining > 0 ? 'text-blue-600' : 'text-destructive';
 
+    return (
+        <div className="flex flex-col h-full p-1">
+            <div className="text-right text-xs text-muted-foreground">{dayCellInfo.dayNumberText}</div>
+            <div className="flex flex-col items-center justify-center flex-grow">
+                <div className="text-[10px] text-muted-foreground">잔여</div>
+                <span className={`text-lg font-bold ${remainingColor}`}>{remaining}</span>
+            </div>
+        </div>
+    );
+});
+DayCellContent.displayName = 'DayCellContent'; // 디버깅을 위한 이름 설정
+
+
+// --- 메인 컴포넌트 ---
 export default function SellerReservationPage() {
-    // ... (컴포넌트 내부 로직은 이전과 동일) ...
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
@@ -444,25 +464,6 @@ export default function SellerReservationPage() {
         setSearchKeyword(value);
     };
 
-    const renderDayCell = (dayCellInfo) => {
-        const dateStr = formatDateForCalendar(dayCellInfo.date);
-        const capacity = capacities[dateStr] || 0;
-        const dailyEvents = calendarCampaigns.filter(c => c.status === '예약 확정' && formatDateForCalendar(c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date)) === dateStr);
-        const totalQuantity = dailyEvents.reduce((sum, event) => sum + Number(event.quantity || 0), 0);
-        const remaining = capacity - totalQuantity;
-        const remainingColor = remaining > 0 ? 'text-blue-600' : 'text-destructive';
-
-        return (
-            <div className="flex flex-col h-full p-1">
-                <div className="text-right text-xs text-muted-foreground">{dayCellInfo.dayNumberText}</div>
-                <div className="flex flex-col items-center justify-center flex-grow">
-                    <div className="text-[10px] text-muted-foreground">잔여</div>
-                    <span className={`text-lg font-bold ${remainingColor}`}>{remaining}</span>
-                </div>
-            </div>
-        );
-    };
-
     const handleDeleteSavedCampaigns = async () => {
         if (!deleteConfirmation || !deleteConfirmation.ids || deleteConfirmation.ids.length === 0) return;
         const idsToDelete = deleteConfirmation.ids;
@@ -648,8 +649,15 @@ export default function SellerReservationPage() {
                                         plugins={[dayGridPlugin, interactionPlugin]} 
                                         initialView="dayGridMonth" 
                                         headerToolbar={{ left: 'prev', center: 'title', right: 'next' }} 
-                                        events={calendarEvents} 
-                                        dayCellContent={renderDayCell}
+                                        events={calendarEvents}
+                                        // ✅ [수정] dayCellContent에 memoized 컴포넌트 렌더링 함수 전달
+                                        dayCellContent={(dayCellInfo) => (
+                                            <DayCellContent 
+                                                dayCellInfo={dayCellInfo} 
+                                                capacities={capacities} 
+                                                calendarCampaigns={calendarCampaigns} 
+                                            />
+                                        )}
                                         dayCellClassNames={(arg) => {
                                             const dateStr = formatDateForCalendar(arg.date);
                                             const capacity = capacities[dateStr] || 0;
