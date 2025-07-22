@@ -400,7 +400,7 @@ export default function AdminProductManagementPage() {
                     </tr>
                   );
                   })
-                )}
+                ))}
             </tbody>
           </table>
         )}
