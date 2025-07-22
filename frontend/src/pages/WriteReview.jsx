@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // src/pages/WriteReview.jsx (최종 수정 버전: 미리보기 제거, 파일 이름 목록 표시)
 
 import { useState, useEffect } from 'react';
@@ -8,17 +7,6 @@ import {
   ref, uploadBytes, getDownloadURL, addDoc, collection, 
   serverTimestamp, getDocs, query, orderBy, where 
 } from '../firebaseConfig'; // 'storage'를 직접 import 하는 방식 사용
-=======
-// src/pages/WriteReview.jsx (개선안)
-
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  auth, onAuthStateChanged, db, storage, 
-  ref, uploadBytes, getDownloadURL, addDoc, collection, doc, getDoc,
-  serverTimestamp, getDocs, query, orderBy, where, updateDoc
-} from '../firebaseConfig';
->>>>>>> 00bce112410e9dd36064dfda503311fbdb0dc482
 import LoginModal from '../components/LoginModal';
 import AccountModal from '../components/AccountModal';
 import './WriteReview.css';
