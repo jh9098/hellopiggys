@@ -1,4 +1,4 @@
-// src/pages/MyReviews.jsx (수정 완료)
+// src/pages/MyReviews.jsx (최종 수정본)
 
 import { useEffect, useState } from 'react';
 import imageCompression from 'browser-image-compression';
@@ -51,9 +51,21 @@ function GuideToggle({ text }) {
   );
 }
 
+// 동적 상태 판별 로직
+const getDynamicStatus = (review) => {
+  const { status, keywordAndLikeImagesUrls, cashcardImageUrls } = review;
+  if (['review_completed', 'verified', 'rejected', 'settled'].includes(status)) {
+    return status;
+  }
+  const hasRequiredImages =
+    keywordAndLikeImagesUrls?.length > 0 && cashcardImageUrls?.length > 0;
+  return hasRequiredImages ? 'submitted' : 'buying';
+};
+
 const getStatusInfo = (review) => {
-  const { status } = review;
+  const status = getDynamicStatus(review);
   switch (status) {
+    case 'buying': return { text: '구매중', className: 'buying' };
     case 'review_completed': return { text: '리뷰 완료', className: 'review-completed' };
     case 'verified': return { text: '리뷰 인증 완료', className: 'verified' };
     case 'rejected': return { text: `리뷰 반려됨`, className: 'rejected', reason: review.rejectionReason };
@@ -75,11 +87,12 @@ const imageFields = [
   { key: 'confirmImageUrls', label: '리뷰 완료 인증' },
 ];
 
-
 export default function MyReviews() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
+  const [filteredRows, setFilteredRows] = useState([]);
+  const [activeFilter, setActiveFilter] = useState('buying');
   const [products, setProducts] = useState([]);
   const [modalType, setModalType] = useState(null);
   const [currentReview, setCurrentReview] = useState(null); 
@@ -102,8 +115,8 @@ export default function MyReviews() {
         try {
           const q = query(collection(db, 'reviews'), where('mainAccountId', '==', user.uid), orderBy('createdAt', 'desc'));
           const snap = await getDocs(q);
-          const reviewsWithDetails = await Promise.all(snap.docs.map(async (d) => {
-            const reviewData = { id: d.id, ...d.data() };
+          const reviewsWithDetails = await Promise.all(snap.docs.map(async (docSnapshot) => {
+            const reviewData = { id: docSnapshot.id, ...docSnapshot.data() };
             if (reviewData.productId) {
               const productRef = doc(db, 'products', reviewData.productId);
               const productSnap = await getDoc(productRef);
@@ -138,6 +151,15 @@ export default function MyReviews() {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (activeFilter === 'all') {
+      setFilteredRows(rows);
+    } else {
+      const filtered = rows.filter(row => getDynamicStatus(row) === activeFilter);
+      setFilteredRows(filtered);
+    }
+  }, [rows, activeFilter]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -183,11 +205,11 @@ export default function MyReviews() {
 
   const handleCancelEdit = () => { setIsEditing(false); setEditImages({}); setImagesToDelete({}); };
 
-  const handleDeleteReview = async (id) => {
+  const handleDeleteReview = async (reviewId) => {
     if (!window.confirm('이 리뷰를 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.')) return;
     try {
-      await deleteDoc(doc(db, 'reviews', id));
-      setRows(rows.filter((row) => row.id !== id));
+      await deleteDoc(doc(db, 'reviews', reviewId));
+      setRows(rows.filter((row) => row.id !== reviewId));
       alert('리뷰가 삭제되었습니다.');
     } catch (err) {
       console.error('리뷰 삭제 실패:', err);
@@ -218,21 +240,21 @@ export default function MyReviews() {
   const onFile = (e) => setFiles(Array.from(e.target.files || []));
   
   const onEditFileChange = async (e) => {
-    const { name, files } = e.target;
-    if (!files || files.length === 0) return;
+    const { name, files: inputFiles } = e.target;
+    if (!inputFiles || inputFiles.length === 0) return;
     
     const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
-    const processed = [];
-    for (const file of files) {
+    const processedFiles = [];
+    for (const file of inputFiles) {
       try {
-        processed.push(await imageCompression(file, options));
+        processedFiles.push(await imageCompression(file, options));
       } catch (err) {
         console.warn(`이미지 압축 실패. 원본 사용: ${file.name}`, err);
-        processed.push(file);
+        processedFiles.push(file);
       }
     }
-    const selected = processed.slice(0, 5);
-    setEditImages(prev => ({ ...prev, [name]: selected }));
+    const selectedFiles = processedFiles.slice(0, 5);
+    setEditImages(prev => ({ ...prev, [name]: selectedFiles }));
   };
 
   const handleDeleteExistingImage = (fieldKey, urlToDelete) => {
@@ -251,11 +273,24 @@ export default function MyReviews() {
     if (!currentReview) return;
     setUploading(true);
     try {
+      // 1. subAccount 업데이트 데이터 준비
+      const subAccountUpdateData = {
+        name: editableData.name,
+        phoneNumber: editableData.phoneNumber,
+        address: editableData.address,
+        bank: editableData.bank,
+        bankNumber: editableData.bankNumber,
+        accountHolderName: editableData.accountHolderName,
+      };
+
+      // 2. subAccount가 있으면 Firestore 업데이트
       if (currentReview.subAccountId) {
         const subAccountRef = doc(db, "subAccounts", currentReview.subAccountId);
-        await updateDoc(subAccountRef, { name: editableData.name, phoneNumber: editableData.phoneNumber, address: editableData.address, bank: editableData.bank, bankNumber: editableData.bankNumber, accountHolderName: editableData.accountHolderName });
+        await updateDoc(subAccountRef, subAccountUpdateData);
       }
-      const fieldsToUpdateInReview = {
+      
+      // 3. review 문서 업데이트 데이터 준비 (기본 정보)
+      const reviewUpdateData = {
         rewardAmount: editableData.rewardAmount,
         orderNumber: editableData.orderNumber,
         participantId: editableData.participantId,
@@ -264,48 +299,59 @@ export default function MyReviews() {
         reviewType: editableData.reviewType || '현영',
       };
 
-      for (const fieldKey in imagesToDelete) {
-        if (imagesToDelete[fieldKey].length > 0) {
-          fieldsToUpdateInReview[fieldKey] = arrayRemove(...imagesToDelete[fieldKey]);
-        }
-      }
-
-      const imageUrlMap = {};
+      // 4. 이미지 업데이트 로직 개선
       for (const { key } of imageFields) {
+        // UI에서 삭제 반영된 URL 목록
+        const existingUrls = currentReview[key]?.filter(url => !imagesToDelete[key]?.includes(url)) || [];
+        
+        // 새로 업로드할 이미지 URL 획득
+        const newUrls = [];
         if (editImages[key] && editImages[key].length > 0) {
-          const newUrls = [];
-          for (const f of editImages[key]) {
-            const storageRef = ref(storage, `reviewImages/${Date.now()}_${f.name}`);
-            await uploadBytes(storageRef, f);
+          for (const file of editImages[key]) {
+            const storageRef = ref(storage, `reviewImages/${Date.now()}_${file.name}`);
+            await uploadBytes(storageRef, file);
             newUrls.push(await getDownloadURL(storageRef));
           }
-          imageUrlMap[key] = [...(currentReview[key] || []), ...newUrls];
         }
+        // 최종 URL 목록을 DB 업데이트 객체에 할당
+        reviewUpdateData[key] = [...existingUrls, ...newUrls];
       }
-      
-      const finalUpdateData = { ...fieldsToUpdateInReview, ...imageUrlMap };
-      if (currentReview.status === 'uploading_images') {
-        finalUpdateData.status = 'submitted';
-      }
-      await updateDoc(doc(db, 'reviews', currentReview.id), finalUpdateData);
 
-      const updatedReviewData = {
-        ...currentReview,
-        ...editableData,
-        ...imageUrlMap,
-        ...(currentReview.status === 'uploading_images' ? { status: 'submitted' } : {})
-      };
-      const updatedRows = rows.map(row =>
-        row.id === currentReview.id
-          ? {
-              ...updatedReviewData,
-              productInfo: products.find(p => p.id === editableData.productId) || row.productInfo,
-              subAccountInfo: { ...row.subAccountInfo, ...editableData },
-            }
-          : row
-      );
+      // 5. status 업데이트
+      if (currentReview.status === 'uploading_images') {
+        reviewUpdateData.status = 'submitted';
+      }
+
+      // 6. Firestore에 review 문서 최종 업데이트
+      await updateDoc(doc(db, 'reviews', currentReview.id), reviewUpdateData);
+      
+      // 7. 로컬 React 상태를 DB와 '완벽히' 일치시키기
+      const updatedRows = rows.map(row => {
+        if (row.id !== currentReview.id) return row;
+
+        const newSubAccountInfo = row.subAccountInfo ? { ...row.subAccountInfo, ...subAccountUpdateData } : undefined;
+
+        // DB와 동기화된 깨끗한 최종 데이터로 새 review 객체 생성
+        const updatedReview = {
+          ...row, // 기존 데이터 (createdAt 등)
+          ...editableData, // 폼에서 수정한 기본 정보
+          ...reviewUpdateData, // DB에 업데이트된 최종 정보(이미지 URL, status 등 포함)
+          productInfo: products.find(p => p.id === editableData.productId) || row.productInfo,
+          subAccountInfo: newSubAccountInfo,
+        };
+        
+        // subAccount 정보가 있는 경우 최상위 속성도 동기화
+        if (newSubAccountInfo) {
+          Object.assign(updatedReview, newSubAccountInfo);
+        }
+        return updatedReview;
+      });
+      
       setRows(updatedRows);
-      setCurrentReview(updatedReviewData);
+      
+      // 모달에 표시되는 currentReview도 DB와 동기화된 최신 데이터로 업데이트
+      const updatedCurrentReview = updatedRows.find(row => row.id === currentReview.id);
+      setCurrentReview(updatedCurrentReview);
       
       alert('수정이 완료되었습니다.');
       setIsEditing(false);
@@ -313,7 +359,7 @@ export default function MyReviews() {
       setImagesToDelete({});
     } catch (e) {
       alert('수정 실패: ' + e.message);
-      console.error(e);
+      console.error("수정 중 오류 발생:", e);
     } finally {
       setUploading(false);
     }
@@ -342,6 +388,16 @@ export default function MyReviews() {
     }
   };
 
+  const filterButtons = [
+    { key: 'all', label: '전체' },
+    { key: 'buying', label: '구매중' },
+    { key: 'submitted', label: '구매완료' },
+    { key: 'review_completed', label: '리뷰완료' },
+    { key: 'verified', label: '리뷰인증완료' },
+    { key: 'rejected', label: '리뷰반려' },
+    { key: 'settled', label: '정산완료' },
+  ];
+
   if (loading) return <p style={{ padding: 24, textAlign: 'center' }}>데이터를 불러오는 중...</p>;
   if (!currentUser) {
     return (
@@ -363,19 +419,24 @@ export default function MyReviews() {
     <div className="my-wrap">
       <div className="page-header">
         <h2>내 리뷰 목록</h2>
-        <div className="header-actions">
-          {/* ▼▼▼ "구매폼 작성" 버튼의 navigate 경로를 수정합니다 ▼▼▼ */}
-          <Button className="action-btn" onClick={() => navigate('/reviewer/link')}>
-            구매폼 작성
-          </Button>
-          {/* ▲▲▲ 수정 완료 ▲▲▲ */}
-          <Button className="logout" onClick={handleLogout}>
-            로그아웃 ➡
-          </Button>
-        </div>
+        <Button className="logout-btn" onClick={handleLogout}>
+          로그아웃 ➡
+        </Button>
       </div>
 
-      {rows.length === 0 ? <p>작성한 리뷰가 없습니다.</p> : rows.map((r) => {
+      <div className="filter-buttons">
+        {filterButtons.map(filter => (
+          <Button
+            key={filter.key}
+            className={`filter-btn ${activeFilter === filter.key ? 'active' : ''}`}
+            onClick={() => setActiveFilter(filter.key)}
+          >
+            {filter.label}
+          </Button>
+        ))}
+      </div>
+
+      {filteredRows.length === 0 ? <p style={{ textAlign: 'center', marginTop: '40px' }}>해당 상태의 리뷰가 없습니다.</p> : filteredRows.map((r) => {
         const statusInfo = getStatusInfo(r);
         const participantName = r.subAccountInfo?.name || r.mainAccountInfo?.name || '알 수 없음';
         const participantType = r.subAccountInfo ? participantName : '본계정';
@@ -397,7 +458,7 @@ export default function MyReviews() {
             <div className="price">{Number(r.rewardAmount || 0).toLocaleString()}원</div>
             <div className="btn-wrap">
               <Button onClick={() => openModal('detail', r)}>제출 내역 상세(수정)</Button>
-              <Button className="outline" onClick={() => openModal('upload', r)} disabled={r.status !== 'submitted' && r.status !== 'rejected'}>리뷰 인증하기</Button>
+              <Button className="outline" onClick={() => openModal('upload', r)} disabled={getDynamicStatus(r) !== 'submitted' && getDynamicStatus(r) !== 'rejected'}>리뷰 인증하기</Button>
               <Button className="delete" onClick={() => handleDeleteReview(r.id)}>삭제</Button>
             </div>
           </div>
