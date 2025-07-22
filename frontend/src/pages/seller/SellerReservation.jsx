@@ -525,10 +525,6 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
         setConfirmationDialogData({ ids: targets, checked: true });
     };
 
-    if (isLoading) return <div className="flex justify-center items-center h-screen"><p>데이터를 불러오는 중입니다...</p></div>;
-    
-    const { totalSubtotal, totalVat, totalAmount, amountToUseFromDeposit, remainingPayment } = calculateTotals(campaigns);
-    const pendingDepositCount = savedCampaigns.filter(c => selectedSavedCampaigns.includes(c.id) && !c.paymentReceived).length;
     const totalPaymentAmount = useMemo(() => {
         return savedCampaigns.reduce((sum, sc) => {
             const row = editedRows[sc.id] || {};
@@ -543,6 +539,11 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
             return sum + final;
         }, 0);
     }, [savedCampaigns, editedRows]);
+
+    if (isLoading) return <div className="flex justify-center items-center h-screen"><p>데이터를 불러오는 중입니다...</p></div>;
+
+    const { totalSubtotal, totalVat, totalAmount, amountToUseFromDeposit, remainingPayment } = calculateTotals(campaigns);
+    const pendingDepositCount = savedCampaigns.filter(c => selectedSavedCampaigns.includes(c.id) && !c.paymentReceived).length;
 
     return (
         <>
