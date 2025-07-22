@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { db, collection, query, where, onSnapshot } from '../../firebaseConfig';
 import {
   Card,
@@ -61,6 +61,21 @@ export default function SellerAdminDashboardPage() {
   const [campaigns, setCampaigns] = useState([]);
   const [sellers, setSellers] = useState({});
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'asc' });
+  const [filters, setFilters] = useState({
+    createdAt: '',
+    date: '',
+    deliveryType: '',
+    reviewType: '',
+    quantity: '',
+    productName: '',
+    productOption: '',
+    productPrice: '',
+    keywords: '',
+    nickname: '',
+    phone: '',
+  });
 
   useEffect(() => {
     const today = new Date();
@@ -94,6 +109,62 @@ export default function SellerAdminDashboardPage() {
     return () => { campaignUnsub(); sellerUnsub(); };
   }, []);
 
+  const handleSelectAll = (e) => {
+    if (e.target.checked) setSelectedIds(sortedCampaigns.map(c => c.id));
+    else setSelectedIds([]);
+  };
+
+  const handleSelectOne = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+  };
+
+  const requestSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const handleFilterChange = (key, value) => {
+    setFilters(f => ({ ...f, [key]: value }));
+  };
+
+  const filteredCampaigns = useMemo(() => {
+    return campaigns.filter(c => {
+      const sellerInfo = sellers[c.sellerUid] || {};
+      return Object.entries(filters).every(([k,v]) => {
+        if (!v) return true;
+        let field = '';
+        switch(k){
+          case 'createdAt': field = formatDateTime(c.createdAt); break;
+          case 'date': field = formatDate(c.date); break;
+          case 'nickname': field = sellerInfo.nickname; break;
+          case 'phone': field = sellerInfo.phone; break;
+          default: field = c[k];
+        }
+        return String(field || '').toLowerCase().includes(String(v).toLowerCase());
+      });
+    });
+  }, [campaigns, filters, sellers]);
+
+  const sortedCampaigns = useMemo(() => {
+    const list = [...filteredCampaigns];
+    list.sort((a,b) => {
+      let av = 0, bv = 0;
+      if (sortConfig.key === 'createdAt') {
+        av = a.createdAt?.seconds || 0;
+        bv = b.createdAt?.seconds || 0;
+      } else if (sortConfig.key === 'date') {
+        av = a.date?.seconds || 0;
+        bv = b.date?.seconds || 0;
+      }
+      return sortConfig.direction === 'asc' ? av - bv : bv - av;
+    });
+    return list;
+  }, [filteredCampaigns, sortConfig]);
+
+  const SortIndicator = ({ columnKey }) => sortConfig.key !== columnKey ? null : (sortConfig.direction === 'asc' ? ' ▲' : ' ▼');
+
   return (
     <Card>
       <CardHeader>
@@ -104,9 +175,10 @@ export default function SellerAdminDashboardPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px] text-center"><input type="checkbox" onChange={handleSelectAll} checked={sortedCampaigns.length > 0 && sortedCampaigns.every(c => selectedIds.includes(c.id))} /></TableHead>
               <TableHead className="w-[40px] text-center">#</TableHead>
-              <TableHead className="w-[140px]">예약 등록 일시</TableHead>
-              <TableHead className="w-[100px]">진행일자</TableHead>
+              <TableHead className="w-[140px] cursor-pointer" onClick={() => requestSort('createdAt')}>예약 등록 일시<SortIndicator columnKey="createdAt" /></TableHead>
+              <TableHead className="w-[100px] cursor-pointer" onClick={() => requestSort('date')}>진행일자<SortIndicator columnKey="date" /></TableHead>
               <TableHead className="w-[80px] text-center">구분</TableHead>
               <TableHead className="w-[100px] text-center">리뷰 종류</TableHead>
               <TableHead className="w-[80px] text-center">수량</TableHead>
@@ -118,17 +190,34 @@ export default function SellerAdminDashboardPage() {
               <TableHead>전화번호</TableHead>
               <TableHead className="w-[120px]">총 견적</TableHead>
             </TableRow>
+            <TableRow>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead><input className="w-full" value={filters.createdAt} onChange={e=>handleFilterChange('createdAt', e.target.value)} /></TableHead>
+              <TableHead><input className="w-full" value={filters.date} onChange={e=>handleFilterChange('date', e.target.value)} /></TableHead>
+              <TableHead><input className="w-full" value={filters.deliveryType} onChange={e=>handleFilterChange('deliveryType', e.target.value)} /></TableHead>
+              <TableHead><input className="w-full" value={filters.reviewType} onChange={e=>handleFilterChange('reviewType', e.target.value)} /></TableHead>
+              <TableHead><input className="w-full" value={filters.quantity} onChange={e=>handleFilterChange('quantity', e.target.value)} /></TableHead>
+              <TableHead><input className="w-full" value={filters.productName} onChange={e=>handleFilterChange('productName', e.target.value)} /></TableHead>
+              <TableHead><input className="w-full" value={filters.productOption} onChange={e=>handleFilterChange('productOption', e.target.value)} /></TableHead>
+              <TableHead><input className="w-full" value={filters.productPrice} onChange={e=>handleFilterChange('productPrice', e.target.value)} /></TableHead>
+              <TableHead><input className="w-full" value={filters.keywords} onChange={e=>handleFilterChange('keywords', e.target.value)} /></TableHead>
+              <TableHead><input className="w-full" value={filters.nickname} onChange={e=>handleFilterChange('nickname', e.target.value)} /></TableHead>
+              <TableHead><input className="w-full" value={filters.phone} onChange={e=>handleFilterChange('phone', e.target.value)} /></TableHead>
+              <TableHead></TableHead>
+            </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">데이터를 불러오는 중...</TableCell>
+                <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">데이터를 불러오는 중...</TableCell>
               </TableRow>
-            ) : campaigns.length > 0 ? (
-              campaigns.map((c, idx) => {
+            ) : sortedCampaigns.length > 0 ? (
+              sortedCampaigns.map((c, idx) => {
                 const { finalItemAmount } = computeAmounts(c);
                 return (
-                  <TableRow key={c.id}>
+                  <TableRow key={c.id} data-state={selectedIds.includes(c.id) ? 'selected' : undefined}>
+                    <TableCell className="text-center"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></TableCell>
                     <TableCell className="text-center">{idx + 1}</TableCell>
                     <TableCell>{formatDateTime(c.createdAt)}</TableCell>
                     <TableCell>{formatDate(c.date)}</TableCell>
@@ -147,7 +236,7 @@ export default function SellerAdminDashboardPage() {
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">오늘 진행되는 캠페인이 없습니다.</TableCell>
+                <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">오늘 진행되는 캠페인이 없습니다.</TableCell>
               </TableRow>
             )}
           </TableBody>
