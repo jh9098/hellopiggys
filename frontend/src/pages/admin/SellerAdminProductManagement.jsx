@@ -85,6 +85,24 @@ export default function AdminProductManagementPage() {
     return filteredCampaigns.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredCampaigns, currentPage]);
 
+  const groupedCampaigns = useMemo(() => {
+    const groups = {};
+    paginatedCampaigns.forEach((c) => {
+      const key = c.createdAt?.seconds || 'unknown';
+      if (!groups[key]) groups[key] = { key, items: [], total: 0 };
+      groups[key].items.push(c);
+      const { finalItemAmount } = computeAmounts(c);
+      groups[key].total += finalItemAmount;
+    });
+    const arr = Object.values(groups).sort((a, b) => b.key - a.key);
+    let counter = (currentPage - 1) * itemsPerPage;
+    arr.forEach((g) => {
+      g.startIndex = counter;
+      counter += g.items.length;
+    });
+    return arr;
+  }, [paginatedCampaigns]);
+
   const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
   useEffect(() => {
     const group = Math.floor((currentPage - 1) / pagesPerGroup);
@@ -119,7 +137,7 @@ export default function AdminProductManagementPage() {
   const handleCancelBySellerFault = async (campaign) => {
     const { id, sellerUid, productPrice, quantity, itemTotal } = campaign;
     if (!sellerUid || productPrice === undefined || quantity === undefined || itemTotal === undefined) {
-      return alert("필수 정보(판매자UID, 상품가, 수량, 총 견적)가 없어 처리할 수 없습니다.");
+      return alert("필수 정보(판매자UID, 상품가, 수량, 개별견적)가 없어 처리할 수 없습니다.");
     }
     const cancelQtyStr = prompt(`취소할 수량을 입력하세요. (현재 수량: ${quantity}개)`, quantity.toString());
     if (cancelQtyStr === null || cancelQtyStr === "") return;
@@ -255,7 +273,7 @@ export default function AdminProductManagementPage() {
         '전화번호': toText(sellersMap[c.sellerUid]?.phone || ''),
         '입금확인': c.depositConfirmed ? 'Y' : 'N',
         '견적 상세': `(리뷰 ${basePrice.toLocaleString()}${sundayExtraCharge > 0 ? ` + 공휴일 ${sundayExtraCharge.toLocaleString()}` : ''} + 상품가 ${productPrice.toLocaleString()} x 1.1) x ${quantity}개${c.isVatApplied ? ' x 1.1' : ''}`,
-        '총 견적': `${finalItemAmount.toLocaleString()}원`,
+        '개별견적': `${finalItemAmount.toLocaleString()}원`,
         '작업': '반려',
       };
     });
@@ -300,6 +318,7 @@ export default function AdminProductManagementPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={paginatedCampaigns.length > 0 && paginatedCampaigns.every(c => selectedIds.includes(c.id))} /></th>
+                <th className={thClass}>상품군</th>
                 <th className={thClass}>순번</th>
                 {/* [수정 1] 컬럼명 변경 */}
                 <th className={thClass}>예약 등록 일자</th>
@@ -320,18 +339,23 @@ export default function AdminProductManagementPage() {
                 {/* [수정 2] 컬럼명 변경 */}
                 <th className={thClass}>입금확인<br/>(예약확정)</th>
                 <th className={thClass} style={{ minWidth: '90px' }}>견적 상세</th>
-                <th className={thClass} style={{ minWidth: '90px' }}>총 견적</th>
+                <th className={thClass} style={{ minWidth: '90px' }}>개별견적</th>
+                <th className={thClass} style={{ minWidth: '90px' }}>결제금액</th>
                 {/* [수정 4] 불필요한 컬럼 제거 */}
                 <th className={thClass}>작업</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedCampaigns.map((c, index) => {
-                  const { basePrice, sundayExtraCharge, productPrice, quantity, itemTotal, finalItemAmount, commission } = computeAmounts(c);
-                  return (
-                    <tr key={c.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                {groupedCampaigns.map((group, gIdx) =>
+                  group.items.map((c, index) => {
+                    const { basePrice, sundayExtraCharge, productPrice, quantity, itemTotal, finalItemAmount, commission } = computeAmounts(c);
+                    return (
+                      <tr key={c.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
+                        {index === 0 && (
+                          <td rowSpan={group.items.length} className="text-center align-middle font-semibold">{`상품군 ${gIdx + 1}`}</td>
+                        )}
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">{group.startIndex + index + 1}</td>
                       {/* [수정 1] 날짜 포맷팅 적용 */}
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{formatDate(c.createdAt)}</td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '-'}</td>
@@ -365,6 +389,9 @@ export default function AdminProductManagementPage() {
                         <button onClick={() => openDetailModal(`(리뷰 ${basePrice.toLocaleString()}${sundayExtraCharge > 0 ? ` + 공휴일 ${sundayExtraCharge.toLocaleString()}` : ''} + 상품가 ${productPrice.toLocaleString()} x 1.1) x ${quantity}개${c.isVatApplied ? ' x 1.1' : ''}`)} className="text-blue-600 underline">상세보기</button>
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm" style={{ minWidth: '90px' }}>{finalItemAmount.toLocaleString()}원</td>
+                      {index === 0 && (
+                        <td rowSpan={group.items.length} className="font-semibold text-right align-middle" style={{ minWidth: '90px' }}>{group.total.toLocaleString()}원</td>
+                      )}
                       {/* [수정 4] 불필요한 컬럼 제거 */}
                       <td className="px-3 py-4 whitespace-nowrap text-sm font-medium"><a href="#" className="text-indigo-600 hover:text-indigo-900">반려</a></td>
                     </tr>
