@@ -51,14 +51,21 @@ function GuideToggle({ text }) {
   );
 }
 
-// 동적 상태 판별 로직
+// 동적 상태 판별 로직 (요구사항에 맞게 수정됨)
 const getDynamicStatus = (review) => {
-  const { status, keywordAndLikeImagesUrls, cashcardImageUrls } = review;
+  // `cashcardImageUrls` 대신 `orderImageUrls`를 확인하도록 변경
+  const { status, keywordAndLikeImagesUrls, orderImageUrls } = review;
+
+  // 최종 확정된 상태 (리뷰완료, 인증완료, 반려, 정산완료)는 그대로 반환
   if (['review_completed', 'verified', 'rejected', 'settled'].includes(status)) {
     return status;
   }
+  
+  // 필수 이미지 (키워드&찜, 구매 인증) 업로드 여부 확인
   const hasRequiredImages =
-    keywordAndLikeImagesUrls?.length > 0 && cashcardImageUrls?.length > 0;
+    keywordAndLikeImagesUrls?.length > 0 && orderImageUrls?.length > 0;
+
+  // 필수 이미지가 모두 있으면 '구매 완료', 하나라도 없으면 '구매중'
   return hasRequiredImages ? 'submitted' : 'buying';
 };
 
@@ -273,7 +280,6 @@ export default function MyReviews() {
     if (!currentReview) return;
     setUploading(true);
     try {
-      // 1. subAccount 업데이트 데이터 준비
       const subAccountUpdateData = {
         name: editableData.name,
         phoneNumber: editableData.phoneNumber,
@@ -283,13 +289,11 @@ export default function MyReviews() {
         accountHolderName: editableData.accountHolderName,
       };
 
-      // 2. subAccount가 있으면 Firestore 업데이트
       if (currentReview.subAccountId) {
         const subAccountRef = doc(db, "subAccounts", currentReview.subAccountId);
         await updateDoc(subAccountRef, subAccountUpdateData);
       }
       
-      // 3. review 문서 업데이트 데이터 준비 (기본 정보)
       const reviewUpdateData = {
         rewardAmount: editableData.rewardAmount,
         orderNumber: editableData.orderNumber,
@@ -299,12 +303,9 @@ export default function MyReviews() {
         reviewType: editableData.reviewType || '현영',
       };
 
-      // 4. 이미지 업데이트 로직 개선
       for (const { key } of imageFields) {
-        // UI에서 삭제 반영된 URL 목록
         const existingUrls = currentReview[key]?.filter(url => !imagesToDelete[key]?.includes(url)) || [];
         
-        // 새로 업로드할 이미지 URL 획득
         const newUrls = [];
         if (editImages[key] && editImages[key].length > 0) {
           for (const file of editImages[key]) {
@@ -313,34 +314,28 @@ export default function MyReviews() {
             newUrls.push(await getDownloadURL(storageRef));
           }
         }
-        // 최종 URL 목록을 DB 업데이트 객체에 할당
         reviewUpdateData[key] = [...existingUrls, ...newUrls];
       }
 
-      // 5. status 업데이트
       if (currentReview.status === 'uploading_images') {
         reviewUpdateData.status = 'submitted';
       }
 
-      // 6. Firestore에 review 문서 최종 업데이트
       await updateDoc(doc(db, 'reviews', currentReview.id), reviewUpdateData);
       
-      // 7. 로컬 React 상태를 DB와 '완벽히' 일치시키기
       const updatedRows = rows.map(row => {
         if (row.id !== currentReview.id) return row;
 
         const newSubAccountInfo = row.subAccountInfo ? { ...row.subAccountInfo, ...subAccountUpdateData } : undefined;
 
-        // DB와 동기화된 깨끗한 최종 데이터로 새 review 객체 생성
         const updatedReview = {
-          ...row, // 기존 데이터 (createdAt 등)
-          ...editableData, // 폼에서 수정한 기본 정보
-          ...reviewUpdateData, // DB에 업데이트된 최종 정보(이미지 URL, status 등 포함)
+          ...row,
+          ...editableData,
+          ...reviewUpdateData,
           productInfo: products.find(p => p.id === editableData.productId) || row.productInfo,
           subAccountInfo: newSubAccountInfo,
         };
         
-        // subAccount 정보가 있는 경우 최상위 속성도 동기화
         if (newSubAccountInfo) {
           Object.assign(updatedReview, newSubAccountInfo);
         }
@@ -349,7 +344,6 @@ export default function MyReviews() {
       
       setRows(updatedRows);
       
-      // 모달에 표시되는 currentReview도 DB와 동기화된 최신 데이터로 업데이트
       const updatedCurrentReview = updatedRows.find(row => row.id === currentReview.id);
       setCurrentReview(updatedCurrentReview);
       
