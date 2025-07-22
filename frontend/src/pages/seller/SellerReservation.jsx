@@ -746,16 +746,22 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                 <TableHead>삭제</TableHead>
                             </TableRow>
                         </TableHeader>
-                        <TableBody>{campaigns.length === 0 ? (<TableRow><TableCell colSpan="8" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>) : (campaigns.map((c) => {
-                        const cDate = c.date instanceof Date ? c.date : new Date();
-                        const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
-                        const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
-                        const subtotal = reviewFee + productPriceWithAgencyFee;
-                        const unitFinal = isVatApplied ? subtotal * 1.1 : subtotal;
-                        const finalAmount = unitFinal * Number(c.quantity);
-                        
-                        return (
-                            <TableRow key={c.id}>
+                        <TableBody>{campaigns.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan="8" className="h-24 text-center text-muted-foreground">
+                                    위에서 작업을 추가해주세요.
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            campaigns.map((c, idx) => {
+                            const cDate = c.date instanceof Date ? c.date : new Date();
+                            const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
+                            const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
+                            const subtotal = reviewFee + productPriceWithAgencyFee;
+                            const unitFinal = isVatApplied ? subtotal * 1.1 : subtotal;
+
+                            return (
+                                <TableRow key={c.id}>
                                 <TableCell className={cDate.getDay() === 0 ? 'text-destructive font-semibold' : ''}>
                                     {formatDateWithDay(cDate)}
                                 </TableCell>
@@ -770,9 +776,14 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                 <TableCell className="text-center">
                                     {Math.round(unitFinal).toLocaleString()}원
                                 </TableCell>
-                                <TableCell className="font-semibold text-center">
-                                    {Math.round(finalAmount).toLocaleString()}원
-                                </TableCell>
+                                {idx === 0 && (
+                                    <TableCell
+                                        rowSpan={campaigns.length}
+                                        className="font-semibold text-center align-middle"
+                                    >
+                                        {totalAmount.toLocaleString()}원
+                                    </TableCell>
+                                )}
                                 <TableCell>
                                     <Button
                                         variant="ghost"
@@ -784,7 +795,12 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                 </TableCell>
                             </TableRow>
                         );
-                    }))}</TableBody></Table></div></CardContent>
+                    })
+                        )}
+                        </TableBody>
+                    </Table>
+                    </div>
+                    </CardContent>
                     {campaigns.length > 0 && (<CardFooter className="flex flex-col items-end gap-2 text-right">
                         <div className="text-sm text-muted-foreground">공급가액 합계: {totalSubtotal.toLocaleString()}원</div>
                         <div className="text-sm text-muted-foreground">부가세 (10%): {totalVat.toLocaleString()}원</div>
