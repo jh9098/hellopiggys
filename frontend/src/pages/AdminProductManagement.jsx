@@ -6,6 +6,7 @@ import { db, collection, getDocs, query, orderBy, deleteDoc, doc, updateDoc } fr
 import Papa from 'papaparse';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toAbsoluteUrl } from '../utils';
 import {
   Table,
   TableHeader,
@@ -108,9 +109,17 @@ export default function AdminProductManagementPage() {
 
   const downloadCsv = () => {
     const csvData = processedProducts.map(p => ({
-      '상품명': p.productName || '-', '결제 종류': p.reviewType || '-',
-      '상품 종류': p.productType || '-', '리뷰 종류': p.reviewOption || '-',
-      '진행일자': p.reviewDate || '-', '진행 상태': p.progressStatus || '-',
+      '상품명': p.productName || '-',
+      '결제 종류': p.reviewType || '-',
+      '상품 종류': p.productType || '-',
+      '리뷰 종류': p.reviewOption || '-',
+      '체험단 개수': p.quantity || '-',
+      '옵션': p.productOption || '-',
+      '상품가': p.productPrice || '-',
+      '키워드': p.keywords || '-',
+      '상품 URL': p.productUrl || '-',
+      '진행일자': p.reviewDate || '-',
+      '진행 상태': p.progressStatus || '-',
       '등록날짜': formatDate(p.createdAt),
     }));
     const csv = Papa.unparse(csvData, { header: true });
@@ -215,6 +224,11 @@ export default function AdminProductManagementPage() {
               <TableHead onClick={() => requestSort('reviewType')} className="sortable">결제 종류<SortIndicator columnKey="reviewType" /></TableHead>
               <TableHead onClick={() => requestSort('productType')} className="sortable">상품 종류<SortIndicator columnKey="productType" /></TableHead>
               <TableHead onClick={() => requestSort('reviewOption')} className="sortable">리뷰 종류<SortIndicator columnKey="reviewOption" /></TableHead>
+              <TableHead>체험단 개수</TableHead>
+              <TableHead>옵션</TableHead>
+              <TableHead>상품가</TableHead>
+              <TableHead>키워드</TableHead>
+              <TableHead>상품 URL</TableHead>
               <TableHead onClick={() => requestSort('reviewDate')} className="sortable">진행일자<SortIndicator columnKey="reviewDate" /></TableHead>
               <TableHead onClick={() => requestSort('progressStatus')} className="sortable">진행 상태<SortIndicator columnKey="progressStatus" /></TableHead>
               <TableHead onClick={() => requestSort('createdAt')} className="sortable">등록날짜<SortIndicator columnKey="createdAt" /></TableHead>
@@ -255,12 +269,17 @@ export default function AdminProductManagementPage() {
               <TableHead></TableHead>
               <TableHead></TableHead>
             </TableRow>
-            <TableRow className="filter-row">
+              <TableRow className="filter-row">
               <TableHead></TableHead>
               <TableHead><Input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></TableHead>
               <TableHead><Input type="text" name="reviewType" value={filters.reviewType} onChange={handleFilterChange} /></TableHead>
               <TableHead><Input type="text" name="productType" value={filters.productType} onChange={handleFilterChange} /></TableHead>
               <TableHead><Input type="text" name="reviewOption" value={filters.reviewOption} onChange={handleFilterChange} /></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
               <TableHead><Input type="text" name="reviewDate" value={filters.reviewDate} onChange={handleFilterChange} /></TableHead>
               <TableHead><select name="progressStatus" value={filters.progressStatus} onChange={handleFilterChange}><option value="all">전체</option>{progressStatusOptions.map(s => <option key={s} value={s}>{s}</option>)}</select></TableHead>
               <TableHead></TableHead>
@@ -287,7 +306,12 @@ export default function AdminProductManagementPage() {
                     {(p.productType === '빈박스' ? limitedReviewOptions : fullReviewOptions).map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
                 </TableCell>
-                <TableCell>{p.reviewDate}</TableCell>
+                  <TableCell>{p.quantity}</TableCell>
+                  <TableCell>{p.productOption}</TableCell>
+                  <TableCell>{p.productPrice ? Number(p.productPrice).toLocaleString() + '원' : ''}</TableCell>
+                  <TableCell>{p.keywords}</TableCell>
+                  <TableCell>{p.productUrl ? (<a href={toAbsoluteUrl(p.productUrl)} target="_blank" rel="noopener noreferrer">링크</a>) : ''}</TableCell>
+                  <TableCell>{p.reviewDate}</TableCell>
                 <TableCell><select value={p.progressStatus || '진행전'} onChange={(e) => handleStatusChange(p.id, e.target.value)}><option value="">선택</option>{progressStatusOptions.map(s => (<option key={s} value={s}>{s}</option>))}</select></TableCell>
                 <TableCell>{formatDate(p.createdAt)}</TableCell>
                 <TableCell className="actions-cell">
@@ -297,7 +321,7 @@ export default function AdminProductManagementPage() {
                 </TableCell>
               </TableRow>
             )) : (
-              <TableRow><TableCell colSpan="9" style={{ padding: '50px', textAlign: 'center' }}>생성된 상품이 없습니다.</TableCell></TableRow>
+              <TableRow><TableCell colSpan="14" style={{ padding: '50px', textAlign: 'center' }}>생성된 상품이 없습니다.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
