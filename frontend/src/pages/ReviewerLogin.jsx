@@ -137,7 +137,8 @@ export default function ReviewerLogin() {
 
   return (
     // [수정] 전체 레이아웃을 flex 컨테이너로 감싸 푸터가 하단에 위치하도록 함
-    <div className="flex flex-col min-h-screen">
+    // [배경색 변경] 페이지 전체를 연한 분홍색 배경으로 설정
+    <div className="flex flex-col min-h-screen bg-[#fff5f5]">
       <main className="flex-grow">
         <div className="login-wrap">
           <div className="icon" />
