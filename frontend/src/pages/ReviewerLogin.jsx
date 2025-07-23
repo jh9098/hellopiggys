@@ -36,7 +36,14 @@ const Footer = () => {
           <p><strong>계좌번호 :</strong> 289357-00-006049</p>
           <p><strong>계좌명 :</strong> 아이언마운틴컴퍼니</p>
           <div className="pt-4 space-y-1">
-            <a href="#!" className="block hover:underline">... 이용약관</a>
+            <a
+              href="https://hellopiggys.netlify.app/tos"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block hover:underline"
+            >
+              ... 이용약관
+            </a>
             <a 
               href="https://hellopiggys.netlify.app/privacy-policy" 
               target="_blank" 
