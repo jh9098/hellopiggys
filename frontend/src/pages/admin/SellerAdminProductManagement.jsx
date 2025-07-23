@@ -1,7 +1,7 @@
 // src/pages/admin/AdminProductManagement.jsx (요청사항 반영 최종본)
 
 import { useState, useEffect, useMemo } from 'react';
-import { db, collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, writeBatch, increment, serverTimestamp } from '../../firebaseConfig';
+import { db, collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, writeBatch, increment, serverTimestamp, getDoc, setDoc } from '../../firebaseConfig';
 import Papa from 'papaparse';
 import { Button } from '@/components/ui/button';
 import '../../components/ReviewDetailModal.css';
@@ -300,7 +300,31 @@ export default function AdminProductManagementPage() {
 
     if (window.confirm("이 캠페인의 입금을 확인하고 예약을 최종 확정하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")) {
         try {
-            await updateDoc(doc(db, 'campaigns', campaignId), {
+            const campaignRef = doc(db, 'campaigns', campaignId);
+            const snap = await getDoc(campaignRef);
+            const data = snap.data();
+
+            let productId = data.productId;
+            if (!productId) {
+                const productRef = doc(collection(db, 'products'));
+                productId = productRef.id;
+                await setDoc(productRef, {
+                    productName: data.productName || '',
+                    productType: data.deliveryType || '',
+                    reviewOption: data.reviewType || '',
+                    quantity: data.quantity || 0,
+                    productOption: data.productOption || '',
+                    productPrice: data.productPrice || '',
+                    keywords: data.keywords || '',
+                    productUrl: data.productUrl || '',
+                    reviewDate: data.date?.seconds ? new Date(data.date.seconds * 1000).toISOString().slice(0,10) : '',
+                    progressStatus: '진행전',
+                    createdAt: serverTimestamp()
+                });
+                await updateDoc(campaignRef, { productId });
+            }
+
+            await updateDoc(campaignRef, {
                 status: '예약 확정',
                 depositConfirmed: true,
                 confirmedAt: serverTimestamp()
