@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 // [추가] 푸터 컴포넌트
 const Footer = () => {
   return (
-    <footer className="bg-[#fadbd9] text-[#9e9e9e] p-6 md:p-8 w-full">
+    <footer className="bg-[#feeae8] text-[#9e9e9e] p-6 md:p-8 w-full">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-xs md:text-sm">
         
         {/* 좌측: 회사 정보 */}
@@ -26,7 +26,7 @@ const Footer = () => {
         {/* 중앙: 고객센터 */}
         <div className="space-y-2 md:text-center">
           <p className="font-bold text-base">고객센터 | 전자금융거래분쟁처리담당</p>
-          <p className="font-bold text-xl my-2">010-4889-3380</p>
+          <p className="font-bold text-sm my-2">010-4889-3380</p>
           <p>chaism123@naver.com</p>
         </div>
 
