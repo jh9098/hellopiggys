@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 // [추가] 푸터 컴포넌트
 const Footer = () => {
   return (
-    <footer className="bg-[#a2b75b] text-white p-6 md:p-8 w-full">
+    <footer className="bg-[#FFC0CB] text-white p-6 md:p-8 w-full">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-xs md:text-sm">
         
         {/* 좌측: 회사 정보 */}
