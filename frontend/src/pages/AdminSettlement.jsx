@@ -144,13 +144,19 @@ export default function AdminSettlementPage() {
   };
   const downloadCsvForInfo = async () => {
     if (processedRows.length === 0) return alert('다운로드할 정산 내역이 없습니다.');
+    
+    // ExcelJS 워크북 및 워크시트 생성
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('정산정보');
+    
+    // 헤더 정의
     const headers = [
       '진행일자','결제종류','상품종류','주문번호','상품명','본계정이름',
       '타계정이름(수취인)','전화번호','주소','은행','계좌번호','금액','예금주','지급필요액'
     ];
     sheet.addRow(headers);
+    
+    // 데이터 행 추가
     processedRows.forEach(r => {
       const amount = Number(r.rewardAmount || 0);
       const amountCheck = r.paymentType === '현영' ? Math.floor(amount * 1.06) : amount;
@@ -171,8 +177,28 @@ export default function AdminSettlementPage() {
         amountCheck,
       ]);
     });
+    
+    // --- 스타일 수정 부분 ---
+    // 마지막 '지급필요액' 열 가져오기
     const lastCol = sheet.getColumn(headers.length);
-    lastCol.eachCell(cell => { cell.font = { color: { argb: 'FFFF0000' } }; });
+    
+    // 마지막 열의 각 셀에 대해 스타일 적용
+    lastCol.eachCell({ includeEmpty: true }, cell => {
+      // 배경을 연한 분홍색으로 설정
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFE4E1' } // 연한 분홍색 (MistyRose)
+      };
+      
+      // 글씨를 볼드체로 설정
+      cell.font = {
+        bold: true
+      };
+    });
+    // --- 스타일 수정 부분 끝 ---
+    
+    // 파일 생성 및 다운로드
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
