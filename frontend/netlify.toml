@@ -1,12 +1,9 @@
-# Netlify 빌드 및 함수 설정 파일
+# 이 파일은 프로젝트 루트(D:/hellopiggy/netlify.toml)에 위치해야 합니다.
 
+# --- 빌드 설정 ---
 [build]
-  # 빌드 명령 및 게시 디렉토리
-  command = "yarn && yarn build"
-  publish = "dist"
-  # 함수 코드가 있는 디렉토리
-  functions = "frontend/functions"
+  # 베이스 디렉토리: 모든 빌드 관련 경로는 이 폴더를 기준으로 합니다.
+  base = "frontend"
 
-[functions]
-  # Node.js 런타임 버전 명시
-  node_bundler = "esbuild"
+  # 빌드 명령: 'frontend' 폴더 안에서 실행됩니다.
+  # 'yarn && yarn build'도
