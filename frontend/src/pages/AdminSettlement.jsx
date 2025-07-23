@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, deleteDoc, getDoc } from '../firebaseConfig';
 import ReviewDetailModal from '../components/ReviewDetailModal';
-import Papa from 'papaparse';
+import ExcelJS from 'exceljs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -142,35 +142,43 @@ export default function AdminSettlementPage() {
     fetchSettlementList();
     setSelected(new Set());
   };
-  const downloadCsvForInfo = () => {
+  const downloadCsvForInfo = async () => {
     if (processedRows.length === 0) return alert('다운로드할 정산 내역이 없습니다.');
-    const toText = (v, excelText = false) => `="${(v ?? '').toString()}"`;
-    const csvData = processedRows.map(r => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('정산정보');
+    const headers = [
+      '진행일자','결제종류','상품종류','주문번호','상품명','본계정이름',
+      '타계정이름(수취인)','전화번호','주소','은행','계좌번호','금액','예금주','지급필요액'
+    ];
+    sheet.addRow(headers);
+    processedRows.forEach(r => {
       const amount = Number(r.rewardAmount || 0);
       const amountCheck = r.paymentType === '현영' ? Math.floor(amount * 1.06) : amount;
-      return {
-        '진행일자': toText(r.productInfo?.reviewDate || '-'),
-        '결제종류': toText(r.paymentType || '-'),
-        '상품종류': toText(r.productType || '-'),
-        '주문번호': toText(r.orderNumber || '-'),
-        '상품명': toText(r.productInfo?.productName || r.productName || '-'),
-        '본계정이름': toText(r.mainAccountName || '-'),
-        '타계정이름(수취인)': toText(r.subAccountName || '-'),
-        '전화번호': toText(r.phoneNumber || '-', true),
-        '주소': toText(r.address || '-'),
-        '은행': toText(r.bank || '-'),
-        '계좌번호': toText(r.bankNumber || '', true),
-        '금액': toText(r.rewardAmount || '0'),
-        '예금주': toText(r.accountHolderName || '-'),
-        '금액확인': toText(amountCheck),
-      };
+      sheet.addRow([
+        r.productInfo?.reviewDate || '-',
+        r.paymentType || '-',
+        r.productType || '-',
+        r.orderNumber || '-',
+        r.productInfo?.productName || r.productName || '-',
+        r.mainAccountName || '-',
+        r.subAccountName || '-',
+        r.phoneNumber || '-',
+        r.address || '-',
+        r.bank || '-',
+        r.bankNumber || '',
+        r.rewardAmount || '0',
+        r.accountHolderName || '-',
+        amountCheck,
+      ]);
     });
-    const csv = Papa.unparse(csvData, { header: true });
-    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const lastCol = sheet.getColumn(headers.length);
+    lastCol.eachCell(cell => { cell.font = { color: { argb: 'FFFF0000' } }; });
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `정산정보파일_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `정산정보파일_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   };
