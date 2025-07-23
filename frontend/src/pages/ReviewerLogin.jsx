@@ -17,6 +17,7 @@ export default function ReviewerLogin() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [agree, setAgree] = useState(false);
 
   const handleKakaoLogin = () => {
     const params = new URLSearchParams({
@@ -53,6 +54,11 @@ export default function ReviewerLogin() {
         }
         if (password !== confirmPassword) {
           setError('비밀번호가 일치하지 않습니다.');
+          setSubmitting(false);
+          return;
+        }
+        if (!agree) {
+          setError('개인정보 처리방침에 동의해야 가입할 수 있습니다.');
           setSubmitting(false);
           return;
         }
@@ -132,6 +138,18 @@ export default function ReviewerLogin() {
             />
           </div>
         )}
+        {!isLoginView && (
+          <label style={{ display: 'block', marginBottom: '10px', textAlign: 'left' }}>
+            <input
+              type="checkbox"
+              checked={agree}
+              onChange={(e) => setAgree(e.target.checked)}
+              required
+              style={{ marginRight: '6px' }}
+            />
+            <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">개인정보 처리방침</a>에 동의합니다.
+          </label>
+        )}
         <Button className="login-btn" type="submit" disabled={submitting}>
           {submitting ? '처리 중...' : isLoginView ? '로그인' : '회원가입'}
         </Button>
@@ -139,7 +157,7 @@ export default function ReviewerLogin() {
       </form>
       <div className="view-toggle" style={{ marginTop: '20px' }}>
         {isLoginView ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'}
-        <Button onClick={() => { setIsLoginView(!isLoginView); setError(''); }} style={{ marginLeft: '10px' }} variant="link">
+        <Button onClick={() => { setIsLoginView(!isLoginView); setError(''); setAgree(false); }} style={{ marginLeft: '10px' }} variant="link">
           {isLoginView ? '회원가입' : '로그인'}
         </Button>
       </div>
