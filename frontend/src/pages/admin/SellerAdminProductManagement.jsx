@@ -317,7 +317,10 @@ export default function AdminProductManagementPage() {
                     productPrice: data.productPrice || '',
                     keywords: data.keywords || '',
                     productUrl: data.productUrl || '',
-                    reviewDate: data.date?.seconds ? new Date(data.date.seconds * 1000).toISOString().slice(0,10) : '',
+                    reviewDate: data.date?.seconds
+                      ? new Date(data.date.seconds * 1000)
+                          .toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
+                      : '',
                     progressStatus: '진행전',
                     createdAt: serverTimestamp()
                 });
