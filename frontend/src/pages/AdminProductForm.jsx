@@ -20,7 +20,15 @@ const initialFormState = {
   productName: '', reviewType: '현영',
   guide: `✅ 구매폼 작성\n- ${REVIEW_LINK_PLACEHOLDER}\n\n현영(지출증빙): 736-28-00836, 7362800836\n🚫상품명 검색 금지🚫\n🚫타계 동일 연락처, 동일 주소 중복 불가🚫\n🚫여러 상품 진행 시 장바구니 결제🚫\n✅키워드 검색 후 (가격 검색 필수) [찜🩷]\n + 체류 2분 후 [장바구니🛒] > [바로구매] \n\n⚠ 가이드의 상품 옵션 그대로 구매 진행 \n⚠ 옵션 변경 시 페이백 불가 \n\n✅리뷰 가이드🙇\n- 상품별 별도 안내\n⭐ 별점 리뷰 : 별점 5점 \n✍ 텍스트 리뷰 : 텍스트 3줄 이상 + 별점 5점\n📸 포토 리뷰 : 포토 3장 + 텍스트 3줄 이상 + 별점 5점\n📸 프리미엄(포토) : 포토 10장 + 예쁜 텍스트 많이 / 풀-포리\n📹 프리미엄(영상) : 영상 + 포토 10장 + 예쁜 텍스트 많이\n\n✅구매 후 업로드!\n - 구매 인증 시 상품명, 옵션 확인 안될 경우 페이백 불가\n - 현금영수증(지출증빙) 7362800836 입력 인증 필수! \n\n✅ 페이백 - 리뷰 인증 확인 후 48시간 이내 페이백 (입금자명 : 강예슬)\n - 페이백 확인이 안될 경우 개인톡❌\n - 1:1 문의방으로 문의해 주세요\n  → https://open.kakao.com/o/sscJn3wh\n - 입장 후 구매일자, 구매상품을 말씀해 주시면 더 빠른 확인이 가능해요!`,
   reviewDate: new Date().toISOString().slice(0, 10),
-  progressStatus: '진행중', productType: '실배송', reviewOption: '포토',
+  progressStatus: '진행중',
+  productType: '실배송',
+  reviewOption: '포토',
+  quantity: '',
+  productOption: '',
+  productPrice: '',
+  keywords: '',
+  productUrl: '',
+  campaignId: '' // 연동할 캠페인 ID (선택)
 };
 
 export default function AdminProductFormPage() {
@@ -59,8 +67,36 @@ export default function AdminProductFormPage() {
     const { name, value } = e.target;
     if (name === 'productType') {
       setForm(prev => ({ ...prev, productType: value, reviewOption: '별점' }));
+    } else if (name === 'quantity' || name === 'productPrice') {
+      setForm(prev => ({ ...prev, [name]: value ? Number(value) : '' }));
     } else {
       setForm(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const loadCampaignData = async () => {
+    if (!form.campaignId) return;
+    try {
+      const snap = await getDoc(doc(db, 'campaigns', form.campaignId));
+      if (!snap.exists()) return alert('캠페인을 찾을 수 없습니다.');
+      const data = snap.data();
+      setForm(prev => ({
+        ...prev,
+        productName: data.productName || '',
+        productType: data.deliveryType || '실배송',
+        reviewOption: data.reviewType || '별점',
+        quantity: data.quantity || '',
+        productOption: data.productOption || '',
+        productPrice: data.productPrice || '',
+        keywords: data.keywords || '',
+        productUrl: data.productUrl || '',
+        reviewDate: data.date?.seconds ?
+          new Date(data.date.seconds * 1000).toISOString().slice(0,10) : prev.reviewDate,
+        progressStatus: '진행전'
+      }));
+    } catch (err) {
+      console.error('캠페인 로드 실패:', err);
+      alert('캠페인 정보를 불러오지 못했습니다.');
     }
   };
 
@@ -78,20 +114,35 @@ export default function AdminProductFormPage() {
         const linkToInsert = REVIEW_LINK_BASE_URL + productId;
         const finalGuide = form.guide.replace(REVIEW_LINK_PLACEHOLDER, linkToInsert)
                                       .replace(/pid=[a-zA-Z0-9]+/, `pid=${productId}`);
-        
-        await updateDoc(productRef, { ...form, guide: finalGuide });
+
+        const { campaignId, ...updateData } = form;
+        await updateDoc(productRef, { ...updateData, guide: finalGuide });
         alert('상품이 성공적으로 수정되었습니다.');
       } else {
         const newProductRef = doc(collection(db, 'products'));
         const newProductId = newProductRef.id;
         const newProductLink = REVIEW_LINK_BASE_URL + newProductId;
         const finalGuide = form.guide.replace(REVIEW_LINK_PLACEHOLDER, newProductLink);
-        
-        await setDoc(newProductRef, { 
-            ...form, 
+
+        const { campaignId, ...productData } = form;
+        await setDoc(newProductRef, {
+            ...productData,
             guide: finalGuide,
-            createdAt: serverTimestamp() 
+            createdAt: serverTimestamp()
         });
+
+        if (form.campaignId) {
+          try {
+            await updateDoc(doc(db, 'campaigns', form.campaignId), {
+              productId: newProductId,
+              status: '예약 확정',
+              depositConfirmed: true,
+              confirmedAt: serverTimestamp()
+            });
+          } catch (err) {
+            console.error('캠페인 연동 실패:', err);
+          }
+        }
         alert('상품이 성공적으로 생성되었습니다.');
       }
       navigate('/admin/products');
@@ -116,6 +167,18 @@ export default function AdminProductFormPage() {
         <div className="form-field"><label>상품 종류</label><select name="productType" value={form.productType} onChange={handleChange} required>{productTypeOptions.map(t => (<option key={t} value={t}>{t}</option>))}</select></div>
         <div className="form-field"><label>리뷰 종류</label><select name="reviewOption" value={form.reviewOption} onChange={handleChange} required>{currentReviewOptions.map(o => (<option key={o} value={o}>{o}</option>))}</select></div>
         <div className="form-field"><label>진행일자</label><input type="date" name="reviewDate" value={form.reviewDate} onChange={handleChange} required /></div>
+        <div className="form-field"><label>체험단 개수</label><input type="number" name="quantity" value={form.quantity} onChange={handleChange} /></div>
+        <div className="form-field"><label>옵션</label><input type="text" name="productOption" value={form.productOption} onChange={handleChange} /></div>
+        <div className="form-field"><label>상품가</label><input type="number" name="productPrice" value={form.productPrice} onChange={handleChange} /></div>
+        <div className="form-field"><label>키워드</label><input type="text" name="keywords" value={form.keywords} onChange={handleChange} /></div>
+        <div className="form-field"><label>상품 URL</label><input type="text" name="productUrl" value={form.productUrl} onChange={handleChange} /></div>
+        <div className="form-field">
+          <label>연동 캠페인 ID (선택)</label>
+          <div style={{display:'flex', gap:'8px'}}>
+            <input type="text" name="campaignId" value={form.campaignId} onChange={handleChange} placeholder="캠페인 문서 ID" />
+            <Button type="button" onClick={loadCampaignData} disabled={!form.campaignId || isSubmitting}>가져오기</Button>
+          </div>
+        </div>
         <div><label style={{ display: 'block', marginBottom: '8px' }}>가이드</label><textarea name="guide" value={form.guide} onChange={handleChange} placeholder="리뷰 작성 시 필요한 상세 안내 내용을 입력하세요." style={{ width: '100%', minHeight: '300px' }}></textarea></div>
         <div className="form-actions">
             <Button type="submit" disabled={isSubmitting}>{isSubmitting ? '저장 중...' : (isEditMode ? '수정 완료' : '상품 등록')}</Button>
