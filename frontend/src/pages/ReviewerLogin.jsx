@@ -65,6 +65,7 @@ export default function ReviewerLogin() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [agree, setAgree] = useState(false);
 
   const handleKakaoLogin = () => {
     const params = new URLSearchParams({
@@ -101,6 +102,11 @@ export default function ReviewerLogin() {
         }
         if (password !== confirmPassword) {
           setError('비밀번호가 일치하지 않습니다.');
+          setSubmitting(false);
+          return;
+        }
+        if (!agree) {
+          setError('개인정보 처리방침에 동의해야 가입할 수 있습니다.');
           setSubmitting(false);
           return;
         }

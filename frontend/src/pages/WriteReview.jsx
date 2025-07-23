@@ -570,11 +570,19 @@ export default function WriteReview() {
           
           <div className="field">
             <label>
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={isAgreed}
                 onChange={(e) => setIsAgreed(e.target.checked)}
-              /> 개인정보 이용에 동의합니다.
+              />
+              <a
+                href="https://hellopiggys.netlify.app/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ marginLeft: '4px' }}
+              >
+                개인정보 이용에 동의합니다.
+              </a>
             </label>
           </div>
           <Button

@@ -75,7 +75,10 @@ export default function AdminReviewManagementPage() {
         return review;
       })
     );
-    const reviewsData = allReviews.filter((r) => r.status !== 'settled');
+    // 리뷰 인증 완료된 항목은 정산 관리 페이지에서 다루므로 목록에서 제외한다
+    const reviewsData = allReviews.filter(
+      (r) => r.status !== 'settled' && r.status !== 'verified'
+    );
     setRows(reviewsData);
     setLoading(false);
   };
@@ -242,7 +245,7 @@ export default function AdminReviewManagementPage() {
                 <select name="status" value={filters.status} onChange={handleFilterChange}>
                   <option value="all">전체</option>
                   {Object.entries(statusMap)
-                    .filter(([key]) => key !== 'settled')
+                    .filter(([key]) => !['settled', 'verified'].includes(key))
                     .map(([, label]) => (
                       <option key={label} value={label}>{label}</option>
                     ))}

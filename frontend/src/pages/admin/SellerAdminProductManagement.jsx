@@ -46,6 +46,7 @@ export default function AdminProductManagementPage() {
   const [detailText, setDetailText] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageGroup, setPageGroup] = useState(0);
+  const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
   const itemsPerPage = 20;
   const pagesPerGroup = 10;
 
@@ -111,6 +112,18 @@ export default function AdminProductManagementPage() {
     return { basePrice, sundayExtraCharge, reviewFee, productPrice, quantity, itemTotal, finalItemAmount, commission };
   };
 
+  const requestSort = (key) => {
+    setSortConfig(prev => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const SortIndicator = ({ columnKey }) =>
+    sortConfig.key !== columnKey ? null : (sortConfig.direction === 'asc' ? ' ▲' : ' ▼');
+
   const groupedAndPaginatedCampaigns = useMemo(() => {
     // 1. Grouping by createdAt timestamp (like in SellerReservation)
     const groups = {};
@@ -121,7 +134,7 @@ export default function AdminProductManagementPage() {
                 key,
                 items: [],
                 total: 0,
-                createdAt: c.createdAt // For sorting
+                createdAt: c.createdAt
             };
         }
         groups[key].items.push(c);
@@ -129,8 +142,28 @@ export default function AdminProductManagementPage() {
         groups[key].total += finalItemAmount;
     });
 
-    // 2. Sort groups by creation time (descending)
-    const sortedGroups = Object.values(groups).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    // 2. Determine sort values and sort items when needed
+    Object.values(groups).forEach(g => {
+        if (sortConfig.key === 'date') {
+            g.items.sort((a,b) => {
+                const av = a.date?.seconds || 0;
+                const bv = b.date?.seconds || 0;
+                return sortConfig.direction === 'asc' ? av - bv : bv - av;
+            });
+            g.sortValue = g.items[0]?.date?.seconds || 0;
+        } else {
+            g.items.sort((a,b) => {
+                const av = a.createdAt?.seconds || 0;
+                const bv = b.createdAt?.seconds || 0;
+                return sortConfig.direction === 'asc' ? av - bv : bv - av;
+            });
+            g.sortValue = g.createdAt?.seconds || 0;
+        }
+    });
+
+    const sortedGroups = Object.values(groups).sort((a, b) =>
+        sortConfig.direction === 'asc' ? a.sortValue - b.sortValue : b.sortValue - a.sortValue
+    );
 
     // 3. Flatten the structure with group information
     const flattened = [];
@@ -180,7 +213,7 @@ export default function AdminProductManagementPage() {
     });
 
     return finalPaginatedItems;
-  }, [filteredCampaigns, currentPage, itemsPerPage]);
+  }, [filteredCampaigns, currentPage, itemsPerPage, sortConfig]);
 
   const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
   useEffect(() => {
@@ -383,8 +416,12 @@ export default function AdminProductManagementPage() {
                 <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={groupedAndPaginatedCampaigns.length > 0 && groupedAndPaginatedCampaigns.every(c => selectedIds.includes(c.id))} /></th>
                 <th className={thClass}>상품군</th>
                 <th className={thClass}>순번</th>
-                <th className={thClass}>예약 등록 일자</th>
-                <th className={thClass}>진행일자</th>
+                <th className={thClass + ' sortable'} onClick={() => requestSort('createdAt')}>
+                  예약 등록 일자<SortIndicator columnKey="createdAt" />
+                </th>
+                <th className={thClass + ' sortable'} onClick={() => requestSort('date')}>
+                  진행일자<SortIndicator columnKey="date" />
+                </th>
                 <th className={thClass}>구분</th>
                 <th className={thClass}>리뷰 종류</th>
                 <th className={thClass}>체험단 개수</th>
