@@ -1,7 +1,7 @@
 // src/pages/seller/SellerProgress.jsx (디자인 개선 버전)
 
 import { useEffect, useState } from 'react';
-import { db, auth, onAuthStateChanged, collection, query, where, onSnapshot, getDocs } from '../../firebaseConfig';
+import { db, auth, onAuthStateChanged, collection, query, where, onSnapshot, getDocs, orderBy } from '../../firebaseConfig';
 
 import {
   Card,
@@ -78,9 +78,13 @@ export default function SellerProgressPage() {
       const map = {};
       const serials = campaigns.map(c => c.serialNumber).filter(Boolean);
       for (const sn of serials) {
-        const q = query(collection(db, 'reviews'), where('productSerial', '==', sn));
+        const q = query(
+          collection(db, 'reviews'),
+          where('productSerial', '==', sn),
+          orderBy('createdAt')
+        );
         const snap = await getDocs(q);
-        if (!snap.empty) map[sn] = snap.docs[0].data();
+        if (!snap.empty) map[sn] = snap.docs.map(d => d.data());
       }
       setReviewsBySerial(map);
     };
@@ -107,7 +111,9 @@ export default function SellerProgressPage() {
   if (availableYears.length === 0) availableYears.push(today.getFullYear());
   
   const availableMonths = Array.from({ length: 12 }, (_, i) => i + 1);
-  const expandedCampaigns = filteredCampaigns.flatMap(c => Array.from({ length: Number(c.quantity) || 1 }, () => c));
+  const expandedCampaigns = filteredCampaigns.flatMap(c =>
+    Array.from({ length: Number(c.quantity) || 1 }, (_, i) => ({ ...c, __idx: i }))
+  );
 
 
   return (
@@ -191,14 +197,20 @@ export default function SellerProgressPage() {
                         </Button>
                       </TableCell>
                       <TableCell>{c.keywords}</TableCell>
-                      {(() => { const r = reviewsBySerial[c.serialNumber] || {}; return (<>
-                        <TableCell>{r.name || '-'}</TableCell>
-                        <TableCell>{r.phoneNumber || '-'}</TableCell>
-                        <TableCell>{r.address || '-'}</TableCell>
-                        <TableCell>{r.orderNumber || '-'}</TableCell>
-                        <TableCell className="text-muted-foreground">-</TableCell>
-                        <TableCell className="text-muted-foreground">-</TableCell>
-                      </>); })()}
+                      {(() => {
+                        const arr = reviewsBySerial[c.serialNumber] || [];
+                        const r = arr[c.__idx] || {};
+                        return (
+                          <>
+                            <TableCell>{r.name || '-'}</TableCell>
+                            <TableCell>{r.phoneNumber || '-'}</TableCell>
+                            <TableCell>{r.address || '-'}</TableCell>
+                            <TableCell>{r.orderNumber || '-'}</TableCell>
+                            <TableCell className="text-muted-foreground">-</TableCell>
+                            <TableCell className="text-muted-foreground">-</TableCell>
+                          </>
+                        );
+                      })()}
                     </TableRow>
                   );
                 })
