@@ -233,6 +233,15 @@ export default function AdminProductManagementPage() {
   const prevGroup = () => setPageGroup(g => Math.max(0, g - 1));
   const nextGroup = () => setPageGroup(g => (g + 1) * pagesPerGroup < totalPages ? g + 1 : g);
 
+  const updatePaymentType = async (id, value) => {
+    try {
+      await updateDoc(doc(db, 'campaigns', id), { paymentType: value });
+    } catch (err) {
+      console.error('결제유형 업데이트 오류:', err);
+      alert('결제유형 업데이트에 실패했습니다.');
+    }
+  };
+
   const handleToggleSameDay = async () => {
     const newVal = !allowSameDay;
     setAllowSameDay(newVal);
@@ -405,6 +414,7 @@ export default function AdminProductManagementPage() {
         '예약 등록 일자': c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : '',
         '진행일자': c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '',
         '구분': c.deliveryType || '',
+        '결제유형': c.paymentType || '현영',
         '리뷰 종류': c.reviewType || '',
         '체험단 개수': c.quantity || '',
         '상품명': c.productName || '',
@@ -474,6 +484,7 @@ export default function AdminProductManagementPage() {
                   진행일자<SortIndicator columnKey="date" />
                 </th>
                 <th className={thClass}>구분</th>
+                <th className={thClass}>결제유형</th>
                 <th className={thClass}>리뷰 종류</th>
                 <th className={thClass}>체험단 개수</th>
                 <th className={thClass}>상품명</th>
@@ -509,6 +520,16 @@ export default function AdminProductManagementPage() {
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{formatDate(c.createdAt)}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '-'}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm">{c.deliveryType}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">
+                            <select
+                              value={c.paymentType || '현영'}
+                              onChange={e => updatePaymentType(c.id, e.target.value)}
+                              className="border p-1 rounded"
+                            >
+                              <option value="현영">현영</option>
+                              <option value="자율결제">자율결제</option>
+                            </select>
+                          </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm">{c.reviewType}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm">{c.quantity}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.productName}</td>
