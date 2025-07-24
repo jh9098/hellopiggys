@@ -45,6 +45,7 @@ import SellerDashboardPage from './pages/seller/SellerDashboard';
 import SellerReservationPage from './pages/seller/SellerReservation';
 import SellerProgressPage from './pages/seller/SellerProgress';
 import SellerTrafficPage from './pages/seller/SellerTraffic';
+import SellerTrafficStatusPage from './pages/seller/SellerTrafficStatus';
 import SellerKeywordPage from './pages/seller/SellerKeyword';
 
 function App() {
@@ -73,11 +74,12 @@ function App() {
 
         {/* 판매자 */}
         <Route path="/seller" element={<SellerLayout />}>
-          <Route index element={<Navigate to="dashboard" replace />} /> 
+          <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<SellerDashboardPage />} />
           <Route path="reservation" element={<SellerReservationPage />} />
           <Route path="progress" element={<SellerProgressPage />} />
           <Route path="traffic" element={<SellerTrafficPage />} />
+          <Route path="traffic-status" element={<SellerTrafficStatusPage />} />
           <Route path="keyword" element={<SellerKeywordPage />} />
         </Route>
         <Route path="/dashboard/payment" element={<PaymentPage />} />
