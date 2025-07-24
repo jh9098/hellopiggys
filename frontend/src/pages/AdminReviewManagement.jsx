@@ -15,10 +15,16 @@ import {
   TableCell,
 } from '@/components/ui/table';
 
-// [추가] 24시간제 날짜 포맷 함수
+// 구매폼 등록일시 표시용 날짜 포맷 (YY.MM.DD HH시MM분)
 const formatTimestamp24h = (timestamp) => {
   if (!timestamp || !timestamp.seconds) return '';
-  return new Date(timestamp.seconds * 1000).toLocaleString('ko-KR', { hour12: false });
+  const date = new Date(timestamp.seconds * 1000);
+  const yy = date.getFullYear().toString().slice(2);
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mi = String(date.getMinutes()).padStart(2, '0');
+  return `${yy}.${mm}.${dd} ${hh}시${mi}분`;
 };
 
 const statusMap = {
@@ -268,8 +274,8 @@ export default function AdminReviewManagementPage() {
                 <TableCell>{formatTimestamp24h(r.createdAt)}</TableCell>
                 <TableCell>{getDisplayStatus(r)}</TableCell>
                 <TableCell className="product-name-cell">{r.productName || '-'}</TableCell>
-                <TableCell>{r.mainAccountName || '-'}</TableCell>
-                <TableCell>{r.name || '-'}</TableCell>
+                <TableCell className="nowrap-cell">{r.mainAccountName || '-'}</TableCell>
+                <TableCell className="nowrap-cell">{r.name || '-'}</TableCell>
                 <TableCell>{r.phoneNumber || '-'}</TableCell>
                 <TableCell>{r.paymentType || (r.isVatApplied ? '현영' : '자율결제')}</TableCell>
                 <TableCell>{r.productType || '-'}</TableCell>

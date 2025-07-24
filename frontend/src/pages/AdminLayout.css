@@ -280,6 +280,11 @@ main h2 {
   text-align: left;
 }
 
+/* 본계정/타계정 칼럼 줄바꿈 방지 */
+.nowrap-cell {
+  white-space: nowrap;
+}
+
 /* ▼▼▼ 모바일 최적화 수정 부분 ▼▼▼ */
 @media (max-width: 768px) {
   .admin-layout {
