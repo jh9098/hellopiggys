@@ -11,6 +11,7 @@ import {
   uploadBytes,
   getDownloadURL,
   arrayRemove,
+  serverTimestamp,
 } from '../firebaseConfig';
 import './ReviewDetailModal.css';
 
@@ -167,6 +168,35 @@ export default function ReviewDetailModal({ review, onClose }) {
     });
     setEditImages({});
     setImagesToDelete({});
+  };
+
+  const handleVerify = async () => {
+    if (!window.confirm('이 리뷰를 인증 처리하시겠습니까?')) return;
+    await updateDoc(doc(db, 'reviews', currentReview.id), {
+      status: 'verified',
+      verifiedAt: serverTimestamp(),
+    });
+    alert('리뷰 인증이 완료되었습니다.');
+    onClose();
+  };
+
+  const handleReject = async () => {
+    const reason = prompt('반려 사유를 입력하세요:');
+    if (reason === null) return;
+    if (!reason.trim()) {
+      alert('반려 사유를 반드시 입력해야 합니다.');
+      return;
+    }
+    if (!window.confirm(`이 리뷰를 반려 처리하시겠습니까?\n사유: ${reason.trim()}`)) {
+      return;
+    }
+    await updateDoc(doc(db, 'reviews', currentReview.id), {
+      status: 'rejected',
+      rejectionReason: reason.trim(),
+      rejectedAt: serverTimestamp(),
+    });
+    alert('리뷰가 반려 처리되었습니다.');
+    onClose();
   };
 
   return (
@@ -357,6 +387,10 @@ export default function ReviewDetailModal({ review, onClose }) {
                 ))}
               </div>
             )}
+          </div>
+          <div className="action-buttons">
+            <button className="verify-btn" onClick={handleVerify}>리뷰 인증</button>
+            <button className="reject-button" onClick={handleReject}>반려</button>
           </div>
       </div>
     </div>
