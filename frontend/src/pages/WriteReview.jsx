@@ -569,19 +569,20 @@ export default function WriteReview() {
           )}
           
           <div className="field">
-            <label>
+            <label className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 checked={isAgreed}
                 onChange={(e) => setIsAgreed(e.target.checked)}
               />
+              <span>개인정보 이용에 동의합니다.</span>
               <a
                 href="https://hellopiggys.netlify.app/privacy-policy"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ marginLeft: '4px' }}
+                className="underline"
               >
-                개인정보 이용에 동의합니다.
+                개인정보 처리방침 보기
               </a>
             </label>
           </div>
