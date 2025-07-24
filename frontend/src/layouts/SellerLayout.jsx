@@ -41,6 +41,7 @@ export default function SellerLayout() {
             {open.traffic && (
               <ul className="ml-4 mt-2 space-y-2">
                 <li><NavLink to="/seller/traffic" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>트래픽 요청</NavLink></li>
+                <li><NavLink to="/seller/traffic-status" className={({ isActive }) => isActive ? activeClassName : inactiveClassName}>트래픽 현황</NavLink></li>
               </ul>
             )}
           </li>
