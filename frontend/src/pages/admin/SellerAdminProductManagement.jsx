@@ -332,9 +332,12 @@ export default function AdminProductManagementPage() {
             if (!productId) {
                 const productRef = doc(collection(db, 'products'));
                 productId = productRef.id;
+                const defaultType = data.paymentType || (data.isVatApplied ? '현영' : '자율결제');
                 await setDoc(productRef, {
                     productName: data.productName || '',
                     productType: data.deliveryType || '',
+                    reviewType: defaultType,
+                    paymentType: defaultType,
                     reviewOption: data.reviewType || '',
                     quantity: data.quantity || 0,
                     productOption: data.productOption || '',
@@ -351,8 +354,11 @@ export default function AdminProductManagementPage() {
                 });
                 await updateDoc(campaignRef, { productId });
             } else {
+                const defaultType = data.paymentType || (data.isVatApplied ? '현영' : '자율결제');
                 await updateDoc(doc(db, 'products', productId), {
-                    guide: data.reviewGuide || ''
+                    guide: data.reviewGuide || '',
+                    reviewType: defaultType,
+                    paymentType: defaultType
                 });
             }
 
