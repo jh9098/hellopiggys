@@ -162,7 +162,7 @@ export default function SellerProgressPage() {
                       <TableCell className="text-center">{idx + 1}</TableCell>
                       <TableCell className="font-mono">{d.toLocaleDateString()}</TableCell>
                       <TableCell className="text-center"><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
-                      <TableCell className="text-center">{c.paymentType || '-'}</TableCell>
+                      <TableCell className="text-center">{c.paymentType || (c.isVatApplied ? '현영' : '자율결제')}</TableCell>
                       <TableCell className="text-center"><Badge>{c.reviewType}</Badge></TableCell>
                       <TableCell className="text-center">{idx + 1}</TableCell>
                       <TableCell className="font-medium">{c.productName}</TableCell>

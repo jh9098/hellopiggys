@@ -236,6 +236,13 @@ export default function AdminProductManagementPage() {
   const updatePaymentType = async (id, value) => {
     try {
       await updateDoc(doc(db, 'campaigns', id), { paymentType: value });
+      const productId = campaigns.find(c => c.id === id)?.productId;
+      if (productId) {
+        await updateDoc(doc(db, 'products', productId), {
+          paymentType: value,
+          reviewType: value,
+        });
+      }
     } catch (err) {
       console.error('결제유형 업데이트 오류:', err);
       alert('결제유형 업데이트에 실패했습니다.');
@@ -332,9 +339,12 @@ export default function AdminProductManagementPage() {
             if (!productId) {
                 const productRef = doc(collection(db, 'products'));
                 productId = productRef.id;
+                const defaultType = data.paymentType || (data.isVatApplied ? '현영' : '자율결제');
                 await setDoc(productRef, {
                     productName: data.productName || '',
                     productType: data.deliveryType || '',
+                    reviewType: defaultType,
+                    paymentType: defaultType,
                     reviewOption: data.reviewType || '',
                     quantity: data.quantity || 0,
                     productOption: data.productOption || '',
@@ -351,8 +361,11 @@ export default function AdminProductManagementPage() {
                 });
                 await updateDoc(campaignRef, { productId });
             } else {
+                const defaultType = data.paymentType || (data.isVatApplied ? '현영' : '자율결제');
                 await updateDoc(doc(db, 'products', productId), {
-                    guide: data.reviewGuide || ''
+                    guide: data.reviewGuide || '',
+                    reviewType: defaultType,
+                    paymentType: defaultType
                 });
             }
 
@@ -414,7 +427,7 @@ export default function AdminProductManagementPage() {
         '예약 등록 일자': c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : '',
         '진행일자': c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '',
         '구분': c.deliveryType || '',
-        '결제유형': c.paymentType || '현영',
+        '결제유형': c.paymentType || (c.isVatApplied ? '현영' : '자율결제'),
         '리뷰 종류': c.reviewType || '',
         '체험단 개수': c.quantity || '',
         '상품명': c.productName || '',
@@ -522,7 +535,7 @@ export default function AdminProductManagementPage() {
                           <td className="px-3 py-4 whitespace-nowrap text-sm">{c.deliveryType}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm">
                             <select
-                              value={c.paymentType || '현영'}
+                              value={c.paymentType || (c.isVatApplied ? '현영' : '자율결제')}
                               onChange={e => updatePaymentType(c.id, e.target.value)}
                               className="border p-1 rounded"
                             >

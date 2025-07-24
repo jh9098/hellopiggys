@@ -58,8 +58,19 @@ export default function AdminProgressPage() {
   const nextGroup = () => setPageGroup(g => (g + 1) * pagesPerGroup < totalPages ? g + 1 : g);
 
   const updatePaymentType = async (id, value) => {
-    try { await updateDoc(doc(db, 'campaigns', id), { paymentType: value }); } 
-    catch (err) { console.error('결제유형 업데이트 오류:', err); alert('결제유형 업데이트에 실패했습니다.'); }
+    try {
+      await updateDoc(doc(db, 'campaigns', id), { paymentType: value });
+      const productId = campaigns.find(c => c.id === id)?.productId;
+      if (productId) {
+        await updateDoc(doc(db, 'products', productId), {
+          paymentType: value,
+          reviewType: value,
+        });
+      }
+    } catch (err) {
+      console.error('결제유형 업데이트 오류:', err);
+      alert('결제유형 업데이트에 실패했습니다.');
+    }
   };
 
   if (loading) return <p>진행 현황을 불러오는 중...</p>;
@@ -93,7 +104,7 @@ export default function AdminProgressPage() {
                   <td className="px-2 py-2">{d.toLocaleDateString()}</td>
                   <td className="px-2 py-2">{c.deliveryType}</td>
                   <td className="px-2 py-2">
-                    <select value={c.paymentType || ''} onChange={e => updatePaymentType(c.id, e.target.value)} className="border p-1 rounded w-full">
+                    <select value={c.paymentType || (c.isVatApplied ? '현영' : '자율결제')} onChange={e => updatePaymentType(c.id, e.target.value)} className="border p-1 rounded w-full">
                       <option value="">선택</option><option value="현영">현영</option><option value="자율결제">자율결제</option>
                     </select>
                   </td>

@@ -150,7 +150,7 @@ export default function AdminReviewManagementPage() {
     const toText = (v, excelText = false) => `="${(v ?? '').toString()}"`;
     const csvData = processedRows.map(r => ({
       '진행일자': toText(r.productInfo?.reviewDate || '-'),
-      '결제종류': toText(r.paymentType || '-'),
+      '결제종류': toText(r.paymentType || (r.isVatApplied ? '현영' : '자율결제')),
       '상품종류': toText(r.productType || '-'),
       '주문번호': toText(r.orderNumber || '-'),
       '상품명': toText(r.productInfo?.productName || r.productName || '-'),
@@ -271,7 +271,7 @@ export default function AdminReviewManagementPage() {
                 <TableCell>{r.mainAccountName || '-'}</TableCell>
                 <TableCell>{r.name || '-'}</TableCell>
                 <TableCell>{r.phoneNumber || '-'}</TableCell>
-                <TableCell>{r.paymentType || '-'}</TableCell>
+                <TableCell>{r.paymentType || (r.isVatApplied ? '현영' : '자율결제')}</TableCell>
                 <TableCell>{r.productType || '-'}</TableCell>
                 <TableCell>{r.reviewOption || '-'}</TableCell>
                 <TableCell><Button variant="link" size="sm" className={`link-button ${r.confirmImageUrls?.length > 0 ? 'completed' : ''}`} onClick={() => openDetailModal(r)}>{r.confirmImageUrls?.length > 0 ? 'O' : 'X'}</Button></TableCell>

@@ -187,7 +187,7 @@ export default function AdminSettlementCompletePage() {
                 <TableCell>{r.mainAccountName || '-'}</TableCell>
                 <TableCell>{r.subAccountName || '-'}</TableCell>
                 <TableCell>{r.phoneNumber || '-'}</TableCell>
-                <TableCell>{r.paymentType || '-'}</TableCell>
+                <TableCell>{r.paymentType || (r.isVatApplied ? '현영' : '자율결제')}</TableCell>
                 <TableCell>{r.productType || '-'}</TableCell>
                 <TableCell>{r.reviewOption || '-'}</TableCell>
                 <TableCell>{r.orderNumber || '-'}</TableCell>
