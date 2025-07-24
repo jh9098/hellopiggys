@@ -82,7 +82,7 @@ export default function SellerTrafficStatusPage() {
               <TableRow>
                 <TableHead>상품명</TableHead>
                 <TableHead>개수</TableHead>
-                <TableHead>구동일</TableHead>
+                <TableHead>잔여일자</TableHead>
                 <TableHead>시작일자</TableHead>
                 <TableHead>마감일자</TableHead>
               </TableRow>
