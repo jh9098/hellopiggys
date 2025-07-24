@@ -208,6 +208,7 @@ export default function WriteReview() {
       mainAccountId: currentUser.uid,
       subAccountId: form.subAccountId,
       productId: selectedProduct.id,
+      productSerial: selectedProduct.serialNumber || null,
       productName: selectedProduct.productName || '상품명 없음', 
       reviewType: selectedProduct.reviewType || '현영',
       createdAt: serverTimestamp(),

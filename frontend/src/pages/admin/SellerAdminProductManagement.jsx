@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { db, collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, writeBatch, increment, serverTimestamp, getDoc, setDoc } from '../../firebaseConfig';
+import { getNextSerialNumber } from '../../utils';
 import Papa from 'papaparse';
 import { Button } from '@/components/ui/button';
 import '../../components/ReviewDetailModal.css';
@@ -336,6 +337,19 @@ export default function AdminProductManagementPage() {
             const data = snap.data();
 
             let productId = data.productId;
+            let serialNumber = data.serialNumber;
+
+            if (productId) {
+                const prodSnap = await getDoc(doc(db, 'products', productId));
+                if (prodSnap.exists()) {
+                    serialNumber = serialNumber || prodSnap.data().serialNumber;
+                }
+            }
+
+            if (!serialNumber) {
+                serialNumber = await getNextSerialNumber();
+            }
+
             if (!productId) {
                 const productRef = doc(collection(db, 'products'));
                 productId = productRef.id;
@@ -357,17 +371,20 @@ export default function AdminProductManagementPage() {
                       : '',
                     guide: data.reviewGuide || '',
                     progressStatus: '진행전',
-                    createdAt: serverTimestamp()
+                    createdAt: serverTimestamp(),
+                    serialNumber
                 });
-                await updateDoc(campaignRef, { productId });
             } else {
                 const defaultType = data.paymentType || (data.isVatApplied ? '현영' : '자율결제');
                 await updateDoc(doc(db, 'products', productId), {
                     guide: data.reviewGuide || '',
                     reviewType: defaultType,
-                    paymentType: defaultType
+                    paymentType: defaultType,
+                    serialNumber
                 });
             }
+
+            await updateDoc(campaignRef, { productId, serialNumber });
 
             await updateDoc(campaignRef, {
                 status: '예약 확정',

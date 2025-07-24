@@ -248,6 +248,7 @@ export default function AdminProductManagementPage() {
           <TableHeader>
             <TableRow>
               <TableHead><input type="checkbox" onChange={handleSelectAll} checked={paginatedProducts.length > 0 && paginatedProducts.every(p => selectedIds.includes(p.id))} /></TableHead>
+              <TableHead onClick={() => requestSort('serialNumber')} className="sortable">번호<SortIndicator columnKey="serialNumber" /></TableHead>
               <TableHead onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></TableHead>
               <TableHead onClick={() => requestSort('reviewType')} className="sortable">결제 종류<SortIndicator columnKey="reviewType" /></TableHead>
               <TableHead onClick={() => requestSort('productType')} className="sortable">상품 종류<SortIndicator columnKey="productType" /></TableHead>
@@ -263,6 +264,7 @@ export default function AdminProductManagementPage() {
               <TableHead>관리</TableHead>
             </TableRow>
             <TableRow className="bulk-row">
+              <TableHead></TableHead>
               <TableHead></TableHead>
               <TableHead></TableHead>
               <TableHead>
@@ -299,6 +301,7 @@ export default function AdminProductManagementPage() {
             </TableRow>
               <TableRow className="filter-row">
               <TableHead></TableHead>
+              <TableHead></TableHead>
               <TableHead><Input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></TableHead>
               <TableHead><Input type="text" name="reviewType" value={filters.reviewType} onChange={handleFilterChange} /></TableHead>
               <TableHead><Input type="text" name="productType" value={filters.productType} onChange={handleFilterChange} /></TableHead>
@@ -318,6 +321,7 @@ export default function AdminProductManagementPage() {
           {processedProducts.length > 0 ? paginatedProducts.map(p => (
               <TableRow key={p.id}>
                 <TableCell><input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => handleSelectOne(p.id)} /></TableCell>
+                <TableCell className="font-mono">{p.serialNumber || '-'}</TableCell>
                 <TableCell style={{textAlign: 'left'}}>{p.productName}</TableCell>
                 <TableCell>
                   <select value={p.reviewType || '현영'} onChange={(e) => handleFieldChange(p.id, 'reviewType', e.target.value)}>

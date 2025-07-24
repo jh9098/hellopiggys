@@ -28,6 +28,7 @@ import {
   increment,
   arrayRemove,
   documentId,
+  runTransaction,
 } from 'firebase/firestore';
 import {
   getStorage,
@@ -82,6 +83,7 @@ export {
   increment,
   arrayRemove,
   documentId,
+  runTransaction,
 
   // Storage
   ref,

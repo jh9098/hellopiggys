@@ -1,7 +1,7 @@
 // src/pages/seller/SellerProgress.jsx (디자인 개선 버전)
 
 import { useEffect, useState } from 'react';
-import { db, auth, onAuthStateChanged, collection, query, where, onSnapshot } from '../../firebaseConfig';
+import { db, auth, onAuthStateChanged, collection, query, where, onSnapshot, getDocs } from '../../firebaseConfig';
 
 import {
   Card,
@@ -34,6 +34,7 @@ export default function SellerProgressPage() {
   const [user, setUser] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [reviewsBySerial, setReviewsBySerial] = useState({});
 
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -71,6 +72,20 @@ export default function SellerProgressPage() {
     });
     return () => unsubscribeFirestore();
   }, [user]);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      const map = {};
+      const serials = campaigns.map(c => c.serialNumber).filter(Boolean);
+      for (const sn of serials) {
+        const q = query(collection(db, 'reviews'), where('productSerial', '==', sn));
+        const snap = await getDocs(q);
+        if (!snap.empty) map[sn] = snap.docs[0].data();
+      }
+      setReviewsBySerial(map);
+    };
+    if (campaigns.length > 0) fetchReviews();
+  }, [campaigns]);
 
   const filteredCampaigns = campaigns
     .filter(c => {
@@ -176,7 +191,14 @@ export default function SellerProgressPage() {
                         </Button>
                       </TableCell>
                       <TableCell>{c.keywords}</TableCell>
-                      {[...Array(6)].map((_, i) => <TableCell key={i} className="text-muted-foreground">-</TableCell>)}
+                      {(() => { const r = reviewsBySerial[c.serialNumber] || {}; return (<>
+                        <TableCell>{r.name || '-'}</TableCell>
+                        <TableCell>{r.phoneNumber || '-'}</TableCell>
+                        <TableCell>{r.address || '-'}</TableCell>
+                        <TableCell>{r.orderNumber || '-'}</TableCell>
+                        <TableCell className="text-muted-foreground">-</TableCell>
+                        <TableCell className="text-muted-foreground">-</TableCell>
+                      </>); })()}
                     </TableRow>
                   );
                 })
