@@ -16,6 +16,69 @@ const REVIEW_LINK_PLACEHOLDER = '[[리뷰링크]]';
 const REVIEW_LINK_BASE_URL = 'https://hellopiggys.netlify.app/reviewer/link?pid=';
 // ▲▲▲ 수정 완료 ▲▲▲
 
+// 입력된 가이드에서 리뷰 링크 관련 줄을 제거합니다.
+const removeReviewLinkLines = (text) =>
+  text
+    .split('\n')
+    .filter(
+      (line) =>
+        !line.includes(REVIEW_LINK_BASE_URL) &&
+        !line.includes(REVIEW_LINK_PLACEHOLDER)
+    )
+    .join('\n')
+    .trim();
+
+// 저장된 가이드에 편집 시 리뷰 링크 줄을 삽입합니다.
+const insertReviewLink = (text, pid) => {
+  const linkLine = `✅ 구매폼 작성\n- ${REVIEW_LINK_BASE_URL}${pid}\n\n`;
+  if (text.includes(REVIEW_LINK_BASE_URL)) {
+    return text.replace(/pid=[a-zA-Z0-9]+/, `pid=${pid}`);
+  }
+  if (text.includes(REVIEW_LINK_PLACEHOLDER)) {
+    return text.replace(REVIEW_LINK_PLACEHOLDER, `${REVIEW_LINK_BASE_URL}${pid}`);
+  }
+  return linkLine + text;
+};
+
+// 키워드, 상품가격, 옵션 정보를 이용해 가이드 머리말을 생성합니다.
+const buildGuideHeader = ({ keywords = '', productPrice = '', productOption = '' }) => {
+  const price = productPrice ? `₩${Number(productPrice).toLocaleString()}` : '';
+  return [
+    `✅키워드 : ${keywords}`,
+    `✅상품가격 : ${price}`,
+    `✅옵션 : ${productOption}`,
+    '',
+    '⭐광고 구매 X / 광고로 구매하지 마세요⭐',
+    '',
+    '[찜🩷] > 체류 2분 이상 >  [장바구니/구매]' ,
+    ''
+  ].join('\n');
+};
+
+// 기존 가이드에서 머리말 부분을 제거합니다.
+const removeGuideHeader = (text) => {
+  const lines = text.split('\n');
+  const isHeaderLine = (line) =>
+    line.startsWith('✅키워드') ||
+    line.startsWith('✅상품가격') ||
+    line.startsWith('✅옵션') ||
+    line.startsWith('⭐광고 구매') ||
+    line.startsWith('[찜🩷]') ||
+    line.trim() === '';
+  while (lines.length && isHeaderLine(lines[0])) {
+    lines.shift();
+  }
+  return lines.join('\n');
+};
+
+// 가이드 머리말을 삽입 또는 갱신합니다.
+const upsertGuideHeader = (text, form) => {
+  const header = buildGuideHeader(form);
+  const body = removeGuideHeader(text);
+  const newText = `${header}\n${body}`.trim();
+  return newText;
+};
+
 const initialFormState = {
   productName: '', reviewType: '현영',
   guide: `✅ 구매폼 작성\n- ${REVIEW_LINK_PLACEHOLDER}\n\n현영(지출증빙): 736-28-00836, 7362800836\n🚫상품명 검색 금지🚫\n🚫타계 동일 연락처, 동일 주소 중복 불가🚫\n🚫여러 상품 진행 시 장바구니 결제🚫\n✅키워드 검색 후 (가격 검색 필수) [찜🩷]\n + 체류 2분 후 [장바구니🛒] > [바로구매] \n\n⚠ 가이드의 상품 옵션 그대로 구매 진행 \n⚠ 옵션 변경 시 페이백 불가 \n\n✅리뷰 가이드🙇\n- 상품별 별도 안내\n⭐ 별점 리뷰 : 별점 5점 \n✍ 텍스트 리뷰 : 텍스트 3줄 이상 + 별점 5점\n📸 포토 리뷰 : 포토 3장 + 텍스트 3줄 이상 + 별점 5점\n📸 프리미엄(포토) : 포토 10장 + 예쁜 텍스트 많이 / 풀-포리\n📹 프리미엄(영상) : 영상 + 포토 10장 + 예쁜 텍스트 많이\n\n✅구매 후 업로드!\n - 구매 인증 시 상품명, 옵션 확인 안될 경우 페이백 불가\n - 현금영수증(지출증빙) 7362800836 입력 인증 필수! \n\n✅ 페이백 - 리뷰 인증 확인 후 48시간 이내 페이백 (입금자명 : 강예슬)\n - 페이백 확인이 안될 경우 개인톡❌\n - 1:1 문의방으로 문의해 주세요\n  → https://open.kakao.com/o/sscJn3wh\n - 입장 후 구매일자, 구매상품을 말씀해 주시면 더 빠른 확인이 가능해요!`,
@@ -46,13 +109,9 @@ export default function AdminProductFormPage() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          let guide = data.guide || '';
-          if (!guide.includes(REVIEW_LINK_BASE_URL)) {
-             guide = guide.replace(REVIEW_LINK_PLACEHOLDER, REVIEW_LINK_BASE_URL + productId);
-          } else { 
-             guide = guide.replace(/pid=[a-zA-Z0-9]+/, `pid=${productId}`);
-          }
-          setForm({ ...initialFormState, ...data, guide });
+          const withHeader = upsertGuideHeader(data.guide || '', data);
+          const guideWithLink = insertReviewLink(withHeader, productId);
+          setForm({ ...initialFormState, ...data, guide: guideWithLink });
         } else {
           alert('해당 상품 정보를 찾을 수 없습니다.');
           navigate('/admin/products');
@@ -73,6 +132,15 @@ export default function AdminProductFormPage() {
       setForm(prev => ({ ...prev, [name]: value }));
     }
   };
+
+  // 키 필드 변경 시 가이드 머리말을 최신 정보로 갱신합니다.
+  useEffect(() => {
+    if (!form.keywords && !form.productPrice && !form.productOption) return;
+    setForm(prev => {
+      const updated = upsertGuideHeader(prev.guide, prev);
+      return updated === prev.guide ? prev : { ...prev, guide: updated };
+    });
+  }, [form.keywords, form.productPrice, form.productOption]);
 
   const loadCampaignData = async () => {
     if (!form.campaignId) return;
@@ -111,23 +179,22 @@ export default function AdminProductFormPage() {
     try {
       if (isEditMode) {
         const productRef = doc(db, 'products', productId);
-        const linkToInsert = REVIEW_LINK_BASE_URL + productId;
-        const finalGuide = form.guide.replace(REVIEW_LINK_PLACEHOLDER, linkToInsert)
-                                      .replace(/pid=[a-zA-Z0-9]+/, `pid=${productId}`);
+        const withHeader = upsertGuideHeader(form.guide, form);
+        const cleanedGuide = removeReviewLinkLines(withHeader);
 
         const { campaignId, ...updateData } = form;
-        await updateDoc(productRef, { ...updateData, guide: finalGuide });
+        await updateDoc(productRef, { ...updateData, guide: cleanedGuide });
         alert('상품이 성공적으로 수정되었습니다.');
       } else {
         const newProductRef = doc(collection(db, 'products'));
         const newProductId = newProductRef.id;
-        const newProductLink = REVIEW_LINK_BASE_URL + newProductId;
-        const finalGuide = form.guide.replace(REVIEW_LINK_PLACEHOLDER, newProductLink);
+        const withHeader = upsertGuideHeader(form.guide, form);
+        const cleanedGuide = removeReviewLinkLines(withHeader);
 
         const { campaignId, ...productData } = form;
         await setDoc(newProductRef, {
             ...productData,
-            guide: finalGuide,
+            guide: cleanedGuide,
             createdAt: serverTimestamp()
         });
 
