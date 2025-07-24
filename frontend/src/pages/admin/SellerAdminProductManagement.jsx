@@ -47,6 +47,7 @@ export default function AdminProductManagementPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageGroup, setPageGroup] = useState(0);
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
+  const [allowSameDay, setAllowSameDay] = useState(true);
   const itemsPerPage = 20;
   const pagesPerGroup = 10;
 
@@ -71,6 +72,14 @@ export default function AdminProductManagementPage() {
       });
       setSellersMap(map);
     });
+
+    const fetchConfig = async () => {
+      const snap = await getDoc(doc(db, 'config', 'reservation_settings'));
+      if (snap.exists()) {
+        setAllowSameDay(snap.data().allowSameDay !== false);
+      }
+    };
+    fetchConfig();
 
     return () => { unsubscribeCampaigns(); unsubSellers(); };
   }, []);
@@ -223,6 +232,12 @@ export default function AdminProductManagementPage() {
   const goToPage = (page) => { if (page > 0 && page <= totalPages) setCurrentPage(page); };
   const prevGroup = () => setPageGroup(g => Math.max(0, g - 1));
   const nextGroup = () => setPageGroup(g => (g + 1) * pagesPerGroup < totalPages ? g + 1 : g);
+
+  const handleToggleSameDay = async () => {
+    const newVal = !allowSameDay;
+    setAllowSameDay(newVal);
+    await setDoc(doc(db, 'config', 'reservation_settings'), { allowSameDay: newVal }, { merge: true });
+  };
   
   const handleSelectAll = (e) => {
     if (e.target.checked) {
@@ -422,6 +437,10 @@ export default function AdminProductManagementPage() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">캠페인 관리 ({filteredCampaigns.length})</h2>
         <div className="flex items-center space-x-2">
+            <label className="flex items-center space-x-1 text-sm mr-4">
+              <input type="checkbox" checked={allowSameDay} onChange={handleToggleSameDay} />
+              <span>당일예약</span>
+            </label>
             <Button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">선택 항목 인증</Button>
             <Button onClick={handleDeleteSelected} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">삭제</Button>
             <Button onClick={handleDownloadExcel} className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700">엑셀 다운로드</Button>
