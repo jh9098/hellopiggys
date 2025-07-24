@@ -321,10 +321,15 @@ export default function AdminProductManagementPage() {
                       ? new Date(data.date.seconds * 1000)
                           .toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
                       : '',
+                    guide: data.reviewGuide || '',
                     progressStatus: '진행전',
                     createdAt: serverTimestamp()
                 });
                 await updateDoc(campaignRef, { productId });
+            } else {
+                await updateDoc(doc(db, 'products', productId), {
+                    guide: data.reviewGuide || ''
+                });
             }
 
             await updateDoc(campaignRef, {
