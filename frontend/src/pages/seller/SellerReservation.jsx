@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'; // useRef 임포트 추가
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, signOut, deleteDoc, addDoc } from '../../firebaseConfig';
+import { db, auth, onAuthStateChanged, collection, serverTimestamp, query, where, onSnapshot, writeBatch, doc, increment, updateDoc, signOut, deleteDoc, addDoc, getDoc } from '../../firebaseConfig';
 import { nanoid } from 'nanoid';
 import { format } from "date-fns";
 import { ko } from 'date-fns/locale';
@@ -57,6 +57,13 @@ const formatDateForCalendar = (date) => {
 const formatDateWithDay = (date) => {
     if (!date || !(date instanceof Date)) return '';
     return format(date, 'yyyy.MM.dd(EEE)', { locale: ko });
+};
+
+const isSameDay = (d1, d2) => d1.toDateString() === d2.toDateString();
+const isAfter18KST = () => {
+    const now = new Date();
+    const kstNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+    return kstNow.getHours() >= 18;
 };
 
 // CoupangSearchResults 컴포넌트 문구 변경
@@ -121,6 +128,7 @@ export default function SellerReservationPage() {
     const [sellersMap, setSellersMap] = useState({});
     const [capacities, setCapacities] = useState({});
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+    const [sameDayEnabled, setSameDayEnabled] = useState(true);
     const [showDepositPopup, setShowDepositPopup] = useState(false);
     const [confirmationDialogData, setConfirmationDialogData] = useState(null);
     const [pendingCampaign, setPendingCampaign] = useState(null);
@@ -139,6 +147,16 @@ export default function SellerReservationPage() {
     const [showTemplateDialog, setShowTemplateDialog] = useState(false);
     const [templateSearch, setTemplateSearch] = useState('');
     const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
+
+    useEffect(() => {
+        const fetchConfig = async () => {
+            const snap = await getDoc(doc(db, 'config', 'reservation_settings'));
+            if (snap.exists()) {
+                setSameDayEnabled(snap.data().allowSameDay !== false);
+            }
+        };
+        fetchConfig();
+    }, []);
 
     const filteredTemplates = useMemo(() => {
         const keyword = templateSearch.trim().toLowerCase();
@@ -290,7 +308,14 @@ export default function SellerReservationPage() {
 
 
     const handleFormChange = (name, value) => setFormState(prev => ({ ...prev, [name]: value }));
-    const handleDateSelect = (date) => { handleFormChange('date', date); setIsDatePickerOpen(false); };
+    const handleDateSelect = (date) => {
+        if (!sameDayEnabled && date && isSameDay(date, new Date()) && isAfter18KST()) {
+            alert('18시 이후 당일예약은 관리자에게 문의바랍니다.');
+            return;
+        }
+        handleFormChange('date', date);
+        setIsDatePickerOpen(false);
+    };
     const handleSaveTemplate = async () => {
         if (!user) return;
         const templateData = { ...formState, sellerUid: user.uid, updatedAt: serverTimestamp() };
@@ -336,6 +361,10 @@ export default function SellerReservationPage() {
     };
     const handleAddCampaign = (e) => {
         e.preventDefault();
+        if (!sameDayEnabled && formState.date && isSameDay(formState.date, new Date()) && isAfter18KST()) {
+            alert('18시 이후 당일예약은 관리자에게 문의바랍니다.');
+            return;
+        }
         const newCampaign = { id: nanoid(), ...formState };
         if (!formState.productOption.trim()) { setPendingCampaign(newCampaign); }
         else { setCampaigns(prev => [...prev, newCampaign]); setFormState(initialFormState); }
@@ -647,8 +676,13 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                             const dailyEvents = calendarCampaigns.filter(c => c.status === '예약 확정' && formatDateForCalendar(c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date)) === dateStr);
                                             const totalQuantity = dailyEvents.reduce((sum, event) => sum + Number(event.quantity || 0), 0);
                                             const remaining = capacity - totalQuantity;
-                                            if (remaining > 0 && capacity > 0) setFormState(prev => ({ ...prev, date: info.date }));
-                                            else alert('해당 날짜는 예약이 마감되었습니다.');
+                                            if (remaining > 0 && capacity > 0) {
+                                                if (!sameDayEnabled && isSameDay(info.date, new Date()) && isAfter18KST()) {
+                                                    alert('18시 이후 당일예약은 관리자에게 문의바랍니다.');
+                                                } else {
+                                                    setFormState(prev => ({ ...prev, date: info.date }));
+                                                }
+                                            } else alert('해당 날짜는 예약이 마감되었습니다.');
                                         }}
                                         locale="ko" 
                                         height="auto" 
