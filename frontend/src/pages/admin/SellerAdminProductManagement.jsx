@@ -236,6 +236,13 @@ export default function AdminProductManagementPage() {
   const updatePaymentType = async (id, value) => {
     try {
       await updateDoc(doc(db, 'campaigns', id), { paymentType: value });
+      const productId = campaigns.find(c => c.id === id)?.productId;
+      if (productId) {
+        await updateDoc(doc(db, 'products', productId), {
+          paymentType: value,
+          reviewType: value,
+        });
+      }
     } catch (err) {
       console.error('결제유형 업데이트 오류:', err);
       alert('결제유형 업데이트에 실패했습니다.');
