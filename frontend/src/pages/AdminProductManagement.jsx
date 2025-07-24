@@ -45,7 +45,30 @@ export default function AdminProductManagementPage() {
     setLoading(true);
     const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const todayKST = new Date().toLocaleDateString('sv-SE', {
+      timeZone: 'Asia/Seoul'
+    });
+    const productsData = snapshot.docs.map(docSnap => {
+      const data = { id: docSnap.id, ...docSnap.data() };
+      return data;
+    });
+
+    const updates = [];
+    productsData.forEach(p => {
+      if ((p.progressStatus === '진행전' || !p.progressStatus) &&
+          p.reviewDate === todayKST) {
+        updates.push(updateDoc(doc(db, 'products', p.id), {
+          progressStatus: '진행중'
+        }));
+        p.progressStatus = '진행중';
+      }
+    });
+
+    if (updates.length > 0) {
+      await Promise.all(updates);
+    }
+
+    setProducts(productsData);
     setLoading(false);
   };
 
