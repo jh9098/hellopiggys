@@ -23,6 +23,9 @@ const reviewTypeOptions = ['현영', '자율결제'];
 const fullReviewOptions = ['별점', '텍스트', '포토', '프리미엄(포토)', '프리미엄(영상)'];
 const limitedReviewOptions = ['별점', '텍스트'];
 
+// 상품 등록 시 사용하던 리뷰 링크 기본 URL을 재사용합니다.
+const REVIEW_LINK_BASE_URL = 'https://hellopiggys.netlify.app/reviewer/link?pid=';
+
 export default function AdminProductManagementPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -203,12 +206,14 @@ export default function AdminProductManagementPage() {
   };
 
   // [수정] 가이드 복사 핸들러
-  const handleCopyGuide = (guideText) => {
+  const handleCopyGuide = (guideText, pid) => {
     if (!guideText) {
         alert('복사할 가이드 내용이 없습니다.');
         return;
     }
-    navigator.clipboard.writeText(guideText)
+    const link = REVIEW_LINK_BASE_URL + pid;
+    const textToCopy = `${link}\n\n${guideText}`;
+    navigator.clipboard.writeText(textToCopy)
       .then(() => {
         alert('가이드가 복사되었습니다!');
       })
@@ -339,7 +344,7 @@ export default function AdminProductManagementPage() {
                 <TableCell>{formatDate(p.createdAt)}</TableCell>
                 <TableCell className="actions-cell">
                   <Button size="sm" className="table-edit-btn" onClick={() => navigate(`/admin/products/edit/${p.id}`)}>수정</Button>
-                  <Button size="sm" className="table-copy-btn" onClick={() => handleCopyGuide(p.guide)}>가이드복사</Button>
+                  <Button size="sm" className="table-copy-btn" onClick={() => handleCopyGuide(p.guide, p.id)}>가이드복사</Button>
                   <Button size="sm" variant="destructive" onClick={() => handleDelete(p.id)} className="table-delete-btn">삭제</Button>
                 </TableCell>
               </TableRow>
