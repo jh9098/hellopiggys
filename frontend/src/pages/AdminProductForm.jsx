@@ -58,16 +58,16 @@ const buildGuideHeader = ({ keywords = '', productPrice = '', productOption = ''
 // 기존 가이드에서 머리말 부분을 제거합니다.
 const removeGuideHeader = (text) => {
   const lines = text.split('\n');
-  while (lines[0] &&
-    (lines[0].startsWith('✅키워드') ||
-     lines[0].startsWith('✅상품가격') ||
-     lines[0].startsWith('✅옵션') ||
-     lines[0].startsWith('⭐광고 구매') ||
-     lines[0].startsWith('[찜🩷]'))
-  ) {
+  const isHeaderLine = (line) =>
+    line.startsWith('✅키워드') ||
+    line.startsWith('✅상품가격') ||
+    line.startsWith('✅옵션') ||
+    line.startsWith('⭐광고 구매') ||
+    line.startsWith('[찜🩷]') ||
+    line.trim() === '';
+  while (lines.length && isHeaderLine(lines[0])) {
     lines.shift();
   }
-  if (lines[0] === '') lines.shift();
   return lines.join('\n');
 };
 
