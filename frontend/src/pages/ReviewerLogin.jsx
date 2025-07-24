@@ -197,6 +197,23 @@ export default function ReviewerLogin() {
                 />
               </div>
             )}
+            {!isLoginView && (
+              <label className="agree-label">
+                <input
+                  type="checkbox"
+                  checked={agree}
+                  onChange={(e) => setAgree(e.target.checked)}
+                />
+                <a
+                  href="https://hellopiggys.netlify.app/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ marginLeft: '4px' }}
+                >
+                  개인정보 처리방침에 동의합니다.
+                </a>
+              </label>
+            )}
             <Button className="login-btn" type="submit" disabled={submitting}>
               {submitting ? '처리 중...' : isLoginView ? '로그인' : '회원가입'}
             </Button>
