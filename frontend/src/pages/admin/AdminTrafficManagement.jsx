@@ -101,6 +101,22 @@ export default function AdminTrafficManagementPage() {
     }
   };
 
+  const handleCancelReservation = async (requestId) => {
+    if (!window.confirm("이 트래픽 예약 확정을 취소하고 '예약 대기' 상태로 되돌리시겠습니까?")) {
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'traffic_requests', requestId), {
+        status: '예약 대기',
+        depositConfirmed: false,
+      });
+      alert("예약이 취소되어 '예약 대기' 상태로 변경되었습니다.");
+    } catch (err) {
+      console.error('예약 취소 오류:', err);
+      alert('예약 취소 중 오류가 발생했습니다.');
+    }
+  };
+
   const thClass = "px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider";
 
   return (
@@ -142,6 +158,12 @@ export default function AdminTrafficManagementPage() {
                   <td className="px-3 py-4 whitespace-nowrap text-sm">{req.quantity}</td>
                   <td className="px-3 py-4 whitespace-nowrap text-sm">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${req.status === '예약 확정' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{req.status}</span>
+                    {req.status === '예약 확정' && (
+                      <button
+                        onClick={() => handleCancelReservation(req.id)}
+                        className="ml-2 text-red-600 underline text-xs"
+                      >취소</button>
+                    )}
                   </td>
                   <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[req.sellerUid]?.nickname}</td>
                   <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[req.sellerUid]?.phone}</td>
