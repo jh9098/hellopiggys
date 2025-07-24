@@ -158,6 +158,16 @@ export default function SellerReservationPage() {
         fetchConfig();
     }, []);
 
+    // Auto-fill review guide when key fields change
+    useEffect(() => {
+        const template = `✅키워드 : ${formState.keywords}\n` +
+            `✅상품가격 : ₩${Number(formState.productPrice).toLocaleString()}\n` +
+            `✅옵션 : ${formState.productOption}\n\n` +
+            '⭐광고 구매 X / 광고로 구매하지 마세요⭐\n\n' +
+            '[찜🩷] > 체류 2분 이상 >  [장바구니/구매]';
+        setFormState(prev => prev.reviewGuide === template ? prev : { ...prev, reviewGuide: template });
+    }, [formState.keywords, formState.productPrice, formState.productOption]);
+
     const filteredTemplates = useMemo(() => {
         const keyword = templateSearch.trim().toLowerCase();
         if (!keyword) return savedTemplates;
