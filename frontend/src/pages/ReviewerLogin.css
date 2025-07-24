@@ -33,7 +33,7 @@
     box-sizing: border-box; /* 패딩 포함 크기 계산 */
     padding: 12px 12px 12px 44px;
     border: none;
-    border-bottom: 1px solid #000;
+    border-bottom: 1px solid #ac1773;
     font-size: 15px;
     outline: none;
   }
@@ -58,7 +58,7 @@
   <svg xmlns="http://www.w3.org/2000/svg" viewBox=\"0 0 24 24\" fill=\"black\"><path d=\"M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1 1 0 011.11-.21c1.21.49 2.53.76 3.88.76a1 1 0 011 1v3.5a1 1 0 01-1 1C9.27 23 1 14.73 1 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.35.26 2.67.76 3.88a1 1 0 01-.21 1.11l-2.43 2.43z\"/></svg>') center/contain no-repeat;
   }
   
-.login-btn {
+  .login-btn {
     width: 100%;
     background: #000;
     color: #fff;
@@ -66,15 +66,4 @@
     border: none;
     font-size: 16px;
     border-radius: 4px;
-}
-
-.agree-label {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  margin-bottom: 16px;
-}
-
-.agree-label input {
-  margin-right: 4px;
-}
+  }

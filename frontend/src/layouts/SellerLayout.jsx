@@ -1,4 +1,4 @@
-// src/layouts/SellerLayout.jsx (반응형 사이드바 최종 수정본)
+// src/layouts/SellerLayout.jsx (수정 완료)
 
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -14,8 +14,9 @@ export default function SellerLayout() {
 
   const toggle = (key) => setOpen(prev => ({ ...prev, [key]: !prev[key] }));
 
-  const activeClassName = "bg-gray-900 text-white p-2 rounded block";
-  const inactiveClassName = "hover:bg-gray-700 p-2 rounded block";
+  // [수정] 활성/비활성 메뉴 스타일을 요청에 맞게 변경
+  const activeClassName = "bg-gray-900 text-[#feeae8] font-bold p-3 rounded-lg block";
+  const inactiveClassName = "text-gray-400 hover:bg-gray-700 hover:text-white p-3 rounded-lg block";
 
   const SidebarContent = () => (
     <>
@@ -23,7 +24,8 @@ export default function SellerLayout() {
       <nav>
         <ul>
           <li className="mb-4">
-            <button onClick={() => toggle('experience')} className="w-full text-left hover:bg-gray-700 p-2 rounded flex justify-between items-center">
+            {/* [수정] 패딩(p-3)과 모서리(rounded-lg) 스타일 통일 */}
+            <button onClick={() => toggle('experience')} className="w-full text-left hover:bg-gray-700 p-3 rounded-lg flex justify-between items-center">
               체험단 <span>{open.experience ? '−' : '+'}</span>
             </button>
             {open.experience && (
@@ -35,7 +37,8 @@ export default function SellerLayout() {
             )}
           </li>
           <li className="mb-4">
-            <button onClick={() => toggle('traffic')} className="w-full text-left hover:bg-gray-700 p-2 rounded flex justify-between items-center">
+            {/* [수정] 패딩(p-3)과 모서리(rounded-lg) 스타일 통일 */}
+            <button onClick={() => toggle('traffic')} className="w-full text-left hover:bg-gray-700 p-3 rounded-lg flex justify-between items-center">
               트래픽 <span>{open.traffic ? '−' : '+'}</span>
             </button>
             {open.traffic && (
@@ -46,7 +49,8 @@ export default function SellerLayout() {
             )}
           </li>
           <li className="mb-4">
-            <button onClick={() => toggle('kita')} className="w-full text-left hover:bg-gray-700 p-2 rounded flex justify-between items-center">
+            {/* [수정] 패딩(p-3)과 모서리(rounded-lg) 스타일 통일 */}
+            <button onClick={() => toggle('kita')} className="w-full text-left hover:bg-gray-700 p-3 rounded-lg flex justify-between items-center">
               기타 <span>{open.kita ? '−' : '+'}</span>
             </button>
             {open.kita && (
