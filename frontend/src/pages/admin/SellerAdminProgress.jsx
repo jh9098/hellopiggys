@@ -93,7 +93,7 @@ export default function AdminProgressPage() {
                   <td className="px-2 py-2">{d.toLocaleDateString()}</td>
                   <td className="px-2 py-2">{c.deliveryType}</td>
                   <td className="px-2 py-2">
-                    <select value={c.paymentType || ''} onChange={e => updatePaymentType(c.id, e.target.value)} className="border p-1 rounded w-full">
+                    <select value={c.paymentType || (c.isVatApplied ? '현영' : '자율결제')} onChange={e => updatePaymentType(c.id, e.target.value)} className="border p-1 rounded w-full">
                       <option value="">선택</option><option value="현영">현영</option><option value="자율결제">자율결제</option>
                     </select>
                   </td>

@@ -412,6 +412,7 @@ export default function SellerReservationPage() {
                 createdAt: serverTimestamp(),
                 status: '예약 대기',
                 paymentReceived: isFullDepositPayment,
+                paymentType: isVatApplied ? '현영' : '자율결제',
                 isVatApplied,
                 reviewFee,
                 productPriceWithAgencyFee,

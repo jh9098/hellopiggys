@@ -414,7 +414,7 @@ export default function AdminProductManagementPage() {
         '예약 등록 일자': c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : '',
         '진행일자': c.date?.seconds ? new Date(c.date.seconds * 1000).toLocaleDateString('ko-KR') : '',
         '구분': c.deliveryType || '',
-        '결제유형': c.paymentType || '현영',
+        '결제유형': c.paymentType || (c.isVatApplied ? '현영' : '자율결제'),
         '리뷰 종류': c.reviewType || '',
         '체험단 개수': c.quantity || '',
         '상품명': c.productName || '',
@@ -522,7 +522,7 @@ export default function AdminProductManagementPage() {
                           <td className="px-3 py-4 whitespace-nowrap text-sm">{c.deliveryType}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm">
                             <select
-                              value={c.paymentType || '현영'}
+                              value={c.paymentType || (c.isVatApplied ? '현영' : '자율결제')}
                               onChange={e => updatePaymentType(c.id, e.target.value)}
                               className="border p-1 rounded"
                             >

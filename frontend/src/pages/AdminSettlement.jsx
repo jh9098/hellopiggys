@@ -162,7 +162,7 @@ export default function AdminSettlementPage() {
       const amountCheck = r.paymentType === '현영' ? Math.floor(amount * 1.06) : amount;
       sheet.addRow([
         r.productInfo?.reviewDate || '-',
-        r.paymentType || '-',
+        r.paymentType || (r.isVatApplied ? '현영' : '자율결제'),
         r.productType || '-',
         r.orderNumber || '-',
         r.productInfo?.productName || r.productName || '-',
@@ -263,7 +263,7 @@ export default function AdminSettlementPage() {
                 <TableCell>{r.mainAccountName || '-'}</TableCell>
                 <TableCell>{r.subAccountName || '-'}</TableCell>
                 <TableCell>{r.phoneNumber || '-'}</TableCell>
-                <TableCell>{r.paymentType || '-'}</TableCell>
+                <TableCell>{r.paymentType || (r.isVatApplied ? '현영' : '자율결제')}</TableCell>
                 <TableCell>{r.productType || '-'}</TableCell>
                 <TableCell>{r.reviewOption || '-'}</TableCell>
                 <TableCell>{r.orderNumber || '-'}</TableCell>
