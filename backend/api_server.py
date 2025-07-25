@@ -33,8 +33,6 @@ def search_coupang_rank(keyword, target_vendor_item_id):
             proxy_server_url = f"http://{PROXY_IP}:{PROXY_PORT}"
             options.add_argument(f'--proxy-server={proxy_server_url}')
             print(f"--- 프록시 서버 설정: {proxy_server_url} ---")
-        else:
-            print("--- 프록시 정보가 없습니다. 프록시 없이 실행합니다. ---")
 
         options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
@@ -42,20 +40,22 @@ def search_coupang_rank(keyword, target_vendor_item_id):
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
         
-        # --- [★핵심 수정★] Chrome 실행 파일 경로 다시 추가 ---
-        # Render의 Native Environment는 보통 이 경로에 Chrome을 설치합니다.
+        # --- [★핵심 수정★] Chrome 및 Chromedriver 경로 지정 ---
+        # build.sh 스크립트가 설치한 경로를 명시적으로 지정합니다.
         chrome_binary_path = "/usr/bin/google-chrome"
+        driver_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'chromedriver')
         
         driver = uc.Chrome(
-            browser_executable_path=chrome_binary_path, # 이 경로를 명시해줍니다.
+            browser_executable_path=chrome_binary_path,
+            driver_executable_path=driver_path,
             headless=True,
             options=options,
         )
         # ---------------------------------------------------
         
+        # ... 이하 스크래핑 로직은 동일 ...
         rank_counter = 0
         MAX_PAGES_TO_SEARCH = 10
-
         for page in range(1, MAX_PAGES_TO_SEARCH + 1):
             encoded_keyword = urllib.parse.quote_plus(keyword)
             search_url = f"https://www.coupang.com/np/search?q={encoded_keyword}&channel=user&sorter=scoreDesc&listSize=60&page={page}"
@@ -67,10 +67,9 @@ def search_coupang_rank(keyword, target_vendor_item_id):
                 WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, "product-list")))
             except TimeoutException:
                 print("TimeoutException: 'product-list' not found.")
-                return {"status": "error", "message": f"페이지 {page} 로딩에 실패했거나 프록시 연결에 실패했습니다."}
+                return {"status": "error", "message": f"페이지 {page} 로딩에 실패했거나 프록시/서버 환경 문제일 수 있습니다."}
 
             time.sleep(random.uniform(0.5, 1.0))
-            
             html = driver.page_source
             soup = BeautifulSoup(html, 'html.parser')
             products = soup.select('#product-list > li.ProductUnit_productUnit__Qd6sv')
@@ -80,17 +79,14 @@ def search_coupang_rank(keyword, target_vendor_item_id):
                 if "로봇이 아닙니다" in html or "Captcha" in driver.title:
                      return {"status": "error", "message": "캡챠(로봇 확인) 페이지에 막혔습니다."}
                 break
-
             for product in products:
                 if product.select_one('.AdMark_adMark__KPMsC'): continue
                 rank_counter += 1
                 product_id = product.get('data-id')
-
                 if product_id == target_vendor_item_id:
                     product_name_element = product.select_one('.ProductUnit_productName__gre7e')
                     product_name = product_name_element.text.strip() if product_name_element else "상품명 없음"
                     return {"status": "success", "rank": rank_counter, "page": page, "productName": product_name}
-            
             time.sleep(random.uniform(1.0, 2.5))
             
     except Exception as e:
@@ -104,17 +100,15 @@ def search_coupang_rank(keyword, target_vendor_item_id):
 
 @app.route('/api/coupang-rank', methods=['POST'])
 def get_coupang_rank():
+    # ... 동일
     data = request.get_json()
     keyword = data.get('keyword')
     product_url = data.get('productUrl')
-
     if not keyword or not product_url:
         return jsonify({"status": "error", "message": "키워드와 상품 URL을 모두 입력해야 합니다."}), 400
-
     target_vendor_item_id = extract_vendor_item_id(product_url)
     if not target_vendor_item_id:
         return jsonify({"status": "error", "message": "유효하지 않은 상품 URL입니다."}), 400
-    
     result = search_coupang_rank(keyword, target_vendor_item_id)
     return jsonify(result)
 
