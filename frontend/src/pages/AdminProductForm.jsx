@@ -19,9 +19,9 @@ const reviewGuideMap = {
   '프리미엄(영상)': '📹 프리미엄(영상) : 영상 + 포토 10장 + 예쁜 텍스트 많이'
 };
 
-const buildReviewGuide = (option) => `- 상품별 별도 안내\n${reviewGuideMap[option] || ''}`;
+const buildReviewGuide = (option) => `- ${reviewGuideMap[option] || ''}`;
 
-const REVIEW_GUIDE_REGEX = /- 상품별 별도 안내[\s\S]*?(?=\n✅구매 후 업로드!|$)/;
+const REVIEW_GUIDE_REGEX = /- [\s\S]*?(?=\n✅구매 후 업로드!|$)/;
 
 const REVIEW_LINK_PLACEHOLDER = '[[리뷰링크]]';
 // ▼▼▼ "리뷰 링크"의 기본 URL을 새로운 경로로 수정합니다 ▼▼▼
