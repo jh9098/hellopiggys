@@ -202,16 +202,22 @@ export default function WriteReview() {
     setSubmitting(true);
     setSubmissionStatus('리뷰 정보 저장 중...');
 
+    // Determine serial number based on existing reviews for this product
+    const snap = await getDocs(query(collection(db, 'reviews'), where('productId', '==', selectedProduct.id)));
+    const serialIndex = snap.size;
+    const serialNumber = selectedProduct.serialNumbers?.[serialIndex] || `고유번호_${serialIndex + 1}`;
+
     // --- 1단계: 텍스트 정보만 먼저 Firestore에 저장 ---
     // 이렇게 하면 이미지가 업로드되는 동안에도 사용자는 제출이 시작되었다고 인지 가능
     const reviewData = {
       mainAccountId: currentUser.uid,
       subAccountId: form.subAccountId,
       productId: selectedProduct.id,
-      productName: selectedProduct.productName || '상품명 없음', 
+      productName: selectedProduct.productName || '상품명 없음',
       reviewType: selectedProduct.reviewType || '현영',
       createdAt: serverTimestamp(),
       status: 'uploading_images', // 'submitted' 대신 이미지 업로드 중이라는 임시 상태 사용
+      serialNumber,
       name: form.name,
       phoneNumber: form.phoneNumber,
       address: form.address,
@@ -379,6 +385,7 @@ export default function WriteReview() {
             {filteredProducts.map(p => (
               <option key={p.id} value={p.id}>
                 {p.productName} ({p.reviewType})
+                {p.serialNumbers ? ` - ${p.serialNumbers.join(', ')}` : ''}
               </option>
             ))}
           </select>

@@ -155,6 +155,7 @@ export default function AdminReviewManagementPage() {
     if (processedRows.length === 0) return alert('다운로드할 데이터가 없습니다.');
     const toText = (v, excelText = false) => `="${(v ?? '').toString()}"`;
     const csvData = processedRows.map(r => ({
+      '고유번호': toText(r.serialNumber || '-'),
       '진행일자': toText(r.productInfo?.reviewDate || '-'),
       '결제종류': toText(r.paymentType || (r.isVatApplied ? '현영' : '자율결제')),
       '상품종류': toText(r.productType || '-'),
@@ -235,6 +236,7 @@ export default function AdminReviewManagementPage() {
               <TableHead><input type="checkbox" checked={paginatedRows.length > 0 && paginatedRows.every(r => selected.has(r.id))} onChange={toggleSelectAll} /></TableHead>
               <TableHead onClick={() => requestSort('createdAt')} className="sortable">구매폼 등록일시<SortIndicator columnKey="createdAt" /></TableHead>
               <TableHead onClick={() => requestSort('status')} className="sortable">상태<SortIndicator columnKey="status" /></TableHead>
+              <TableHead>고유번호</TableHead>
               <TableHead onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></TableHead>
               <TableHead onClick={() => requestSort('mainAccountName')} className="sortable">본계정<SortIndicator columnKey="mainAccountName" /></TableHead>
               <TableHead onClick={() => requestSort('name')} className="sortable">타계정<SortIndicator columnKey="name" /></TableHead>
@@ -261,7 +263,7 @@ export default function AdminReviewManagementPage() {
               <TableHead><Input type="text" name="mainAccountName" value={filters.mainAccountName} onChange={handleFilterChange} /></TableHead>
               <TableHead><Input type="text" name="name" value={filters.name} onChange={handleFilterChange} /></TableHead>
               <TableHead><Input type="text" name="phoneNumber" value={filters.phoneNumber} onChange={handleFilterChange} /></TableHead>
-              <TableHead></TableHead><TableHead></TableHead><TableHead></TableHead>
+              <TableHead></TableHead><TableHead></TableHead><TableHead></TableHead><TableHead></TableHead>
               <TableHead><select name="reviewConfirm" value={filters.reviewConfirm} onChange={handleFilterChange}><option value="all">전체</option><option value="O">O</option><option value="X">X</option></select></TableHead>
               <TableHead></TableHead>
             </TableRow>
@@ -273,6 +275,7 @@ export default function AdminReviewManagementPage() {
                 {/* [수정] 헬퍼 함수 사용 */}
                 <TableCell>{formatTimestamp24h(r.createdAt)}</TableCell>
                 <TableCell>{getDisplayStatus(r)}</TableCell>
+                <TableCell>{r.serialNumber || '-'}</TableCell>
                 <TableCell className="product-name-cell">{r.productName || '-'}</TableCell>
                 <TableCell className="nowrap-cell">{r.mainAccountName || '-'}</TableCell>
                 <TableCell className="nowrap-cell">{r.name || '-'}</TableCell>

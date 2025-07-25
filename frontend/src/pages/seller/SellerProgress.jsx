@@ -34,6 +34,7 @@ export default function SellerProgressPage() {
   const [user, setUser] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [reviewMap, setReviewMap] = useState({});
 
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -72,6 +73,28 @@ export default function SellerProgressPage() {
     return () => unsubscribeFirestore();
   }, [user]);
 
+  // Fetch reviews corresponding to the seller's products
+  useEffect(() => {
+    const unsubs = [];
+    setReviewMap({});
+    campaigns.forEach((c) => {
+      if (!c.productId) return;
+      const q = query(collection(db, 'reviews'), where('productId', '==', c.productId));
+      const unsub = onSnapshot(q, (snap) => {
+        setReviewMap((prev) => {
+          const newMap = { ...prev };
+          snap.docs.forEach((d) => {
+            const data = d.data();
+            if (data.serialNumber) newMap[`${c.productId}_${data.serialNumber}`] = data;
+          });
+          return newMap;
+        });
+      });
+      unsubs.push(unsub);
+    });
+    return () => { unsubs.forEach((u) => u()); };
+  }, [campaigns]);
+
   const filteredCampaigns = campaigns
     .filter(c => {
       const d = c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date);
@@ -92,7 +115,12 @@ export default function SellerProgressPage() {
   if (availableYears.length === 0) availableYears.push(today.getFullYear());
   
   const availableMonths = Array.from({ length: 12 }, (_, i) => i + 1);
-  const expandedCampaigns = filteredCampaigns.flatMap(c => Array.from({ length: Number(c.quantity) || 1 }, () => c));
+  const expandedCampaigns = filteredCampaigns.flatMap(c => {
+    const list = Array.isArray(c.serialNumbers)
+      ? c.serialNumbers
+      : Array.from({ length: Number(c.quantity) || 1 }, (_, i) => `고유번호_${i + 1}`);
+    return list.map((sn, idx) => ({ ...c, sn, snIndex: idx }));
+  });
 
 
   return (
@@ -157,14 +185,15 @@ export default function SellerProgressPage() {
               ) : expandedCampaigns.length > 0 ? (
                 expandedCampaigns.map((c, idx) => {
                   const d = c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date);
+                  const review = reviewMap[`${c.productId}_${c.sn}`];
                   return (
-                    <TableRow key={`${c.id}-${idx}`}>
-                      <TableCell className="text-center">{idx + 1}</TableCell>
+                    <TableRow key={`${c.id}-${c.sn}`}>
+                      <TableCell className="text-center">{c.sn}</TableCell>
                       <TableCell className="font-mono">{d.toLocaleDateString()}</TableCell>
                       <TableCell className="text-center"><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
                       <TableCell className="text-center">{c.paymentType || (c.isVatApplied ? '현영' : '자율결제')}</TableCell>
                       <TableCell className="text-center"><Badge>{c.reviewType}</Badge></TableCell>
-                      <TableCell className="text-center">{idx + 1}</TableCell>
+                      <TableCell className="text-center">{c.snIndex + 1}</TableCell>
                       <TableCell className="font-medium">{c.productName}</TableCell>
                       <TableCell>{c.productOption || '-'}</TableCell>
                       <TableCell className="text-right font-mono">{Number(c.productPrice).toLocaleString()}원</TableCell>
@@ -176,7 +205,12 @@ export default function SellerProgressPage() {
                         </Button>
                       </TableCell>
                       <TableCell>{c.keywords}</TableCell>
-                      {[...Array(6)].map((_, i) => <TableCell key={i} className="text-muted-foreground">-</TableCell>)}
+                      <TableCell>{review?.name || '-'}</TableCell>
+                      <TableCell>{review?.phoneNumber || '-'}</TableCell>
+                      <TableCell>{review?.address || '-'}</TableCell>
+                      <TableCell>{review?.orderNumber || '-'}</TableCell>
+                      <TableCell className="text-muted-foreground">-</TableCell>
+                      <TableCell className="text-muted-foreground">-</TableCell>
                     </TableRow>
                   );
                 })
