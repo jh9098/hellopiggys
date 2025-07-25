@@ -1,5 +1,3 @@
-# backend/Dockerfile (최종본)
-
 # 1. 베이스 이미지
 FROM python:3.11-slim-bookworm
 
@@ -8,7 +6,8 @@ WORKDIR /app
 
 # 3. 단일 RUN 명령으로 모든 설치 작업을 수행
 RUN apt-get update -y && \
-    apt-get install -y --no-install-recommends wget unzip jq ca-certificates fonts-liberation libnss3 libasound2 libatk-bridge2.0-0 libgtk-3-0 libgbm1 && \
+    apt-get install -y --no-install-recommends wget unzip jq curl ca-certificates fonts-liberation libnss3 libasound2 libatk-bridge2.0-0 libgtk-3-0 libgbm1 && \
+    # [★수정★] jq 옆에 curl을 추가했습니다.
     \
     # Google Chrome 다운로드 및 압축 해제
     echo ">>> Downloading and extracting Google Chrome..." && \
@@ -28,8 +27,14 @@ RUN apt-get update -y && \
     \
     # apt 캐시 정리
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    \
+    # 최종 파일 확인
+    echo ">>> Final file check:" && \
+    ls -la /app && \
+    ls -la /app/opt/google/chrome/
 
+# ... 이하 내용은 모두 동일 ...
 # 4. Python 라이브러리 설치
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
