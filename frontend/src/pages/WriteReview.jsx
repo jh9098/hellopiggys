@@ -75,6 +75,10 @@ export default function WriteReview() {
   const [selectedSubAccountInfo, setSelectedSubAccountInfo] = useState(null);
   const [isAgreed, setIsAgreed] = useState(false);
 
+  // 상품명에서 "_고유번호_x"와 같은 식별자 정보를 제거해 표시용 이름을 만듭니다.
+  const simplifyName = (name = '') => name.replace(/(_고유번호_\d+)+$/, '');
+  const getProductLabel = (p) => `${simplifyName(p.productName)} (${p.reviewType})`;
+
   const filteredProducts = products.filter(p =>
     p.productName.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -384,8 +388,7 @@ export default function WriteReview() {
             <option value="" disabled>체험단 상품을 선택해 주세요</option>
             {filteredProducts.map(p => (
               <option key={p.id} value={p.id}>
-                {p.productName} ({p.reviewType})
-                {p.serialNumbers ? ` - ${p.serialNumbers.join(', ')}` : ''}
+                {getProductLabel(p)}
               </option>
             ))}
           </select>
@@ -394,7 +397,7 @@ export default function WriteReview() {
 
       {selectedProduct && (<>
           <div className="product-info-box">
-            <h4>{selectedProduct.productName}</h4>
+            <h4>{simplifyName(selectedProduct.productName)}</h4>
             <p><strong>결제 종류:</strong> {selectedProduct.reviewType}</p>
             {selectedProduct.productType && (<p><strong>상품 종류:</strong> {selectedProduct.productType}</p>)}
             {selectedProduct.reviewOption && (<p><strong>리뷰 종류:</strong> {selectedProduct.reviewOption}</p>)}
