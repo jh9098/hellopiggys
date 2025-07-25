@@ -39,6 +39,7 @@ export default function AdminProductManagementPage() {
   const [bulkProductType, setBulkProductType] = useState('');
   const [bulkReviewOption, setBulkReviewOption] = useState('');
   const [bulkProgressStatus, setBulkProgressStatus] = useState('');
+  const [vatMap, setVatMap] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [pageGroup, setPageGroup] = useState(0);
   const itemsPerPage = 20;
@@ -72,6 +73,16 @@ export default function AdminProductManagementPage() {
       await Promise.all(updates);
     }
 
+    const vatSnapshot = await getDocs(collection(db, 'campaigns'));
+    const map = {};
+    vatSnapshot.forEach(d => {
+      const data = d.data();
+      if (data.productId) {
+        map[data.productId] = data.isVatApplied;
+      }
+    });
+
+    setVatMap(map);
     setProducts(productsData);
     setLoading(false);
   };
@@ -363,6 +374,12 @@ export default function AdminProductManagementPage() {
                   <Button size="sm" onClick={() => { bulkUpdate('reviewOption', bulkReviewOption); setBulkReviewOption(''); }}>적용</Button>
                 </div>
               </TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
               <TableHead>
                 <div className="bulk-control">
                   <select value={bulkProgressStatus} onChange={(e) => setBulkProgressStatus(e.target.value)}>
@@ -372,8 +389,6 @@ export default function AdminProductManagementPage() {
                   <Button size="sm" onClick={() => { bulkUpdate('progressStatus', bulkProgressStatus); setBulkProgressStatus(''); }}>적용</Button>
                 </div>
               </TableHead>
-              <TableHead></TableHead>
-              <TableHead></TableHead>
               <TableHead></TableHead>
               <TableHead></TableHead>
             </TableRow>
@@ -410,7 +425,7 @@ export default function AdminProductManagementPage() {
                 )}
                 {p.renderInfo.shouldRender && (
                   <TableCell rowSpan={p.renderInfo.rowSpan} className="text-center align-middle">
-                    {p.isVatApplied ? '세금계산서 발행' : '세금계산서 미발행'}
+                    {(vatMap[p.id] ?? p.isVatApplied) ? '세금계산서 발행' : '세금계산서 미발행'}
                   </TableCell>
                 )}
                 <TableCell style={{textAlign: 'left'}}>{p.productName}</TableCell>
