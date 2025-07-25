@@ -17,8 +17,8 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-PROXY_IP = "123.141.181.49"
-PROXY_PORT = "5031"
+PROXY_IP = "8.213.129.15"
+PROXY_PORT = "9098"
 
 def extract_vendor_item_id(url):
     match = re.search(r'vendorItemId=(\d+)', url)
