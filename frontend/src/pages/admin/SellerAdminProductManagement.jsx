@@ -90,6 +90,16 @@ export default function AdminProductManagementPage() {
     return statusMatch && searchMatch;
   });
 
+  const groupMap = useMemo(() => {
+    const map = {};
+    filteredCampaigns.forEach((c) => {
+      const key = c.createdAt?.seconds || c.id;
+      if (!map[key]) map[key] = [];
+      map[key].push(c.id);
+    });
+    return map;
+  }, [filteredCampaigns]);
+
   const getBasePrice = (deliveryType, reviewType) => {
     if (deliveryType === '실배송') {
       switch (reviewType) {
@@ -266,6 +276,15 @@ export default function AdminProductManagementPage() {
   const handleSelectOne = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]);
   };
+
+  const handleSelectGroup = (groupId, checked) => {
+    const ids = groupMap[groupId] || [];
+    if (checked) {
+      setSelectedIds(prev => Array.from(new Set([...prev, ...ids])));
+    } else {
+      setSelectedIds(prev => prev.filter(pId => !ids.includes(pId)));
+    }
+  };
   
   const handleUpdateStatus = async (id, newStatus) => {
     try {
@@ -318,7 +337,7 @@ export default function AdminProductManagementPage() {
     }
   };
 
-  const handleConfirmDeposit = async (campaignId, isChecked) => {
+  const handleConfirmDeposit = async (campaignId, isChecked, skipPrompt = false) => {
     if (!isChecked) {
         try {
             await updateDoc(doc(db, 'campaigns', campaignId), { depositConfirmed: false });
@@ -329,7 +348,7 @@ export default function AdminProductManagementPage() {
         return;
     }
 
-    if (window.confirm("이 캠페인의 입금을 확인하고 예약을 최종 확정하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")) {
+    if (skipPrompt || window.confirm("이 캠페인의 입금을 확인하고 예약을 최종 확정하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")) {
         try {
             const campaignRef = doc(db, 'campaigns', campaignId);
             const snap = await getDoc(campaignRef);
@@ -420,6 +439,15 @@ export default function AdminProductManagementPage() {
     }
   };
 
+  const handleBulkConfirmDeposit = async () => {
+    if (selectedIds.length === 0) return alert('입금확인할 캠페인을 선택해주세요.');
+    if (!window.confirm(`선택한 ${selectedIds.length}개 캠페인을 예약 확정 처리하시겠습니까?`)) return;
+    for (const id of selectedIds) {
+      await handleConfirmDeposit(id, true, true);
+    }
+    setSelectedIds([]);
+  };
+
   const openDetailModal = (text) => setDetailText(text);
   const closeDetailModal = () => setDetailText(null);
 
@@ -470,7 +498,7 @@ export default function AdminProductManagementPage() {
               <input type="checkbox" checked={allowSameDay} onChange={handleToggleSameDay} />
               <span>당일예약</span>
             </label>
-            <Button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">선택 항목 인증</Button>
+            <Button onClick={handleBulkConfirmDeposit} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">선택항목 입금확인(예약확정)</Button>
             <Button onClick={handleDeleteSelected} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">삭제</Button>
             <Button onClick={handleDownloadExcel} className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700">엑셀 다운로드</Button>
         </div>
@@ -495,6 +523,7 @@ export default function AdminProductManagementPage() {
               <tr>
                 <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={groupedAndPaginatedCampaigns.length > 0 && groupedAndPaginatedCampaigns.every(c => selectedIds.includes(c.id))} /></th>
                 <th className={thClass}>상품군</th>
+                <th className={thClass}>발행여부</th>
                 <th className={thClass}>순번</th>
                 <th className={thClass + ' sortable'} onClick={() => requestSort('createdAt')}>
                   예약 등록 일자<SortIndicator columnKey="createdAt" />
@@ -523,7 +552,7 @@ export default function AdminProductManagementPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
                 {groupedAndPaginatedCampaigns.length === 0 ? (
-                    <tr><td colSpan="21" className="text-center py-10">데이터가 없습니다.</td></tr>
+                    <tr><td colSpan="22" className="text-center py-10">데이터가 없습니다.</td></tr>
                 ) : (
                     groupedAndPaginatedCampaigns.map((c, index) => {
                       const { finalItemAmount } = computeAmounts(c);
@@ -532,7 +561,22 @@ export default function AdminProductManagementPage() {
                           <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
                           
                           {c.renderInfo.shouldRender && (
-                            <td rowSpan={c.renderInfo.rowSpan} className="px-3 py-4 whitespace-nowrap text-sm text-center align-middle font-semibold">{`상품군 ${c.groupInfo.displayIndex}`}</td>
+                            <td rowSpan={c.renderInfo.rowSpan} className="px-3 py-4 whitespace-nowrap text-sm text-center align-middle font-semibold">
+                              <label className="flex items-center justify-center space-x-1">
+                                <input
+                                  type="checkbox"
+                                  onChange={(e) => handleSelectGroup(c.groupInfo.id, e.target.checked)}
+                                  checked={(groupMap[c.groupInfo.id] || []).every(id => selectedIds.includes(id))}
+                                />
+                                <span>{`상품군 ${c.groupInfo.displayIndex}`}</span>
+                              </label>
+                            </td>
+                          )}
+
+                          {c.renderInfo.shouldRender && (
+                            <td rowSpan={c.renderInfo.rowSpan} className="px-3 py-4 whitespace-nowrap text-sm text-center align-middle">
+                              {c.isVatApplied ? '세금계산서 발행' : '세금계산서 미발행'}
+                            </td>
                           )}
 
                           <td className="px-3 py-4 whitespace-nowrap text-sm">{(currentPage - 1) * itemsPerPage + index + 1}</td>
