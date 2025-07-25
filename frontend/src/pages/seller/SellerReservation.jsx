@@ -506,6 +506,13 @@ export default function SellerReservationPage() {
 
 const handleSelectSavedCampaign = (id, checked) => { setSelectedSavedCampaigns(prev => checked ? [...prev, id] : prev.filter(item => item !== id)); };
 const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(checked ? savedCampaigns.map(c => c.id) : []); };
+const handleSelectGroup = (ids, checked) => {
+    setSelectedSavedCampaigns(prev => {
+        const set = new Set(prev);
+        ids.forEach(id => { if (checked) set.add(id); else set.delete(id); });
+        return Array.from(set);
+    });
+};
     const handleRowChange = (id, field, value) => {
         setEditedRows(prev => ({
             ...prev,
@@ -858,7 +865,7 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle>나의 예약 내역</CardTitle>
-                            <CardDescription>과거에 예약한 모든 캠페인 내역입니다. 입금 완료 후 '입금'란을 체크해주세요.</CardDescription>
+                            <CardDescription>과거에 예약한 모든 캠페인 내역입니다. 입금 확인을 원하시면 '입금확인요청'란을 체크해주세요.</CardDescription>
                         </div>
                         <div className="flex space-x-2">
                             <Button onClick={handleBulkDepositRequest} disabled={pendingDepositCount === 0}>
@@ -884,7 +891,8 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                         <TableHead className="w-[80px] text-center">구분</TableHead>
                                         <TableHead className="w-[120px] text-center">리뷰</TableHead>
                                         <TableHead className="w-[60px] text-center">수량</TableHead>
-                                        <TableHead className="w-[60px] text-center">입금</TableHead>
+                                        <TableHead className="w-[60px] text-center">입금확인요청</TableHead>
+                                        <TableHead className="w-[100px] text-center">발행여부</TableHead>
                                         <TableHead className="w-[100px] text-center">상태</TableHead>
                                         <TableHead className="w-[120px] text-center">개별견적</TableHead>
                                         <TableHead className="w-[120px] text-center">결제금액</TableHead>
@@ -893,7 +901,7 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                 </TableHeader>
                                 <TableBody>
                                     {groupedSavedCampaigns.length === 0 ? (
-                                        <TableRow><TableCell colSpan="12" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan="13" className="h-24 text-center text-muted-foreground">예약 내역이 없습니다.</TableCell></TableRow>
                                     ) : (
                                         groupedSavedCampaigns.map((group, gIdx) => group.items.map((c, idx) => {
                                             const row = editedRows[c.id] || {};
@@ -912,7 +920,16 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                                         <Checkbox checked={selectedSavedCampaigns.includes(c.id)} onCheckedChange={(checked) => handleSelectSavedCampaign(c.id, checked)} aria-label={`${c.productName} 선택`} />
                                                     </TableCell>
                                                     {idx === 0 && (
-                                                        <TableCell rowSpan={group.items.length} className="text-center align-middle font-semibold">{`상품군 ${gIdx + 1}`}</TableCell>
+                                                        <TableCell rowSpan={group.items.length} className="text-center align-middle font-semibold">
+                                                            <div className="flex flex-col items-center space-y-1">
+                                                                <Checkbox
+                                                                    checked={group.items.every(item => selectedSavedCampaigns.includes(item.id))}
+                                                                    onCheckedChange={checked => handleSelectGroup(group.items.map(i => i.id), checked)}
+                                                                    aria-label={`상품군 ${gIdx + 1} 전체 선택`}
+                                                                />
+                                                                <span>{`상품군 ${gIdx + 1}`}</span>
+                                                            </div>
+                                                        </TableCell>
                                                     )}
                                                     <TableCell className="text-center">{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</TableCell>
                                                     <TableCell className="font-medium">{c.productName}</TableCell>
@@ -949,14 +966,29 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                                     <TableCell className="text-center">
                                                         <Input type="number" className="w-20" value={quantity} min="1" onChange={(e) => handleRowChange(c.id, 'quantity', e.target.value)} />
                                                     </TableCell>
+                                                    {idx === 0 && (
+                                                        <TableCell rowSpan={group.items.length} className="text-center align-middle">
+                                                            {group.items[0].isVatApplied ? '세금계산서 발행' : '세금계산서 미발행'}
+                                                        </TableCell>
+                                                    )}
                                                     <TableCell className="text-center">
                                                         <Checkbox
                                                             checked={!!c.paymentReceived}
                                                             onCheckedChange={(checked) => handleDepositCheckboxChange(c.id, checked)}
-                                                            title="입금 완료 시 체크"
+                                                            title="입금 확인 요청"
                                                         />
                                                     </TableCell>
-                                                    <TableCell className="text-center"><Badge variant={c.status === '예약 확정' ? 'default' : c.status === '예약 대기' ? 'secondary' : 'destructive'}>{c.status}</Badge></TableCell>
+                                                    <TableCell className="text-center">
+                                                        {(() => {
+                                                            const displayStatus = c.paymentReceived ? '확인요청중' : c.status;
+                                                            const variant = displayStatus === '예약 확정'
+                                                                ? 'default'
+                                                                : displayStatus === '예약 대기' || displayStatus === '확인요청중'
+                                                                    ? 'secondary'
+                                                                    : 'destructive';
+                                                            return <Badge variant={variant}>{displayStatus}</Badge>;
+                                                        })()}
+                                                    </TableCell>
                                                     <TableCell className="text-center">{Math.round(finalAmount || 0).toLocaleString()}원</TableCell>
                                                     {idx === 0 && (
                                                         <TableCell rowSpan={group.items.length} className="font-semibold text-right align-middle">{group.total.toLocaleString()}원</TableCell>
