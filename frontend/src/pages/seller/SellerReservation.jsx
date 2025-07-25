@@ -811,13 +811,13 @@ const handleSelectGroup = (ids, checked) => {
                     <CardContent><div className="border rounded-md"><Table><TableHeader><TableRow>
                         <TableHead>상품군</TableHead>
                         <TableHead>일자</TableHead>
-                        <TableHead>구분</TableHead>
-                        <TableHead>리뷰</TableHead>
-                        <TableHead>수량</TableHead>
+                        <TableHead className="w-[80px] text-center">구분</TableHead>
+                        <TableHead className="w-[120px] text-center">리뷰</TableHead>
+                        <TableHead className="w-[60px] text-center">수량</TableHead>
                         <TableHead>상품명</TableHead>
-                        <TableHead>상품가</TableHead>
-                        <TableHead>개별견적</TableHead>
-                        <TableHead>결제금액</TableHead>
+                        <TableHead className="w-[120px] text-center">상품가</TableHead>
+                        <TableHead className="w-[120px] text-center">개별견적</TableHead>
+                        <TableHead className="w-[120px] text-center">결제금액</TableHead>
                         <TableHead>삭제</TableHead>
                     </TableRow></TableHeader><TableBody>{campaigns.length === 0 ? (<TableRow><TableCell colSpan="10" className="h-24 text-center text-muted-foreground">위에서 작업을 추가해주세요.</TableCell></TableRow>) : (campaigns.map((c, idx) => {
                         const cDate = c.date instanceof Date ? c.date : new Date();
@@ -832,14 +832,14 @@ const handleSelectGroup = (ids, checked) => {
                                     <TableCell rowSpan={campaigns.length} className="text-center align-middle font-semibold">상품군</TableCell>
                                 )}
                                 <TableCell className={cDate.getDay() === 0 ? 'text-destructive font-semibold' : ''}>{formatDateWithDay(cDate)}</TableCell>
-                                <TableCell><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
-                                <TableCell><Badge>{c.reviewType}</Badge></TableCell>
-                                <TableCell>{c.quantity}</TableCell>
+                                <TableCell className="text-center"><Badge variant="outline">{c.deliveryType}</Badge></TableCell>
+                                <TableCell className="text-center"><Badge>{c.reviewType}</Badge></TableCell>
+                                <TableCell className="text-center">{c.quantity}</TableCell>
                                 <TableCell className="font-medium">{c.productName}</TableCell>
-                                <TableCell className="text-right">{Number(c.productPrice).toLocaleString()}원</TableCell>
-                                <TableCell className="font-semibold text-right">{Math.round(finalAmount).toLocaleString()}원</TableCell>
+                                <TableCell className="text-center">{Number(c.productPrice).toLocaleString()}원</TableCell>
+                                <TableCell className="font-semibold text-center">{Math.round(finalAmount).toLocaleString()}원</TableCell>
                                 {idx === 0 && (
-                                    <TableCell rowSpan={campaigns.length} className="font-semibold text-right align-middle">{totalFinalForEstimate.toLocaleString()}원</TableCell>
+                                    <TableCell rowSpan={campaigns.length} className="font-semibold text-center align-middle">{totalFinalForEstimate.toLocaleString()}원</TableCell>
                                 )}
                                 <TableCell><Button variant="ghost" size="icon" onClick={() => handleDeleteCampaign(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
                             </TableRow>
