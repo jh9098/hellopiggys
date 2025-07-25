@@ -211,6 +211,13 @@ export default function SellerReservationPage() {
         const finalUnitPrice = basePrice + sundayExtraCharge;
         return { basePrice, sundayExtraCharge, finalUnitPrice };
     }, [formState.deliveryType, formState.reviewType, formState.date]);
+
+    const isAddDisabled = !formState.productName.trim() ||
+        !formState.productOption.trim() ||
+        !formState.productUrl.trim() ||
+        !formState.keywords.trim() ||
+        Number(formState.productPrice) <= 0 ||
+        Number(formState.quantity) <= 0;
     
     const calendarEvents = useMemo(() => {
         if (Object.keys(sellersMap).length === 0 || calendarCampaigns.length === 0) return [];
@@ -591,8 +598,11 @@ const handleSelectGroup = (ids, checked) => {
         const groups = {};
         savedCampaigns.forEach((c) => {
             const key = c.createdAt?.seconds || 'unknown';
-            if (!groups[key]) groups[key] = { key, items: [], total: 0 };
+            if (!groups[key]) groups[key] = { key, items: [], total: 0, invoiceStatus: '-' };
             groups[key].items.push(c);
+            if (groups[key].invoiceStatus === '-' && c.paymentReceived) {
+                groups[key].invoiceStatus = c.isVatApplied ? '세금계산서 발행' : '세금계산서 미발행';
+            }
             const cDate = c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date();
             const reviewFee = getBasePrice(c.deliveryType, c.reviewType) + (cDate.getDay() === 0 ? 600 : 0);
             const productPriceWithAgencyFee = Number(c.productPrice) * 1.1;
@@ -815,7 +825,7 @@ const handleSelectGroup = (ids, checked) => {
                                 <span className="font-semibold">= 체험단 진행비 {finalUnitPrice.toLocaleString()}원</span>
                                 <PriceListDialog />
                             </div>
-                            <Button type="submit" size="lg">견적에 추가</Button>
+                            <Button type="submit" size="lg" disabled={isAddDisabled}>견적에 추가</Button>
                         </CardFooter>
                     </form>
                 </Card>
@@ -945,9 +955,11 @@ const handleSelectGroup = (ids, checked) => {
                                                             aria-label={`${c.productName} 선택`}
                                                         />
                                                     </TableCell>
-                                                    <TableCell className="text-center align-middle">
-                                                        {c.paymentReceived ? (c.isVatApplied ? '세금계산서 발행' : '세금계산서 미발행') : '-'}
-                                                    </TableCell>
+                                                    {idx === 0 && (
+                                                        <TableCell rowSpan={group.items.length} className="text-center align-middle">
+                                                            {group.invoiceStatus}
+                                                        </TableCell>
+                                                    )}
                                                     <TableCell className="text-center">{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</TableCell>
                                                     <TableCell className="font-medium">{c.productName}</TableCell>
                                                     <TableCell className="text-center">
