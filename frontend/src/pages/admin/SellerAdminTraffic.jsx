@@ -4,6 +4,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { ko } from 'date-fns/locale';
 import { db, doc, getDoc, setDoc } from '../../firebaseConfig';
 import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 
 const DEFAULT_PRODUCT = { category: '', name: '', description: '', retailPrice: 0, salePrice: 0, discountRate: 0 };
 
@@ -78,6 +79,10 @@ export default function SellerAdminTrafficPage() {
     setProducts(prev => [...prev, { ...DEFAULT_PRODUCT, salePrice: 0, quantity: 0, requestDate: null }]);
   };
 
+  const deleteRow = (index) => {
+    setProducts(prev => prev.filter((_, i) => i !== index));
+  };
+
   const saveProducts = async () => {
     const plain = products.map(p => {
       const { salePrice, quantity, requestDate, ...rest } = p;
@@ -111,7 +116,8 @@ export default function SellerAdminTrafficPage() {
                       <th className={`${thClass} w-40`}>요청일자</th>
                       <th className={`${thClass} w-32`}>시작일자</th>
                       <th className={`${thClass} w-32`}>종료일자</th>
-                      <th className={`${thClass} w-36 border-r-0`}>트래픽 견적</th>
+                      <th className={`${thClass} w-36`}>트래픽 견적</th>
+                      <th className={`${thClass} w-24 border-r-0`}>삭제</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white">
@@ -149,7 +155,12 @@ export default function SellerAdminTrafficPage() {
                           </td>
                           <td className={tdClass}>{startDate ? startDate.toLocaleDateString() : '-'}</td>
                           <td className={tdClass}>{endDate ? endDate.toLocaleDateString() : '-'}</td>
-                          <td className={`${tdClass} font-bold text-lg text-green-600 border-r-0`}>{estimate.toLocaleString()}원</td>
+                          <td className={`${tdClass} font-bold text-lg text-green-600`}>{estimate.toLocaleString()}원</td>
+                          <td className={`${tdClass} border-r-0 text-center`}>
+                            <Button variant="ghost" size="icon" onClick={() => deleteRow(index)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </td>
                       </tr>);
                   })}
                   </tbody>
