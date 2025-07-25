@@ -142,12 +142,14 @@ export default function AdminProductManagementPage() {
             groups[key] = {
                 key,
                 items: [],
+                ids: [],
                 total: 0,
                 createdAt: c.createdAt,
                 isVatApplied: c.isVatApplied
             };
         }
         groups[key].items.push(c);
+        groups[key].ids.push(c.id);
         const { finalItemAmount } = computeAmounts(c);
         groups[key].total += finalItemAmount;
     });
@@ -188,7 +190,8 @@ export default function AdminProductManagementPage() {
                     total: group.total,
                     id: group.key,
                     displayIndex: groupCounter,
-                    isVatApplied: group.isVatApplied
+                    isVatApplied: group.isVatApplied,
+                    ids: group.ids
                 }
             });
         });
@@ -263,6 +266,14 @@ export default function AdminProductManagementPage() {
     } else {
       setSelectedIds([]);
     }
+  };
+
+  const handleSelectGroup = (ids, checked) => {
+    setSelectedIds(prev => {
+      let updated = prev.filter(id => !ids.includes(id));
+      if (checked) updated = [...updated, ...ids.filter(id => !updated.includes(id))];
+      return updated;
+    });
   };
 
   const handleSelectOne = (id) => {
@@ -495,6 +506,7 @@ export default function AdminProductManagementPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className={thClass}></th>
                 <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={groupedAndPaginatedCampaigns.length > 0 && groupedAndPaginatedCampaigns.every(c => selectedIds.includes(c.id))} /></th>
                 <th className={thClass}>발행여부</th>
                 <th className={thClass}>순번</th>
@@ -525,14 +537,20 @@ export default function AdminProductManagementPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
                 {groupedAndPaginatedCampaigns.length === 0 ? (
-                    <tr><td colSpan="21" className="text-center py-10">데이터가 없습니다.</td></tr>
+                    <tr><td colSpan="22" className="text-center py-10">데이터가 없습니다.</td></tr>
                 ) : (
                     groupedAndPaginatedCampaigns.map((c, index) => {
                       const { finalItemAmount } = computeAmounts(c);
                       return (
                         <tr key={c.id} className="hover:bg-gray-50">
+                          {c.renderInfo.shouldRender && (
+                            <td rowSpan={c.renderInfo.rowSpan} className="px-3 py-4 whitespace-nowrap text-sm text-center align-middle">
+                              <input type="checkbox" onChange={(e)=>handleSelectGroup(c.groupInfo.ids, e.target.checked)}
+                                     checked={c.groupInfo.ids.every(id => selectedIds.includes(id))} />
+                            </td>
+                          )}
                           <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
-                          
+
                           {c.renderInfo.shouldRender && (
                             <td rowSpan={c.renderInfo.rowSpan} className="px-3 py-4 whitespace-nowrap text-sm text-center align-middle font-semibold">
                               {c.groupInfo.isVatApplied ? '세금계산서 발행' : '세금계산서 미발행'}
