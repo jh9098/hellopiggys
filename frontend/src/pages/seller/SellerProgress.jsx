@@ -1,7 +1,7 @@
 // src/pages/seller/SellerProgress.jsx (디자인 개선 버전)
 
 import { useEffect, useState } from 'react';
-import { db, auth, onAuthStateChanged, collection, query, where, onSnapshot } from '../../firebaseConfig';
+import { db, auth, onAuthStateChanged, collection, query, where, onSnapshot, orderBy } from '../../firebaseConfig';
 
 import {
   Card,
@@ -34,6 +34,7 @@ export default function SellerProgressPage() {
   const [user, setUser] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [reviewsBySerial, setReviewsBySerial] = useState({});
 
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -72,6 +73,29 @@ export default function SellerProgressPage() {
     return () => unsubscribeFirestore();
   }, [user]);
 
+  useEffect(() => {
+    const serials = Array.from(new Set(campaigns.map(c => c.serialNumber).filter(Boolean)));
+    const unsubscribes = [];
+    if (serials.length === 0) {
+      setReviewsBySerial({});
+      return;
+    }
+    const map = {};
+    serials.forEach(sn => {
+      const q = query(
+        collection(db, 'reviews'),
+        where('productSerial', '==', sn),
+        orderBy('createdAt')
+      );
+      const unsub = onSnapshot(q, snap => {
+        map[sn] = snap.docs.map(d => d.data());
+        setReviewsBySerial(prev => ({ ...prev, ...map }));
+      });
+      unsubscribes.push(unsub);
+    });
+    return () => unsubscribes.forEach(u => u());
+  }, [campaigns]);
+
   const filteredCampaigns = campaigns
     .filter(c => {
       const d = c.date?.seconds ? new Date(c.date.seconds * 1000) : new Date(c.date);
@@ -92,7 +116,9 @@ export default function SellerProgressPage() {
   if (availableYears.length === 0) availableYears.push(today.getFullYear());
   
   const availableMonths = Array.from({ length: 12 }, (_, i) => i + 1);
-  const expandedCampaigns = filteredCampaigns.flatMap(c => Array.from({ length: Number(c.quantity) || 1 }, () => c));
+  const expandedCampaigns = filteredCampaigns.flatMap(c =>
+    Array.from({ length: Number(c.quantity) || 1 }, (_, i) => ({ ...c, __idx: i }))
+  );
 
 
   return (
@@ -176,7 +202,20 @@ export default function SellerProgressPage() {
                         </Button>
                       </TableCell>
                       <TableCell>{c.keywords}</TableCell>
-                      {[...Array(6)].map((_, i) => <TableCell key={i} className="text-muted-foreground">-</TableCell>)}
+                      {(() => {
+                        const arr = reviewsBySerial[c.serialNumber] || [];
+                        const r = arr[c.__idx] || {};
+                        return (
+                          <>
+                            <TableCell>{r.name || '-'}</TableCell>
+                            <TableCell>{r.phoneNumber || '-'}</TableCell>
+                            <TableCell>{r.address || '-'}</TableCell>
+                            <TableCell>{r.orderNumber || '-'}</TableCell>
+                            <TableCell className="text-muted-foreground">-</TableCell>
+                            <TableCell className="text-muted-foreground">-</TableCell>
+                          </>
+                        );
+                      })()}
                     </TableRow>
                   );
                 })
