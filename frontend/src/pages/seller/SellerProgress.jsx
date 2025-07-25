@@ -1,7 +1,7 @@
 // src/pages/seller/SellerProgress.jsx (디자인 개선 버전)
 
 import { useEffect, useState } from 'react';
-import { db, auth, onAuthStateChanged, collection, query, where, onSnapshot, getDocs, orderBy } from '../../firebaseConfig';
+import { db, auth, onAuthStateChanged, collection, query, where, onSnapshot, orderBy } from '../../firebaseConfig';
 
 import {
   Card,
@@ -74,21 +74,26 @@ export default function SellerProgressPage() {
   }, [user]);
 
   useEffect(() => {
-    const fetchReviews = async () => {
-      const map = {};
-      const serials = campaigns.map(c => c.serialNumber).filter(Boolean);
-      for (const sn of serials) {
-        const q = query(
-          collection(db, 'reviews'),
-          where('productSerial', '==', sn),
-          orderBy('createdAt')
-        );
-        const snap = await getDocs(q);
-        if (!snap.empty) map[sn] = snap.docs.map(d => d.data());
-      }
-      setReviewsBySerial(map);
-    };
-    if (campaigns.length > 0) fetchReviews();
+    const serials = Array.from(new Set(campaigns.map(c => c.serialNumber).filter(Boolean)));
+    const unsubscribes = [];
+    if (serials.length === 0) {
+      setReviewsBySerial({});
+      return;
+    }
+    const map = {};
+    serials.forEach(sn => {
+      const q = query(
+        collection(db, 'reviews'),
+        where('productSerial', '==', sn),
+        orderBy('createdAt')
+      );
+      const unsub = onSnapshot(q, snap => {
+        map[sn] = snap.docs.map(d => d.data());
+        setReviewsBySerial(prev => ({ ...prev, ...map }));
+      });
+      unsubscribes.push(unsub);
+    });
+    return () => unsubscribes.forEach(u => u());
   }, [campaigns]);
 
   const filteredCampaigns = campaigns
