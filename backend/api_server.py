@@ -40,20 +40,16 @@ def search_coupang_rank(keyword, target_vendor_item_id):
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
         
-        # --- [★핵심 수정★] Chrome 및 Chromedriver 경로 지정 ---
-        # build.sh 스크립트가 설치한 경로를 명시적으로 지정합니다.
-        chrome_binary_path = "/usr/bin/google-chrome"
-        driver_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'chromedriver')
-        
+        # --- [★핵심 수정★] 모든 경로 지정 삭제 ---
+        # Dockerfile이 모든 것을 표준 경로에 설치했으므로,
+        # undetected-chromedriver가 자동으로 경로를 찾습니다.
         driver = uc.Chrome(
-            browser_executable_path=chrome_binary_path,
-            driver_executable_path=driver_path,
             headless=True,
             options=options,
         )
-        # ---------------------------------------------------
+        # ------------------------------------
         
-        # ... 이하 스크래핑 로직은 동일 ...
+        # ... 이하 스크래핑 로직은 모두 동일 ...
         rank_counter = 0
         MAX_PAGES_TO_SEARCH = 10
         for page in range(1, MAX_PAGES_TO_SEARCH + 1):
