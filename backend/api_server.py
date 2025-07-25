@@ -17,8 +17,10 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-PROXY_IP = "8.213.129.15"
-PROXY_PORT = "9098"
+# --- [★핵심 수정★] 프록시 정보를 비워 프록시 기능을 비활성화 ---
+PROXY_IP = None  # 또는 ""
+PROXY_PORT = None # 또는 ""
+# -----------------------------------------------------------
 
 def extract_vendor_item_id(url):
     match = re.search(r'vendorItemId=(\d+)', url)
@@ -29,10 +31,14 @@ def search_coupang_rank(keyword, target_vendor_item_id):
     try:
         options = uc.ChromeOptions()
         
+        # 프록시 정보가 없으면 이 부분은 실행되지 않음
         if PROXY_IP and PROXY_PORT:
             proxy_server_url = f"http://{PROXY_IP}:{PROXY_PORT}"
             options.add_argument(f'--proxy-server={proxy_server_url}')
             print(f"--- 프록시 서버 설정: {proxy_server_url} ---")
+        else:
+            # 이 로그가 출력되는지 확인
+            print("--- 프록시 없이 직접 연결을 시도합니다. ---")
 
         options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
@@ -40,22 +46,13 @@ def search_coupang_rank(keyword, target_vendor_item_id):
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
         
-        # --- 이 경로 설정이 이제 Dockerfile과 일치합니다 ---
-        browser_path = "/app/opt/google/chrome/chrome"
-        driver_path = "/app/chromedriver"
-
-        # 진단 코드
-        print(f"Checking Chrome at: {browser_path}, Exists: {os.path.exists(browser_path)}")
-        print(f"Checking Chromedriver at: {driver_path}, Exists: {os.path.exists(driver_path)}")
-        
+        # Dockerfile이 설치한 표준 경로를 사용
         driver = uc.Chrome(
-            browser_executable_path=browser_path,
-            driver_executable_path=driver_path,
             headless=True,
             options=options,
         )
-        # ----------------------------------------------------------------
         
+        # ... (이하 스크래핑 로직은 모두 동일)
         rank_counter = 0
         MAX_PAGES_TO_SEARCH = 10
         for page in range(1, MAX_PAGES_TO_SEARCH + 1):
@@ -69,15 +66,14 @@ def search_coupang_rank(keyword, target_vendor_item_id):
                 WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, "product-list")))
             except TimeoutException:
                 print("TimeoutException: 'product-list' not found.")
-                return {"status": "error", "message": "페이지 로딩에 실패했거나 프록시 또는 서버 환경 문제일 수 있습니다."}
-
-            time.sleep(random.uniform(0.5, 1.0))
+                return {"status": "error", "message": "페이지 로딩에 실패했습니다. Render 서버 IP가 차단되었을 수 있습니다."}
+            
+            # ... (이하 로직 동일) ...
             html = driver.page_source
             soup = BeautifulSoup(html, 'html.parser')
             products = soup.select('#product-list > li.ProductUnit_productUnit__Qd6sv')
             
             if not products:
-                print(f"Page {page}: No products found.")
                 if "로봇이 아닙니다" in html or "Captcha" in driver.title:
                      return {"status": "error", "message": "캡챠(로봇 확인) 페이지에 막혔습니다."}
                 break
@@ -100,6 +96,7 @@ def search_coupang_rank(keyword, target_vendor_item_id):
 
     return {"status": "not_found", "message": f"최대 {MAX_PAGES_TO_SEARCH} 페이지까지 검색했지만 상품을 찾지 못했습니다."}
 
+# ... (이하 @app.route 부분은 동일) ...
 @app.route('/api/coupang-rank', methods=['POST'])
 def get_coupang_rank():
     data = request.get_json()
