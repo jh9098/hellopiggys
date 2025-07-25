@@ -5,7 +5,7 @@ import { db, collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, 
 import Papa from 'papaparse';
 import { Button } from '@/components/ui/button';
 import '../../components/ReviewDetailModal.css';
-import { toAbsoluteUrl } from '../../utils';
+import { toAbsoluteUrl, appendSerialNumbers } from '../../utils';
 
 // [추가] 날짜 포맷팅을 위한 헬퍼 함수
 const formatDateTime = (date) => {
@@ -336,6 +336,9 @@ export default function AdminProductManagementPage() {
             const data = snap.data();
 
             let productId = data.productId;
+            const qty = Number(data.quantity) || 1;
+            const existingSerials = Array.isArray(data.serialNumbers) ? data.serialNumbers : [];
+            const serialNumbers = appendSerialNumbers(existingSerials, qty);
             if (!productId) {
                 const productRef = doc(collection(db, 'products'));
                 productId = productRef.id;
@@ -356,6 +359,7 @@ export default function AdminProductManagementPage() {
                           .toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
                       : '',
                     guide: data.reviewGuide || '',
+                    serialNumbers,
                     progressStatus: '진행전',
                     createdAt: serverTimestamp()
                 });
@@ -365,14 +369,16 @@ export default function AdminProductManagementPage() {
                 await updateDoc(doc(db, 'products', productId), {
                     guide: data.reviewGuide || '',
                     reviewType: defaultType,
-                    paymentType: defaultType
+                    paymentType: defaultType,
+                    serialNumbers
                 });
             }
 
             await updateDoc(campaignRef, {
                 status: '예약 확정',
                 depositConfirmed: true,
-                confirmedAt: serverTimestamp()
+                confirmedAt: serverTimestamp(),
+                serialNumbers
             });
             alert("캠페인이 '예약 확정' 상태로 변경되었습니다.");
         } catch (error) {
