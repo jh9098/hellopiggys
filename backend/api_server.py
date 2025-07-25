@@ -40,16 +40,30 @@ def search_coupang_rank(keyword, target_vendor_item_id):
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
         
-        # --- [★핵심 수정★] 모든 경로 지정 삭제 ---
-        # Dockerfile이 모든 것을 표준 경로에 설치했으므로,
-        # undetected-chromedriver가 자동으로 경로를 찾습니다.
+        # --- [★핵심 수정★] 경로 확인 및 명시적 지정 ---
+        chrome_binary_path = "/usr/bin/google-chrome"
+        
+        # 진단 코드: Python이 실제로 파일을 볼 수 있는지 확인
+        print(f"Checking for Chrome binary at: {chrome_binary_path}")
+        if os.path.exists(chrome_binary_path):
+            print("Chrome binary found successfully.")
+        else:
+            print("!!! CRITICAL: Chrome binary NOT FOUND at the specified path. Build process might have failed.")
+            # 경로가 틀렸을 수 있으니 다른 일반적인 경로도 확인
+            alt_path = "/opt/google/chrome/chrome"
+            if os.path.exists(alt_path):
+                print(f"Found Chrome at alternate path: {alt_path}")
+                chrome_binary_path = alt_path
+            else:
+                 print("Alternate path also not found.")
+        
         driver = uc.Chrome(
+            browser_executable_path=chrome_binary_path, # 경로를 다시 명시적으로 전달
             headless=True,
             options=options,
         )
-        # ------------------------------------
+        # ---------------------------------------------------
         
-        # ... 이하 스크래핑 로직은 모두 동일 ...
         rank_counter = 0
         MAX_PAGES_TO_SEARCH = 10
         for page in range(1, MAX_PAGES_TO_SEARCH + 1):
@@ -63,7 +77,7 @@ def search_coupang_rank(keyword, target_vendor_item_id):
                 WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, "product-list")))
             except TimeoutException:
                 print("TimeoutException: 'product-list' not found.")
-                return {"status": "error", "message": f"페이지 {page} 로딩에 실패했거나 프록시/서버 환경 문제일 수 있습니다."}
+                return {"status": "error", "message": "페이지 로딩에 실패했거나 프록시 또는 서버 환경 문제일 수 있습니다."}
 
             time.sleep(random.uniform(0.5, 1.0))
             html = driver.page_source
@@ -96,7 +110,6 @@ def search_coupang_rank(keyword, target_vendor_item_id):
 
 @app.route('/api/coupang-rank', methods=['POST'])
 def get_coupang_rank():
-    # ... 동일
     data = request.get_json()
     keyword = data.get('keyword')
     product_url = data.get('productUrl')
