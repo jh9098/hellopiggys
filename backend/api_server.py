@@ -17,10 +17,8 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# --- [★수정★] 구해오신 프록시 정보를 여기에 입력하세요 ---
 PROXY_IP = "123.141.181.49"
 PROXY_PORT = "5031"
-# 사용자 이름과 비밀번호가 없으므로 해당 변수는 삭제합니다.
 
 def extract_vendor_item_id(url):
     match = re.search(r'vendorItemId=(\d+)', url)
@@ -31,15 +29,12 @@ def search_coupang_rank(keyword, target_vendor_item_id):
     try:
         options = uc.ChromeOptions()
         
-        # --- [★수정★] 프록시 설정 방식 변경 ---
-        # 인증이 없는 프록시는 '--proxy-server' 옵션으로 간단하게 설정 가능
         if PROXY_IP and PROXY_PORT:
             proxy_server_url = f"http://{PROXY_IP}:{PROXY_PORT}"
             options.add_argument(f'--proxy-server={proxy_server_url}')
             print(f"--- 프록시 서버 설정: {proxy_server_url} ---")
         else:
             print("--- 프록시 정보가 없습니다. 프록시 없이 실행합니다. ---")
-        # ------------------------------------
 
         options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
@@ -47,12 +42,17 @@ def search_coupang_rank(keyword, target_vendor_item_id):
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
         
+        # --- [★핵심 수정★] Chrome 실행 파일 경로 다시 추가 ---
+        # Render의 Native Environment는 보통 이 경로에 Chrome을 설치합니다.
+        chrome_binary_path = "/usr/bin/google-chrome"
+        
         driver = uc.Chrome(
+            browser_executable_path=chrome_binary_path, # 이 경로를 명시해줍니다.
             headless=True,
             options=options,
         )
+        # ---------------------------------------------------
         
-        # ... (이하 스크래핑 로직은 모두 동일)
         rank_counter = 0
         MAX_PAGES_TO_SEARCH = 10
 
@@ -102,7 +102,6 @@ def search_coupang_rank(keyword, target_vendor_item_id):
 
     return {"status": "not_found", "message": f"최대 {MAX_PAGES_TO_SEARCH} 페이지까지 검색했지만 상품을 찾지 못했습니다."}
 
-# ... 이하 @app.route('/api/coupang-rank') 부분은 모두 동일 ...
 @app.route('/api/coupang-rank', methods=['POST'])
 def get_coupang_rank():
     data = request.get_json()
