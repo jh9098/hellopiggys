@@ -43,4 +43,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 6. Gunicorn 서버 실행
-CMD ["gunicorn", "--workers", "1", "--timeout", "120", "--bind", "0.0.0.0:10000", "api_server:app"]
+CMD ["gunicorn", "--worker-class", "gevent", "--workers", "1", "--timeout", "120", "--bind", "0.0.0.0:10000", "api_server:app"]

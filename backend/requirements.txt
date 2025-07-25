@@ -1,8 +1,8 @@
 # backend/requirements.txt
-
 Flask
 flask-cors
 undetected-chromedriver
 beautifulsoup4
 gunicorn
-setuptools  # 추가
+setuptools
+gevent  # 추가
