@@ -1,8 +1,10 @@
 # backend/api_server.py
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import re
 import time
+import random
 import urllib.parse
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
@@ -10,76 +12,90 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from bs4 import BeautifulSoup
+import os # os 모듈 추가
 
 app = Flask(__name__)
-CORS(app)  # 모든 출처에서의 요청을 허용 (개발용)
+# Netlify 배포 주소를 명시적으로 허용하는 것이 좋습니다.
+# 개발 중에는 모든 주소를 허용해도 괜찮습니다.
+# cors = CORS(app, resources={r"/api/*": {"origins": "https://your-site-name.netlify.app"}})
+CORS(app) 
 
 def extract_vendor_item_id(url):
     match = re.search(r'vendorItemId=(\d+)', url)
     return match.group(1) if match else None
 
 def search_coupang_rank(keyword, target_vendor_item_id):
-    """
-    순위 검색 로직을 별도 함수로 분리
-    """
-    options = uc.ChromeOptions()
-    # 서버 환경에서는 headless 모드가 필수적일 수 있습니다.
-    # options.add_argument('--headless=new')
-    # options.add_argument('--no-sandbox')
-    # options.add_argument('--disable-dev-shm-usage')
-    driver = uc.Chrome(options=options, use_subprocess=True)
-
-    rank_counter = 0
-    MAX_PAGES_TO_SEARCH = 10
-
+    driver = None
     try:
+        options = uc.ChromeOptions()
+        
+        # Render (Linux) 환경을 위한 필수 헤드리스 옵션
+        options.add_argument("--headless=new")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
+        
+        # Render 환경에서는 chromedriver 경로를 자동으로 찾지 못할 수 있으므로, 
+        # build.sh에서 설치한 경로를 명시해줄 수 있습니다. 
+        # 보통 /usr/local/bin/chromedriver 에 설치됩니다.
+        driver = uc.Chrome(
+            driver_executable_path="/usr/local/bin/chromedriver",
+            headless=True,
+            options=options,
+        )
+        
+        rank_counter = 0
+        MAX_PAGES_TO_SEARCH = 10
+
         for page in range(1, MAX_PAGES_TO_SEARCH + 1):
             encoded_keyword = urllib.parse.quote_plus(keyword)
             search_url = f"https://www.coupang.com/np/search?q={encoded_keyword}&channel=user&sorter=scoreDesc&listSize=60&page={page}"
+            
+            print(f"Navigating to page {page}: {search_url}")
             driver.get(search_url)
 
             try:
-                WebDriverWait(driver, 15).until(
-                    EC.presence_of_element_located((By.ID, "product-list"))
-                )
+                wait = WebDriverWait(driver, 20)
+                wait.until(EC.presence_of_element_located((By.ID, "product-list")))
             except TimeoutException:
-                # 페이지 로딩 실패 시 결과 반환
-                return {"status": "error", "message": f"페이지 {page} 로딩 시간 초과"}
+                # Render에서는 파일 쓰기 권한이 제한적일 수 있으므로, 에러 메시지만 반환
+                print("TimeoutException: 'product-list' not found.")
+                return {"status": "error", "message": f"페이지 {page} 로딩에 실패했거나 차단되었습니다."}
 
+            time.sleep(random.uniform(0.5, 1.0))
+            
             html = driver.page_source
             soup = BeautifulSoup(html, 'html.parser')
             products = soup.select('#product-list > li.ProductUnit_productUnit__Qd6sv')
             
             if not products:
+                print(f"Page {page}: No products found.")
+                if "로봇이 아닙니다" in html or "Captcha" in driver.title:
+                     return {"status": "error", "message": "캡챠(로봇 확인) 페이지에 막혔습니다."}
                 break
 
             for product in products:
-                if product.select_one('.AdMark_adMark__KPMsC'):
-                    continue
-
+                if product.select_one('.AdMark_adMark__KPMsC'): continue
                 rank_counter += 1
                 product_id = product.get('data-id')
 
                 if product_id == target_vendor_item_id:
                     product_name_element = product.select_one('.ProductUnit_productName__gre7e')
                     product_name = product_name_element.text.strip() if product_name_element else "상품명 없음"
-                    
-                    # 성공 시 결과 반환
-                    return {
-                        "status": "success",
-                        "rank": rank_counter,
-                        "page": page,
-                        "productName": product_name,
-                    }
-            time.sleep(1.5)
+                    return {"status": "success", "rank": rank_counter, "page": page, "productName": product_name}
+            
+            time.sleep(random.uniform(1.0, 2.5))
             
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        print(f"An unexpected error occurred: {e}")
+        return {"status": "error", "message": f"스크래핑 중 예상치 못한 오류 발생: {e}."}
     finally:
-        driver.quit()
+        if driver:
+            driver.quit()
 
-    # 찾지 못했을 경우
-    return {"status": "not_found", "message": f"최대 {MAX_PAGES_TO_SEARCH} 페이지까지 검색했지만 상품을 찾을 수 없습니다."}
+    return {"status": "not_found", "message": f"최대 {MAX_PAGES_TO_SEARCH} 페이지까지 검색했지만 상품을 찾지 못했습니다."}
 
 @app.route('/api/coupang-rank', methods=['POST'])
 def get_coupang_rank():
@@ -97,6 +113,7 @@ def get_coupang_rank():
     result = search_coupang_rank(keyword, target_vendor_item_id)
     return jsonify(result)
 
+# Gunicorn이 이 파일을 실행할 때 'app' 변수를 찾습니다.
+# if __name__ == '__main__' 블록은 로컬 테스트용입니다.
 if __name__ == '__main__':
-    # 개발 시에는 보통 5000번 포트를 사용합니다.
     app.run(host='0.0.0.0', port=5000, debug=True)
