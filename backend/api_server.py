@@ -40,10 +40,15 @@ def search_coupang_rank(keyword, target_vendor_item_id):
         # Render 환경에서는 chromedriver 경로를 자동으로 찾지 못할 수 있으므로, 
         # build.sh에서 설치한 경로를 명시해줄 수 있습니다. 
         # 보통 /usr/local/bin/chromedriver 에 설치됩니다.
-        chrome_driver_path = os.path.join(os.path.dirname(__file__), 'chromedriver')
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # build.sh가 압축 해제한 경로
+        driver_path = os.path.join(current_dir, 'chromedriver')
+        browser_path = os.path.join(current_dir, 'opt/google/chrome/chrome')
 
         driver = uc.Chrome(
-            driver_executable_path=chrome_driver_path,
+            driver_executable_path=driver_path,
+            browser_executable_path=browser_path, # Chrome 실행 파일 경로 추가
             headless=True,
             options=options,
         )
