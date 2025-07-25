@@ -38,6 +38,8 @@ export default function AdminProductManagementPage() {
   const [bulkReviewType, setBulkReviewType] = useState('');
   const [bulkProductType, setBulkProductType] = useState('');
   const [bulkReviewOption, setBulkReviewOption] = useState('');
+  const [bulkProgressStatus, setBulkProgressStatus] = useState('');
+  const [vatMap, setVatMap] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [pageGroup, setPageGroup] = useState(0);
   const itemsPerPage = 20;
@@ -71,6 +73,16 @@ export default function AdminProductManagementPage() {
       await Promise.all(updates);
     }
 
+    const vatSnapshot = await getDocs(collection(db, 'campaigns'));
+    const map = {};
+    vatSnapshot.forEach(d => {
+      const data = d.data();
+      if (data.productId) {
+        map[data.productId] = data.isVatApplied;
+      }
+    });
+
+    setVatMap(map);
     setProducts(productsData);
     setLoading(false);
   };
@@ -95,10 +107,67 @@ export default function AdminProductManagementPage() {
     return filtered;
   }, [products, filters, sortConfig]);
 
-  const paginatedProducts = useMemo(() => {
+  const groupMap = useMemo(() => {
+    const map = {};
+    processedProducts.forEach(p => {
+      const key = p.createdAt?.seconds || p.id;
+      if (!map[key]) map[key] = [];
+      map[key].push(p.id);
+    });
+    return map;
+  }, [processedProducts]);
+
+  const groupedAndPaginatedProducts = useMemo(() => {
+    const groups = [];
+    processedProducts.forEach(p => {
+      const key = p.createdAt?.seconds || p.id;
+      let group = groups.find(g => g.key === key);
+      if (!group) {
+        group = { key, items: [] };
+        groups.push(group);
+      }
+      group.items.push(p);
+    });
+
+    const flattened = [];
+    let counter = 1;
+    groups.forEach(g => {
+      g.items.forEach((item, idx) => {
+        flattened.push({
+          ...item,
+          groupInfo: {
+            id: g.key,
+            size: g.items.length,
+            isFirstInGroup: idx === 0,
+            displayIndex: counter,
+          },
+        });
+      });
+      counter++;
+    });
+
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return processedProducts.slice(startIndex, startIndex + itemsPerPage);
-  }, [processedProducts, currentPage]);
+    const paginated = flattened.slice(startIndex, startIndex + itemsPerPage);
+
+    const finalItems = [];
+    const seen = new Set();
+    paginated.forEach(item => {
+      const groupId = item.groupInfo.id;
+      let rowSpan = 0;
+      let shouldRender = false;
+      if (!seen.has(groupId)) {
+        seen.add(groupId);
+        shouldRender = true;
+        rowSpan = paginated.filter(i => i.groupInfo.id === groupId).length;
+      }
+      finalItems.push({
+        ...item,
+        renderInfo: { shouldRender, rowSpan },
+      });
+    });
+
+    return finalItems;
+  }, [processedProducts, currentPage, itemsPerPage]);
 
   const totalPages = Math.ceil(processedProducts.length / itemsPerPage);
   useEffect(() => {
@@ -178,7 +247,7 @@ export default function AdminProductManagementPage() {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedIds(paginatedProducts.map(p => p.id));
+      setSelectedIds(groupedAndPaginatedProducts.map(p => p.id));
     } else {
       setSelectedIds([]);
     }
@@ -186,6 +255,15 @@ export default function AdminProductManagementPage() {
 
   const handleSelectOne = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+  };
+
+  const handleSelectGroup = (groupId, checked) => {
+    const ids = groupMap[groupId] || [];
+    if (checked) {
+      setSelectedIds(prev => Array.from(new Set([...prev, ...ids])));
+    } else {
+      setSelectedIds(prev => prev.filter(id => !ids.includes(id)));
+    }
   };
 
   const deleteSelected = async () => {
@@ -247,7 +325,9 @@ export default function AdminProductManagementPage() {
         <Table className="admin-table">
           <TableHeader>
             <TableRow>
-              <TableHead><input type="checkbox" onChange={handleSelectAll} checked={paginatedProducts.length > 0 && paginatedProducts.every(p => selectedIds.includes(p.id))} /></TableHead>
+              <TableHead><input type="checkbox" onChange={handleSelectAll} checked={groupedAndPaginatedProducts.length > 0 && groupedAndPaginatedProducts.every(p => selectedIds.includes(p.id))} /></TableHead>
+              <TableHead>상품군</TableHead>
+              <TableHead>발행여부</TableHead>
               <TableHead onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></TableHead>
               <TableHead onClick={() => requestSort('reviewType')} className="sortable">결제 종류<SortIndicator columnKey="reviewType" /></TableHead>
               <TableHead onClick={() => requestSort('productType')} className="sortable">상품 종류<SortIndicator columnKey="productType" /></TableHead>
@@ -263,6 +343,8 @@ export default function AdminProductManagementPage() {
               <TableHead>관리</TableHead>
             </TableRow>
             <TableRow className="bulk-row">
+              <TableHead></TableHead>
+              <TableHead></TableHead>
               <TableHead></TableHead>
               <TableHead></TableHead>
               <TableHead>
@@ -296,8 +378,23 @@ export default function AdminProductManagementPage() {
               <TableHead></TableHead>
               <TableHead></TableHead>
               <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
+              <TableHead>
+                <div className="bulk-control">
+                  <select value={bulkProgressStatus} onChange={(e) => setBulkProgressStatus(e.target.value)}>
+                    <option value="">진행 상태 일괄 변경</option>
+                    {progressStatusOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <Button size="sm" onClick={() => { bulkUpdate('progressStatus', bulkProgressStatus); setBulkProgressStatus(''); }}>적용</Button>
+                </div>
+              </TableHead>
+              <TableHead></TableHead>
+              <TableHead></TableHead>
             </TableRow>
               <TableRow className="filter-row">
+              <TableHead></TableHead>
+              <TableHead></TableHead>
               <TableHead></TableHead>
               <TableHead><Input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></TableHead>
               <TableHead><Input type="text" name="reviewType" value={filters.reviewType} onChange={handleFilterChange} /></TableHead>
@@ -315,9 +412,22 @@ export default function AdminProductManagementPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-          {processedProducts.length > 0 ? paginatedProducts.map(p => (
+          {processedProducts.length > 0 ? groupedAndPaginatedProducts.map(p => (
               <TableRow key={p.id}>
                 <TableCell><input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => handleSelectOne(p.id)} /></TableCell>
+                {p.renderInfo.shouldRender && (
+                  <TableCell rowSpan={p.renderInfo.rowSpan} className="text-center align-middle font-semibold">
+                    <label className="flex items-center justify-center space-x-1">
+                      <input type="checkbox" onChange={(e) => handleSelectGroup(p.groupInfo.id, e.target.checked)} checked={(groupMap[p.groupInfo.id] || []).every(id => selectedIds.includes(id))} />
+                      <span>{`상품군 ${p.groupInfo.displayIndex}`}</span>
+                    </label>
+                  </TableCell>
+                )}
+                {p.renderInfo.shouldRender && (
+                  <TableCell rowSpan={p.renderInfo.rowSpan} className="text-center align-middle">
+                    {(vatMap[p.id] ?? p.isVatApplied) ? '세금계산서 발행' : '세금계산서 미발행'}
+                  </TableCell>
+                )}
                 <TableCell style={{textAlign: 'left'}}>{p.productName}</TableCell>
                 <TableCell>
                   <select value={p.reviewType || '현영'} onChange={(e) => handleFieldChange(p.id, 'reviewType', e.target.value)}>
@@ -349,7 +459,7 @@ export default function AdminProductManagementPage() {
                 </TableCell>
               </TableRow>
             )) : (
-              <TableRow><TableCell colSpan="14" style={{ padding: '50px', textAlign: 'center' }}>생성된 상품이 없습니다.</TableCell></TableRow>
+              <TableRow><TableCell colSpan="16" style={{ padding: '50px', textAlign: 'center' }}>생성된 상품이 없습니다.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
