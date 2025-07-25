@@ -444,7 +444,7 @@ const handleRankSearch = async () => {
     try {
         // --- [핵심 수정] API 주소를 동적으로 결정 ---
         const API_BASE_URL = process.env.NODE_ENV === 'production'
-            ? 'https://hellopiggys.onrender.com' // <<-- Netlify 배포 환경일 때 사용할 주소
+            ? 'https://hellopiggys-backend.onrender.com' // <<-- Netlify 배포 환경일 때 사용할 주소
             : 'http://localhost:5000';           // <<-- 로컬 개발 환경일 때 사용할 주소
         
         const API_URL = `${API_BASE_URL}/api/coupang-rank`;
