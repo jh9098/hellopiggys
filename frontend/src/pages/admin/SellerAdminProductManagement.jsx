@@ -289,7 +289,7 @@ export default function AdminProductManagementPage() {
 
     if (!window.confirm(`선택한 ${ids.length}개의 캠페인을 예약 확정 처리하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
     for (const id of ids) {
-      await handleConfirmDeposit(id, true);
+      await handleConfirmDeposit(id, true, true);
     }
   };
 
@@ -348,7 +348,7 @@ export default function AdminProductManagementPage() {
     }
   };
 
-  const handleConfirmDeposit = async (campaignId, isChecked) => {
+  const handleConfirmDeposit = async (campaignId, isChecked, skipPrompt = false) => {
     if (!isChecked) {
       try {
         await updateDoc(doc(db, 'campaigns', campaignId), { depositConfirmed: false });
@@ -359,7 +359,7 @@ export default function AdminProductManagementPage() {
       return;
     }
 
-    if (window.confirm("이 캠페인의 입금을 확인하고 예약을 최종 확정하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")) {
+    if (skipPrompt || window.confirm("이 캠페인의 입금을 확인하고 예약을 최종 확정하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")) {
         try {
             const campaignRef = doc(db, 'campaigns', campaignId);
             const snap = await getDoc(campaignRef);
