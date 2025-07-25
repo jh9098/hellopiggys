@@ -710,8 +710,8 @@ const handleSelectGroup = (ids, checked) => {
 
                             <div className="space-y-4 p-4 border rounded-lg h-full">
                                 <div className="flex justify-center gap-2">
-                                    <Button type="button" size="sm" variant="outline" onClick={handleSaveTemplate}>지금 작성하는 상품 저장하기</Button>
-                                    <Button type="button" size="sm" variant="outline" onClick={() => setShowTemplateDialog(true)}>저장된 상품 불러오기</Button>
+                                    <Button type="button" size="sm" variant="outline" onClick={handleSaveTemplate}>즐겨찾기 등록</Button>
+                                    <Button type="button" size="sm" variant="outline" onClick={() => setShowTemplateDialog(true)}>즐겨찾기 불러오기</Button>
                                 </div>
                                 <div className="grid grid-cols-3 gap-4">
                                     <div><Label htmlFor="deliveryType">구분</Label><Select name="deliveryType" value={formState.deliveryType} onValueChange={(v) => handleFormChange('deliveryType', v)}><SelectTrigger id="deliveryType"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="실배송">실배송</SelectItem><SelectItem value="빈박스">빈박스</SelectItem></SelectContent></Select></div>
@@ -1070,7 +1070,7 @@ const handleSelectGroup = (ids, checked) => {
                                                         setShowTemplateDialog(false);
                                                     }}
                                                 >
-                                                    선택
+                                                    불러오기
                                                 </Button>
                                             </div>
                                         </div>
