@@ -40,9 +40,7 @@ def search_coupang_rank(keyword, target_vendor_item_id):
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
         
-        # --- [★핵심 수정★] 프로젝트 내부 경로를 명시적으로 지정 ---
-        # Dockerfile의 WORKDIR이 /app 이므로, /app 기준으로 경로를 작성합니다.
-        # os.path.join을 사용하지 않고 절대 경로를 직접 지정하는 것이 더 확실합니다.
+        # --- 이 경로 설정이 이제 Dockerfile과 일치합니다 ---
         browser_path = "/app/opt/google/chrome/chrome"
         driver_path = "/app/chromedriver"
 

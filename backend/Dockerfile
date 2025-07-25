@@ -1,10 +1,12 @@
-# 1. 베이스 이미지: 공식 Python 3.11 이미지 사용
+# backend/Dockerfile (최종본)
+
+# 1. 베이스 이미지
 FROM python:3.11-slim-bookworm
 
 # 2. 작업 디렉토리 설정
 WORKDIR /app
 
-# 3. 단일 RUN 명령으로 모든 설치 작업을 수행하여 안정성 확보
+# 3. 단일 RUN 명령으로 모든 설치 작업을 수행
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends wget unzip jq ca-certificates fonts-liberation libnss3 libasound2 libatk-bridge2.0-0 libgtk-3-0 libgbm1 && \
     \
@@ -26,12 +28,7 @@ RUN apt-get update -y && \
     \
     # apt 캐시 정리
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    \
-    # 최종 파일 확인
-    echo ">>> Final file check:" && \
-    ls -la /app && \
-    ls -la /app/opt/google/chrome/
+    rm -rf /var/lib/apt/lists/*
 
 # 4. Python 라이브러리 설치
 COPY requirements.txt .
