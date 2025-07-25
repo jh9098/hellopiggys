@@ -437,14 +437,25 @@ export default function SellerReservationPage() {
     };
 
     const handleDepositCheckboxChange = (id, checked) => {
-      if (checked) { setConfirmationDialogData({ ids: [id], checked }); } else { updateDepositStatus([id], checked); }
+        if (checked) {
+            setConfirmationDialogData({ ids: [id], checked });
+        } else {
+            updateDepositStatus([id], checked);
+        }
     };
     const updateDepositStatus = async (ids, checked) => {
-      const batch = writeBatch(db);
-      (Array.isArray(ids) ? ids : [ids]).forEach((cId) => {
-        batch.update(doc(db, 'campaigns', cId), { paymentReceived: checked });
-      });
-      try { await batch.commit(); } catch (err) { console.error('입금 여부 업데이트 오류:', err); }
+        const batch = writeBatch(db);
+        (Array.isArray(ids) ? ids : [ids]).forEach((cId) => {
+            batch.update(doc(db, 'campaigns', cId), {
+                paymentReceived: checked,
+                status: checked ? '확정 요청 중' : '예약 대기'
+            });
+        });
+        try {
+            await batch.commit();
+        } catch (err) {
+            console.error('입금 여부 업데이트 오류:', err);
+        }
     };
     const handleLogout = async () => { try { await signOut(auth); navigate('/seller-login'); } catch (error) { console.error("로그아웃 실패:", error); } };
     const handleKeywordSearch = async () => {
@@ -504,8 +515,19 @@ export default function SellerReservationPage() {
         } catch (error) { console.error("캠페인 삭제 오류:", error); alert("삭제 중 오류 발생."); }
     };
 
-const handleSelectSavedCampaign = (id, checked) => { setSelectedSavedCampaigns(prev => checked ? [...prev, id] : prev.filter(item => item !== id)); };
-const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(checked ? savedCampaigns.map(c => c.id) : []); };
+const handleSelectSavedCampaign = (id, checked) => {
+    setSelectedSavedCampaigns(prev => checked ? [...prev, id] : prev.filter(item => item !== id));
+};
+const handleSelectAllSavedCampaigns = (checked) => {
+    setSelectedSavedCampaigns(checked ? savedCampaigns.map(c => c.id) : []);
+};
+const handleSelectGroup = (ids, checked) => {
+    setSelectedSavedCampaigns(prev => {
+        let selected = prev.filter(id => !ids.includes(id));
+        if (checked) selected = [...selected, ...ids.filter(id => !selected.includes(id))];
+        return selected;
+    });
+};
     const handleRowChange = (id, field, value) => {
         setEditedRows(prev => ({
             ...prev,
@@ -858,7 +880,7 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle>나의 예약 내역</CardTitle>
-                            <CardDescription>과거에 예약한 모든 캠페인 내역입니다. 입금 완료 후 '입금'란을 체크해주세요.</CardDescription>
+                            <CardDescription>과거에 예약한 모든 캠페인 내역입니다. 입금 완료 후 '입금완료/예약확정 요청'을 체크해주세요.</CardDescription>
                         </div>
                         <div className="flex space-x-2">
                             <Button onClick={handleBulkDepositRequest} disabled={pendingDepositCount === 0}>
@@ -878,13 +900,13 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
                                         <TableHead className="w-[50px]">
                                             <Checkbox onCheckedChange={handleSelectAllSavedCampaigns} checked={savedCampaigns.length > 0 && selectedSavedCampaigns.length === savedCampaigns.length} aria-label="모두 선택" />
                                         </TableHead>
-                                        <TableHead className="w-[80px] text-center">상품군</TableHead>
+                                        <TableHead className="w-[80px] text-center">발행여부</TableHead>
                                         <TableHead className="w-[140px] text-center">일자</TableHead>
                                         <TableHead>상품명</TableHead>
                                         <TableHead className="w-[80px] text-center">구분</TableHead>
                                         <TableHead className="w-[120px] text-center">리뷰</TableHead>
                                         <TableHead className="w-[60px] text-center">수량</TableHead>
-                                        <TableHead className="w-[60px] text-center">입금</TableHead>
+                                        <TableHead className="w-[60px] text-center">입금완료<br/>예약확정 요청</TableHead>
                                         <TableHead className="w-[100px] text-center">상태</TableHead>
                                         <TableHead className="w-[120px] text-center">개별견적</TableHead>
                                         <TableHead className="w-[120px] text-center">결제금액</TableHead>
@@ -908,12 +930,24 @@ const handleSelectAllSavedCampaigns = (checked) => { setSelectedSavedCampaigns(c
 
                                             return (
                                                 <TableRow key={c.id}>
-                                                    <TableCell>
-                                                        <Checkbox checked={selectedSavedCampaigns.includes(c.id)} onCheckedChange={(checked) => handleSelectSavedCampaign(c.id, checked)} aria-label={`${c.productName} 선택`} />
+                                                    <TableCell className="flex flex-col items-center">
+                                                        {idx === 0 && (
+                                                            <Checkbox
+                                                                className="mb-1"
+                                                                checked={group.items.every(item => selectedSavedCampaigns.includes(item.id))}
+                                                                onCheckedChange={(checked) => handleSelectGroup(group.items.map(item => item.id), checked)}
+                                                                aria-label={`상품군 ${gIdx + 1} 전체 선택`}
+                                                            />
+                                                        )}
+                                                        <Checkbox
+                                                            checked={selectedSavedCampaigns.includes(c.id)}
+                                                            onCheckedChange={(checked) => handleSelectSavedCampaign(c.id, checked)}
+                                                            aria-label={`${c.productName} 선택`}
+                                                        />
                                                     </TableCell>
-                                                    {idx === 0 && (
-                                                        <TableCell rowSpan={group.items.length} className="text-center align-middle font-semibold">{`상품군 ${gIdx + 1}`}</TableCell>
-                                                    )}
+                                                    <TableCell className="text-center align-middle">
+                                                        {c.paymentReceived ? (c.isVatApplied ? '세금계산서 발행' : '세금계산서 미발행') : '-'}
+                                                    </TableCell>
                                                     <TableCell className="text-center">{c.date?.seconds ? formatDateWithDay(new Date(c.date.seconds * 1000)) : '-'}</TableCell>
                                                     <TableCell className="font-medium">{c.productName}</TableCell>
                                                     <TableCell className="text-center">
