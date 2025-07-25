@@ -4,4 +4,5 @@ Flask
 flask-cors
 undetected-chromedriver
 beautifulsoup4
-gunicorn  # 추가
+gunicorn
+setuptools  # 추가
