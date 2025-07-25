@@ -966,11 +966,6 @@ const handleSelectGroup = (ids, checked) => {
                                                     <TableCell className="text-center">
                                                         <Input type="number" className="w-20" value={quantity} min="1" onChange={(e) => handleRowChange(c.id, 'quantity', e.target.value)} />
                                                     </TableCell>
-                                                    {idx === 0 && (
-                                                        <TableCell rowSpan={group.items.length} className="text-center align-middle">
-                                                            {group.items[0].isVatApplied ? '세금계산서 발행' : '세금계산서 미발행'}
-                                                        </TableCell>
-                                                    )}
                                                     <TableCell className="text-center">
                                                         <Checkbox
                                                             checked={!!c.paymentReceived}
@@ -978,6 +973,11 @@ const handleSelectGroup = (ids, checked) => {
                                                             title="입금 확인 요청"
                                                         />
                                                     </TableCell>
+                                                    {idx === 0 && (
+                                                        <TableCell rowSpan={group.items.length} className="text-center align-middle">
+                                                            {group.items[0].isVatApplied ? '세금계산서 발행' : '세금계산서 미발행'}
+                                                        </TableCell>
+                                                    )}
                                                     <TableCell className="text-center">
                                                         {(() => {
                                                             const displayStatus = c.paymentReceived ? '확인요청중' : c.status;
