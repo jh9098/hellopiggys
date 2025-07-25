@@ -276,6 +276,23 @@ export default function AdminProductManagementPage() {
     });
   };
 
+  const handleConfirmDepositGroup = async (ids, checked) => {
+    if (!checked) {
+      try {
+        await Promise.all(ids.map(id => updateDoc(doc(db, 'campaigns', id), { depositConfirmed: false })));
+      } catch (err) {
+        console.error('입금 확인 취소 오류:', err);
+        alert('입금 확인 취소 중 오류가 발생했습니다.');
+      }
+      return;
+    }
+
+    if (!window.confirm(`선택한 ${ids.length}개의 캠페인을 예약 확정 처리하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+    for (const id of ids) {
+      await handleConfirmDeposit(id, true);
+    }
+  };
+
   const handleSelectOne = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]);
   };
@@ -333,13 +350,13 @@ export default function AdminProductManagementPage() {
 
   const handleConfirmDeposit = async (campaignId, isChecked) => {
     if (!isChecked) {
-        try {
-            await updateDoc(doc(db, 'campaigns', campaignId), { depositConfirmed: false });
-        } catch (err) {
-            console.error('입금 확인 취소 오류:', err);
-            alert("입금 확인 취소 중 오류가 발생했습니다.");
-        }
-        return;
+      try {
+        await updateDoc(doc(db, 'campaigns', campaignId), { depositConfirmed: false });
+      } catch (err) {
+        console.error('입금 확인 취소 오류:', err);
+        alert("입금 확인 취소 중 오류가 발생했습니다.");
+      }
+      return;
     }
 
     if (window.confirm("이 캠페인의 입금을 확인하고 예약을 최종 확정하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")) {
@@ -529,6 +546,7 @@ export default function AdminProductManagementPage() {
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-red-50">판매자<br/>입금체크</th>
                 <th className={thClass}>닉네임</th>
                 <th className={thClass}>전화번호</th>
+                <th className={thClass}></th>
                 <th className={thClass}>입금확인<br/>(예약확정)</th>
                 <th className={thClass}>개별견적</th>
                 <th className={thClass}>결제금액</th>
@@ -537,7 +555,7 @@ export default function AdminProductManagementPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
                 {groupedAndPaginatedCampaigns.length === 0 ? (
-                    <tr><td colSpan="22" className="text-center py-10">데이터가 없습니다.</td></tr>
+                    <tr><td colSpan="23" className="text-center py-10">데이터가 없습니다.</td></tr>
                 ) : (
                     groupedAndPaginatedCampaigns.map((c, index) => {
                       const { finalItemAmount } = computeAmounts(c);
@@ -587,11 +605,20 @@ export default function AdminProductManagementPage() {
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-center bg-red-50">{c.paymentReceived ? '✔️' : ''}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[c.sellerUid]?.nickname}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm">{sellersMap[c.sellerUid]?.phone}</td>
+                          {c.renderInfo.shouldRender && (
+                            <td rowSpan={c.renderInfo.rowSpan} className="px-3 py-4 whitespace-nowrap text-sm text-center align-middle">
+                              <input
+                                type="checkbox"
+                                onChange={(e)=>handleConfirmDepositGroup(c.groupInfo.ids, e.target.checked)}
+                                checked={c.groupInfo.ids.every(id => campaigns.find(cam => cam.id === id)?.depositConfirmed)}
+                              />
+                            </td>
+                          )}
                           <td className="px-3 py-4 whitespace-nowrap text-sm">
-                            <input 
-                                type="checkbox" 
-                                checked={!!c.depositConfirmed} 
-                                onChange={(e) => handleConfirmDeposit(c.id, e.target.checked)} 
+                            <input
+                                type="checkbox"
+                                checked={!!c.depositConfirmed}
+                                onChange={(e) => handleConfirmDeposit(c.id, e.target.checked)}
                                 disabled={c.status === '예약 확정'}
                             />
                           </td>
