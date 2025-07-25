@@ -380,3 +380,10 @@ main h2 {
 .table-delete-btn {
   background-color: #dc3545; /* 빨간색 */
 }
+
+/* 특정 칼럼을 모바일에서 숨김 */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none;
+  }
+}
