@@ -433,34 +433,43 @@ export default function SellerReservationPage() {
     const handleLogout = async () => { try { await signOut(auth); navigate('/seller-login'); } catch (error) { console.error("로그아웃 실패:", error); } };
     
     // --- [수정] 순위 검색 핸들러 ---
-    const handleRankSearch = async () => {
-        if (!searchKeyword.trim()) { setSearchError("키워드를 입력해주세요."); setRankResult(null); return; }
-        if (!searchProductUrl.trim() || !searchProductUrl.startsWith("https://www.coupang.com/")) {
-            setSearchError("올바른 쿠팡 상품 URL을 입력해주세요."); setRankResult(null); return;
-        }
+const handleRankSearch = async () => {
+    if (!searchKeyword.trim()) { /* ... */ }
+    if (!searchProductUrl.trim() || !searchProductUrl.startsWith("https://www.coupang.com/")) { /* ... */ }
 
-        setIsSearching(true);
-        setSearchError('');
-        setRankResult(null);
+    setIsSearching(true);
+    setSearchError('');
+    setRankResult(null);
 
-        try {
-            // 백엔드 API 서버 주소 (개발 환경)
-            const API_URL = "http://localhost:5000/api/coupang-rank";
-            
-            const response = await axios.post(API_URL, {
-                keyword: searchKeyword,
-                productUrl: searchProductUrl,
-            });
+    try {
+        // --- [핵심 수정] API 주소를 동적으로 결정 ---
+        const API_BASE_URL = process.env.NODE_ENV === 'production'
+            ? 'https://hellopiggys.onrender.com' // <<-- Netlify 배포 환경일 때 사용할 주소
+            : 'http://localhost:5000';           // <<-- 로컬 개발 환경일 때 사용할 주소
+        
+        const API_URL = `${API_BASE_URL}/api/coupang-rank`;
+        // ---------------------------------------------
+        
+        console.log(`Requesting to API: ${API_URL}`); // 디버깅을 위해 콘솔에 URL 출력
 
-            setRankResult(response.data); // 백엔드에서 받은 결과(JSON)를 상태에 저장
+        const response = await axios.post(API_URL, {
+            keyword: searchKeyword,
+            productUrl: searchProductUrl,
+        });
 
-        } catch (error) {
-            console.error("Rank search API error:", error);
+        setRankResult(response.data);
+
+    } catch (error) {
+        console.error("Rank search API error:", error);
+        if (error.code === "ERR_NETWORK") {
+            setSearchError("백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.");
+        } else {
             setSearchError("순위 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-        } finally {
-            setIsSearching(false);
         }
-    };
+    } finally {
+        setIsSearching(false);
+    }
+};
     
     const handleKeywordSync = (e) => {
         const { value } = e.target;
