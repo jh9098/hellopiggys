@@ -40,17 +40,18 @@ def search_coupang_rank(keyword, target_vendor_item_id):
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
         
-        # --- [★핵심 수정★] Chrome 및 Chromedriver 경로 명시적 지정 ---
-        # Dockerfile이 설치한 표준 경로를 직접 알려줍니다.
-        chrome_binary_path = "/usr/bin/google-chrome"
-        driver_path = "/usr/local/bin/chromedriver"
+        # --- [★핵심 수정★] 프로젝트 내부 경로를 명시적으로 지정 ---
+        # Dockerfile의 WORKDIR이 /app 이므로, /app 기준으로 경로를 작성합니다.
+        # os.path.join을 사용하지 않고 절대 경로를 직접 지정하는 것이 더 확실합니다.
+        browser_path = "/app/opt/google/chrome/chrome"
+        driver_path = "/app/chromedriver"
 
-        # 진단 코드: 파일 존재 여부 확인
-        print(f"Checking Chrome at: {chrome_binary_path}, Exists: {os.path.exists(chrome_binary_path)}")
+        # 진단 코드
+        print(f"Checking Chrome at: {browser_path}, Exists: {os.path.exists(browser_path)}")
         print(f"Checking Chromedriver at: {driver_path}, Exists: {os.path.exists(driver_path)}")
-
+        
         driver = uc.Chrome(
-            browser_executable_path=chrome_binary_path,
+            browser_executable_path=browser_path,
             driver_executable_path=driver_path,
             headless=True,
             options=options,
