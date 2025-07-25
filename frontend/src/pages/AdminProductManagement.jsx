@@ -95,10 +95,64 @@ export default function AdminProductManagementPage() {
     return filtered;
   }, [products, filters, sortConfig]);
 
-  const paginatedProducts = useMemo(() => {
+  const groupedAndPaginatedProducts = useMemo(() => {
+    const groups = {};
+    processedProducts.forEach(p => {
+      const key = p.createdAt?.seconds || p.id;
+      if (!groups[key]) {
+        groups[key] = { key, items: [], ids: [] };
+      }
+      groups[key].items.push(p);
+      groups[key].ids.push(p.id);
+    });
+
+    const sortedGroups = Object.values(groups).sort((a,b) => {
+      const av = a.key || 0;
+      const bv = b.key || 0;
+      return sortConfig.direction === 'asc' ? av - bv : bv - av;
+    });
+
+    const flattened = [];
+    let groupCounter = 1;
+    sortedGroups.forEach(g => {
+      g.items.forEach((item, idx) => {
+        flattened.push({
+          ...item,
+          groupInfo: {
+            isFirstInGroup: idx === 0,
+            size: g.items.length,
+            id: g.key,
+            displayIndex: groupCounter,
+            ids: g.ids
+          }
+        });
+      });
+      groupCounter++;
+    });
+
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return processedProducts.slice(startIndex, startIndex + itemsPerPage);
-  }, [processedProducts, currentPage]);
+    const pageItems = flattened.slice(startIndex, startIndex + itemsPerPage);
+
+    const finalItems = [];
+    const processed = new Set();
+    pageItems.forEach(item => {
+      let rowSpan = 0;
+      let shouldRender = false;
+      if (!processed.has(item.groupInfo.id)) {
+        shouldRender = true;
+        processed.add(item.groupInfo.id);
+        rowSpan = pageItems.filter(p => p.groupInfo.id === item.groupInfo.id).length;
+      }
+      finalItems.push({
+        ...item,
+        renderInfo: { shouldRender, rowSpan }
+      });
+    });
+
+    return finalItems;
+  }, [processedProducts, currentPage, itemsPerPage, sortConfig]);
+
+  const paginatedProducts = groupedAndPaginatedProducts;
 
   const totalPages = Math.ceil(processedProducts.length / itemsPerPage);
   useEffect(() => {
@@ -178,10 +232,18 @@ export default function AdminProductManagementPage() {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedIds(paginatedProducts.map(p => p.id));
+      setSelectedIds(groupedAndPaginatedProducts.map(p => p.id));
     } else {
       setSelectedIds([]);
     }
+  };
+
+  const handleSelectGroup = (ids, checked) => {
+    setSelectedIds(prev => {
+      let updated = prev.filter(id => !ids.includes(id));
+      if (checked) updated = [...updated, ...ids.filter(id => !updated.includes(id))];
+      return updated;
+    });
   };
 
   const handleSelectOne = (id) => {
@@ -247,7 +309,8 @@ export default function AdminProductManagementPage() {
         <Table className="admin-table">
           <TableHeader>
             <TableRow>
-              <TableHead><input type="checkbox" onChange={handleSelectAll} checked={paginatedProducts.length > 0 && paginatedProducts.every(p => selectedIds.includes(p.id))} /></TableHead>
+              <TableHead><input type="checkbox" onChange={handleSelectAll} checked={groupedAndPaginatedProducts.length > 0 && groupedAndPaginatedProducts.every(p => selectedIds.includes(p.id))} /></TableHead>
+              <TableHead>그룹</TableHead>
               <TableHead onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></TableHead>
               <TableHead onClick={() => requestSort('reviewType')} className="sortable">결제 종류<SortIndicator columnKey="reviewType" /></TableHead>
               <TableHead onClick={() => requestSort('productType')} className="sortable">상품 종류<SortIndicator columnKey="productType" /></TableHead>
@@ -299,6 +362,7 @@ export default function AdminProductManagementPage() {
             </TableRow>
               <TableRow className="filter-row">
               <TableHead></TableHead>
+              <TableHead></TableHead>
               <TableHead><Input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></TableHead>
               <TableHead><Input type="text" name="reviewType" value={filters.reviewType} onChange={handleFilterChange} /></TableHead>
               <TableHead><Input type="text" name="productType" value={filters.productType} onChange={handleFilterChange} /></TableHead>
@@ -315,10 +379,17 @@ export default function AdminProductManagementPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-          {processedProducts.length > 0 ? paginatedProducts.map(p => (
-              <TableRow key={p.id}>
-                <TableCell><input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => handleSelectOne(p.id)} /></TableCell>
-                <TableCell style={{textAlign: 'left'}}>{p.productName}</TableCell>
+          {processedProducts.length > 0 ? groupedAndPaginatedProducts.map(p => (
+            <TableRow key={p.id}>
+              <TableCell><input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => handleSelectOne(p.id)} /></TableCell>
+              {p.renderInfo.shouldRender && (
+                <TableCell rowSpan={p.renderInfo.rowSpan} style={{textAlign:'center', verticalAlign:'middle'}}>
+                  <input type="checkbox" onChange={(e)=>handleSelectGroup(p.groupInfo.ids, e.target.checked)}
+                         checked={p.groupInfo.ids.every(id => selectedIds.includes(id))} />
+                  <div>{`그룹 ${p.groupInfo.displayIndex}`}</div>
+                </TableCell>
+              )}
+              <TableCell style={{textAlign: 'left'}}>{p.productName}</TableCell>
                 <TableCell>
                   <select value={p.reviewType || '현영'} onChange={(e) => handleFieldChange(p.id, 'reviewType', e.target.value)}>
                     {reviewTypeOptions.map(o => <option key={o} value={o}>{o}</option>)}
@@ -349,7 +420,7 @@ export default function AdminProductManagementPage() {
                 </TableCell>
               </TableRow>
             )) : (
-              <TableRow><TableCell colSpan="14" style={{ padding: '50px', textAlign: 'center' }}>생성된 상품이 없습니다.</TableCell></TableRow>
+              <TableRow><TableCell colSpan="15" style={{ padding: '50px', textAlign: 'center' }}>생성된 상품이 없습니다.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>

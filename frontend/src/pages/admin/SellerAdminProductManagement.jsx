@@ -143,7 +143,8 @@ export default function AdminProductManagementPage() {
                 key,
                 items: [],
                 total: 0,
-                createdAt: c.createdAt
+                createdAt: c.createdAt,
+                isVatApplied: c.isVatApplied
             };
         }
         groups[key].items.push(c);
@@ -187,6 +188,7 @@ export default function AdminProductManagementPage() {
                     total: group.total,
                     id: group.key,
                     displayIndex: groupCounter,
+                    isVatApplied: group.isVatApplied
                 }
             });
         });
@@ -494,7 +496,7 @@ export default function AdminProductManagementPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className={thClass}><input type="checkbox" onChange={handleSelectAll} checked={groupedAndPaginatedCampaigns.length > 0 && groupedAndPaginatedCampaigns.every(c => selectedIds.includes(c.id))} /></th>
-                <th className={thClass}>상품군</th>
+                <th className={thClass}>발행여부</th>
                 <th className={thClass}>순번</th>
                 <th className={thClass + ' sortable'} onClick={() => requestSort('createdAt')}>
                   예약 등록 일자<SortIndicator columnKey="createdAt" />
@@ -532,7 +534,9 @@ export default function AdminProductManagementPage() {
                           <td className="px-3 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => handleSelectOne(c.id)} /></td>
                           
                           {c.renderInfo.shouldRender && (
-                            <td rowSpan={c.renderInfo.rowSpan} className="px-3 py-4 whitespace-nowrap text-sm text-center align-middle font-semibold">{`상품군 ${c.groupInfo.displayIndex}`}</td>
+                            <td rowSpan={c.renderInfo.rowSpan} className="px-3 py-4 whitespace-nowrap text-sm text-center align-middle font-semibold">
+                              {c.groupInfo.isVatApplied ? '세금계산서 발행' : '세금계산서 미발행'}
+                            </td>
                           )}
 
                           <td className="px-3 py-4 whitespace-nowrap text-sm">{(currentPage - 1) * itemsPerPage + index + 1}</td>
