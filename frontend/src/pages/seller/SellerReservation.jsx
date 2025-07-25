@@ -452,17 +452,24 @@ const handleRankSearch = async () => {
         
         console.log(`Requesting to API: ${API_URL}`); // 디버깅을 위해 콘솔에 URL 출력
 
+        // --- [★핵심 수정★] 타임아웃을 2분(120초)으로 설정 ---
         const response = await axios.post(API_URL, {
             keyword: searchKeyword,
             productUrl: searchProductUrl,
+        }, {
+            timeout: 120000 // 120,000 밀리초 = 120초 = 2분
         });
+        // ----------------------------------------------------
 
         setRankResult(response.data);
 
     } catch (error) {
         console.error("Rank search API error:", error);
-        if (error.code === "ERR_NETWORK") {
-            setSearchError("백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.");
+        // 타임아웃 에러 메시지를 더 명확하게 표시
+        if (error.code === 'ECONNABORTED') {
+             setSearchError("서버 응답 시간이 초과되었습니다. 서버가 준비 중일 수 있으니 잠시 후 다시 시도해주세요. (Cold Start)");
+        } else if (error.code === "ERR_NETWORK") {
+            setSearchError("백엔드 서버에 연결할 수 없습니다. 서버 주소를 확인해주세요.");
         } else {
             setSearchError("순위 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
         }
