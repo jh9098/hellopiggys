@@ -234,20 +234,20 @@ export default function AdminReviewManagementPage() {
           <TableHeader>
             <TableRow>
               <TableHead><input type="checkbox" checked={paginatedRows.length > 0 && paginatedRows.every(r => selected.has(r.id))} onChange={toggleSelectAll} /></TableHead>
-              <TableHead onClick={() => requestSort('createdAt')} className="sortable">구매폼 등록일시<SortIndicator columnKey="createdAt" /></TableHead>
+              <TableHead onClick={() => requestSort('createdAt')} className="sortable hide-mobile">구매폼 등록일시<SortIndicator columnKey="createdAt" /></TableHead>
               <TableHead onClick={() => requestSort('status')} className="sortable">상태<SortIndicator columnKey="status" /></TableHead>
               <TableHead onClick={() => requestSort('productName')} className="sortable">상품명<SortIndicator columnKey="productName" /></TableHead>
               <TableHead onClick={() => requestSort('mainAccountName')} className="sortable">본계정<SortIndicator columnKey="mainAccountName" /></TableHead>
               <TableHead onClick={() => requestSort('name')} className="sortable">타계정<SortIndicator columnKey="name" /></TableHead>
-              <TableHead onClick={() => requestSort('phoneNumber')} className="sortable">전화번호<SortIndicator columnKey="phoneNumber" /></TableHead>
-              <TableHead onClick={() => requestSort('paymentType')} className="sortable">결제유형<SortIndicator columnKey="paymentType" /></TableHead>
-              <TableHead onClick={() => requestSort('productType')} className="sortable">상품종류<SortIndicator columnKey="productType" /></TableHead>
-              <TableHead onClick={() => requestSort('reviewOption')} className="sortable">리뷰종류<SortIndicator columnKey="reviewOption" /></TableHead>
+              <TableHead onClick={() => requestSort('phoneNumber')} className="sortable hide-mobile">전화번호<SortIndicator columnKey="phoneNumber" /></TableHead>
+              <TableHead onClick={() => requestSort('paymentType')} className="sortable hide-mobile">결제유형<SortIndicator columnKey="paymentType" /></TableHead>
+              <TableHead onClick={() => requestSort('productType')} className="sortable hide-mobile">상품종류<SortIndicator columnKey="productType" /></TableHead>
+              <TableHead onClick={() => requestSort('reviewOption')} className="sortable hide-mobile">리뷰종류<SortIndicator columnKey="reviewOption" /></TableHead>
               <TableHead>리뷰 인증</TableHead>
               <TableHead>작업</TableHead>
             </TableRow>
-            <TableRow className="filter-row">
-              <TableHead></TableHead><TableHead></TableHead>
+              <TableRow className="filter-row">
+              <TableHead></TableHead><TableHead className="hide-mobile"></TableHead>
               <TableHead>
                 <select name="status" value={filters.status} onChange={handleFilterChange}>
                   <option value="all">전체</option>
@@ -261,8 +261,8 @@ export default function AdminReviewManagementPage() {
               <TableHead><Input type="text" name="productName" value={filters.productName} onChange={handleFilterChange} /></TableHead>
               <TableHead><Input type="text" name="mainAccountName" value={filters.mainAccountName} onChange={handleFilterChange} /></TableHead>
               <TableHead><Input type="text" name="name" value={filters.name} onChange={handleFilterChange} /></TableHead>
-              <TableHead><Input type="text" name="phoneNumber" value={filters.phoneNumber} onChange={handleFilterChange} /></TableHead>
-              <TableHead></TableHead><TableHead></TableHead><TableHead></TableHead>
+              <TableHead className="hide-mobile"><Input type="text" name="phoneNumber" value={filters.phoneNumber} onChange={handleFilterChange} /></TableHead>
+              <TableHead className="hide-mobile"></TableHead><TableHead className="hide-mobile"></TableHead><TableHead className="hide-mobile"></TableHead>
               <TableHead><select name="reviewConfirm" value={filters.reviewConfirm} onChange={handleFilterChange}><option value="all">전체</option><option value="O">O</option><option value="X">X</option></select></TableHead>
               <TableHead></TableHead>
             </TableRow>
@@ -272,15 +272,15 @@ export default function AdminReviewManagementPage() {
               <TableRow key={r.id}>
                 <TableCell><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} /></TableCell>
                 {/* [수정] 헬퍼 함수 사용 */}
-                <TableCell>{formatTimestamp24h(r.createdAt)}</TableCell>
+                <TableCell className="hide-mobile">{formatTimestamp24h(r.createdAt)}</TableCell>
                 <TableCell>{getDisplayStatus(r)}</TableCell>
                 <TableCell className="product-name-cell">{r.productName || '-'}</TableCell>
                 <TableCell className="nowrap-cell">{r.mainAccountName || '-'}</TableCell>
                 <TableCell className="nowrap-cell">{r.name || '-'}</TableCell>
-                <TableCell>{r.phoneNumber || '-'}</TableCell>
-                <TableCell>{r.paymentType || (r.isVatApplied ? '현영' : '자율결제')}</TableCell>
-                <TableCell>{r.productType || '-'}</TableCell>
-                <TableCell>{r.reviewOption || '-'}</TableCell>
+                <TableCell className="hide-mobile">{r.phoneNumber || '-'}</TableCell>
+                <TableCell className="hide-mobile">{r.paymentType || (r.isVatApplied ? '현영' : '자율결제')}</TableCell>
+                <TableCell className="hide-mobile">{r.productType || '-'}</TableCell>
+                <TableCell className="hide-mobile">{r.reviewOption || '-'}</TableCell>
                 <TableCell><Button variant="link" size="sm" className={`link-button ${r.confirmImageUrls?.length > 0 ? 'completed' : ''}`} onClick={() => openDetailModal(r)}>{r.confirmImageUrls?.length > 0 ? 'O' : 'X'}</Button></TableCell>
                 <TableCell><Button variant="destructive" size="sm" onClick={() => handleReject(r.id)} className="reject-button">반려</Button></TableCell>
               </TableRow>
