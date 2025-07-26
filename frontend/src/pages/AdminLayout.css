@@ -282,7 +282,7 @@ main h2 {
 
 /* 본계정/타계정 칼럼 줄바꿈 방지 */
 .nowrap-cell {
-  white-space: nowrap;
+  white-space: nowrap !important;
 }
 
 /* ▼▼▼ 모바일 최적화 수정 부분 ▼▼▼ */
@@ -339,7 +339,7 @@ main h2 {
   }
 
   .nowrap-cell {
-    white-space: nowrap;
+    white-space: nowrap !important;
     font-size: 70%;
   }
 
