@@ -870,24 +870,27 @@ const openCoupangSearch = () => {
                 <div className="p-4 border rounded-lg bg-muted/40 space-y-3">
                 <Label className="font-semibold">쿠팡 키워드 검색</Label>
 
-                <div className="flex items-center gap-2 bg-white rounded-md border px-3 py-2">
-                    <span className="text-2xl font-bold text-[#ff5555]">cou</span>
-                    <span className="text-2xl font-bold text-[#00a0e9]">p</span>
-                    <span className="text-2xl font-bold text-[#ffd400]">a</span>
-                    <span className="text-2xl font-bold text-[#00a0e9]">n</span>
-                    <span className="text-2xl font-bold text-[#55c643]">g</span>
+                <div className="flex items-center bg-white rounded-md border px-3 py-2">
+                {/* 쿠팡 로고 텍스트 */}
+                <span className="text-2xl font-bold tracking-tight leading-none mr-2">
+                    <span className="text-[#6B1D1B]">cou</span>
+                    <span className="text-[#ED6B00]">p</span>
+                    <span className="text-[#F9B000]">a</span>
+                    <span className="text-[#5CB531]">n</span>
+                    <span className="text-[#00A0E9]">g</span>
+                </span>
 
-                    <Input
+                {/* 검색 인풋 & 버튼 */}
+                <Input
                     className="flex-1 h-8"
                     value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), openCoupangSearch())}
                     placeholder="검색할 키워드"
-                    />
-
-                    <Button type="button" onClick={openCoupangSearch} size="icon" className="h-8 w-8">
+                />
+                <Button type="button" onClick={openCoupangSearch} size="icon" className="ml-2 h-8 w-8">
                     <Search className="h-4 w-4" />
-                    </Button>
+                </Button>
                 </div>
 
                 {/* 가격 조건 옵션 */}
