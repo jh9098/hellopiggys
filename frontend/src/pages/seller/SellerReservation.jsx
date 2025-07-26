@@ -161,6 +161,9 @@ export default function SellerReservationPage() {
   const [confirmationDialogData, setConfirmationDialogData] = useState(null);
   const [pendingCampaign, setPendingCampaign] = useState(null);
   const [autoFavorite, setAutoFavorite] = useState(false); // ✅ 자동 즐겨찾기 여부
+  const toNumber = (v) => Number(String(v ?? '').replace(/[^\d]/g, '')) || 0;
+  const [usePriceFilter, setUsePriceFilter] = useState(true);
+  const [priceMargin, setPriceMargin] = useState(10); // %
 
   // 순위검색 상태
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -537,13 +540,44 @@ const handleConfirmAddCampaign = async () => {
     setSearchKeyword(value);
   };
 
+const buildCoupangSearchUrl = (keyword, usePriceFilter, basePrice, marginPercent) => {
+  const params = new URLSearchParams({
+    listSize: '36',
+    filterType: '',
+    rating: '0',
+    channel: 'user',
+    q: keyword,
+    sorter: 'scoreDesc',
+    brand: '',
+    offerCondition: '',
+    filter: '',
+    fromComponent: 'N',
+    selectedPlpKeepFilter: ''
+  });
+
+  if (usePriceFilter && basePrice > 0) {
+    const min = Math.max(0, Math.floor(basePrice * (1 - marginPercent / 100)));
+    const max = Math.ceil(basePrice * (1 + marginPercent / 100));
+    params.set('isPriceRange', 'true');
+    params.set('minPrice', String(min));
+    params.set('maxPrice', String(max));
+  }
+
+  return `https://www.coupang.com/np/search?${params.toString()}`;
+};
+
+// ✅ 검색 실행 함수
 const openCoupangSearch = () => {
-if (!searchKeyword.trim()) {
+  const keyword = searchKeyword.trim();
+  if (!keyword) {
     alert('키워드를 입력하세요.');
     return;
-}
-const url = `https://www.coupang.com/np/search?q=${encodeURIComponent(searchKeyword)}&channel=user`;
-window.open(url, '_blank');
+  }
+
+  const basePrice = toNumber(formState.productPrice);
+  const url = buildCoupangSearchUrl(keyword, usePriceFilter, basePrice, priceMargin);
+
+  window.open(url, '_blank');
 };
 
   const renderDayCell = (dayCellInfo) => {
@@ -832,37 +866,64 @@ window.open(url, '_blank');
                   <Input id="keywords" name="keywords" value={formState.keywords} onChange={handleKeywordSync} />
                 </div>
 
-                {/* ------------------ [NEW COUPANG] 쿠팡 검색 위젯 ------------------ */}
+                {/* ------------------ 쿠팡 키워드/가격 검색 ------------------ */}
                 <div className="p-4 border rounded-lg bg-muted/40 space-y-3">
-                    <Label className="font-semibold">쿠팡 키워드 검색</Label>
+                <Label className="font-semibold">쿠팡 키워드 검색</Label>
 
-                    {/* 쿠팡 스타일 박스 */}
-                    <div className="flex items-center gap-2 bg-white rounded-md border px-3 py-2">
-                        {/* 로고는 적당한 이미지 경로로 교체 (없다면 텍스트로 대체) */}
-                        <span className="text-2xl font-bold text-[#ff5555]">cou</span>
-                        <span className="text-2xl font-bold text-[#00a0e9]">p</span>
-                        <span className="text-2xl font-bold text-[#ffd400]">a</span>
-                        <span className="text-2xl font-bold text-[#00a0e9]">n</span>
-                        <span className="text-2xl font-bold text-[#55c643]">g</span>
+                <div className="flex items-center gap-2 bg-white rounded-md border px-3 py-2">
+                    <span className="text-2xl font-bold text-[#ff5555]">cou</span>
+                    <span className="text-2xl font-bold text-[#00a0e9]">p</span>
+                    <span className="text-2xl font-bold text-[#ffd400]">a</span>
+                    <span className="text-2xl font-bold text-[#00a0e9]">n</span>
+                    <span className="text-2xl font-bold text-[#55c643]">g</span>
 
+                    <Input
+                    className="flex-1 h-8"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), openCoupangSearch())}
+                    placeholder="검색할 키워드"
+                    />
+
+                    <Button type="button" onClick={openCoupangSearch} size="icon" className="h-8 w-8">
+                    <Search className="h-4 w-4" />
+                    </Button>
+                </div>
+
+                {/* 가격 조건 옵션 */}
+                <div className="flex items-center gap-3 pl-1">
+                    <Checkbox
+                    id="usePriceFilter"
+                    checked={usePriceFilter}
+                    onCheckedChange={(v) => setUsePriceFilter(!!v)}
+                    />
+                    <Label htmlFor="usePriceFilter" className="text-xs sm:text-sm">가격 조건 포함</Label>
+
+                    {usePriceFilter && (
+                    <>
+                        <span className="text-xs text-muted-foreground">
+                        기준가: {toNumber(formState.productPrice).toLocaleString()}원
+                        </span>
+                        <span className="text-xs">±</span>
                         <Input
-                        className="flex-1 h-8"
-                        value={searchKeyword}
-                        onChange={e => setSearchKeyword(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), openCoupangSearch())}
-                        placeholder="검색할 키워드"
+                        type="number"
+                        className="h-7 w-14 text-right"
+                        value={priceMargin}
+                        onChange={(e) => setPriceMargin(Number(e.target.value))}
+                        min={0}
+                        max={100}
                         />
+                        <span className="text-xs">%</span>
+                    </>
+                    )}
+                </div>
 
-                        <Button type="button" onClick={openCoupangSearch} size="icon" className="h-8 w-8">
-                        <Search className="h-4 w-4" />
-                        </Button>
-                    </div>
-
-                    <p className="text-xs text-muted-foreground">
-                        키워드는 ‘키워드’ 입력란과 자동으로 동기화됩니다. 검색 버튼 클릭 시 새 창에서 쿠팡 검색 결과가 열립니다.
-                    </p>
-                    </div>
-
+                <p className="text-xs text-muted-foreground">
+                    키워드는 ‘키워드’ 입력란과 자동 동기화됩니다. 상품가가 입력되어 있고 ‘가격 조건 포함’이 체크되어 있으면
+                    ±{priceMargin}% 범위로 쿠팡 가격필터가 함께 적용됩니다.
+                </p>
+                </div>
+                {/* ------------------ /쿠팡 키워드/가격 검색 ------------------ */}
                 {/* ------------------ /쿠팡 검색 위젯 ------------------ */}
 
                 {/* ------- 기존 순위검색 블록 ------- */}
