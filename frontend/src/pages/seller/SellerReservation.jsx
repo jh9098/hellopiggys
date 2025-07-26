@@ -30,6 +30,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 /* ---------- 상수/헬퍼 ---------- */
+const templateKeyFields = [
+  'productUrl',
+  'productOption',
+  'deliveryType',
+  'reviewType',
+  'reviewGuide',
+  'keywords',
+  'productPrice',
+  'quantity'
+];
+
+const buildTemplateSignature = (obj) =>
+  templateKeyFields.map(k => String(obj[k] ?? '')).join('|');
 const getBasePrice = (deliveryType, reviewType) => {
   if (deliveryType === '실배송') {
     switch (reviewType) {
@@ -147,6 +160,7 @@ export default function SellerReservationPage() {
   const [showDepositPopup, setShowDepositPopup] = useState(false);
   const [confirmationDialogData, setConfirmationDialogData] = useState(null);
   const [pendingCampaign, setPendingCampaign] = useState(null);
+  const [autoFavorite, setAutoFavorite] = useState(false); // ✅ 자동 즐겨찾기 여부
 
   // 순위검색 상태
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -324,21 +338,34 @@ export default function SellerReservationPage() {
     setIsDatePickerOpen(false);
   };
 
-  const handleSaveTemplate = async () => {
-    if (!user) return;
-    const templateData = { ...formState, sellerUid: user.uid, updatedAt: serverTimestamp() };
-    const existing = savedTemplates.find(
-      t => t.productUrl === formState.productUrl && t.productOption === formState.productOption
-    );
-    try {
-      if (existing) {
-        await updateDoc(doc(db, 'productTemplates', existing.id), templateData);
-      } else {
-        await addDoc(collection(db, 'productTemplates'), { ...templateData, createdAt: serverTimestamp() });
-      }
-      setShowSaveSuccess(true);
-    } catch (err) { console.error('템플릿 저장 오류:', err); }
+const handleSaveTemplate = async (silent = false) => {
+  if (!user) return;
+
+  const templateData = {
+    ...formState,
+    sellerUid: user.uid,
+    updatedAt: serverTimestamp()
   };
+
+  // 동일 조건(필드 모두 동일) 찾기
+  const currentSig = buildTemplateSignature(templateData);
+  const existing = savedTemplates.find(t => buildTemplateSignature(t) === currentSig);
+
+  try {
+    if (existing) {
+      await updateDoc(doc(db, 'productTemplates', existing.id), templateData);
+    } else {
+      await addDoc(collection(db, 'productTemplates'), {
+        ...templateData,
+        createdAt: serverTimestamp()
+      });
+    }
+    if (!silent) setShowSaveSuccess(true);
+  } catch (err) {
+    console.error('템플릿 저장 오류:', err);
+  }
+};
+
 
   const handleDeleteTemplate = async (id) => {
     try { await deleteDoc(doc(db, 'productTemplates', id)); } catch (err) { console.error('템플릿 삭제 오류:', err); }
@@ -370,23 +397,49 @@ const handleBulkDepositRequest = () => {
     setSelectedTemplateIds(prev => checked ? [...prev, id] : prev.filter(tid => tid !== id));
   };
 
-  const handleAddCampaign = (e) => {
-    e.preventDefault();
-    if (!sameDayEnabled && formState.date && isSameDay(formState.date, new Date()) && isAfter18KST()) {
-      alert('18시 이후 당일예약은 관리자에게 문의바랍니다.');
-      return;
-    }
-    const newCampaign = { id: nanoid(), ...formState };
-    if (!formState.productOption.trim()) { setPendingCampaign(newCampaign); }
-    else { setCampaigns(prev => [...prev, newCampaign]); setFormState(initialFormState); }
-  };
-  const handleConfirmAddCampaign = () => {
-    if (pendingCampaign) {
-      setCampaigns(prev => [...prev, pendingCampaign]);
-      setFormState(initialFormState);
-      setPendingCampaign(null);
-    }
-  };
+const handleAddCampaign = async (e) => {
+  e.preventDefault();
+  if (!sameDayEnabled && formState.date && isSameDay(formState.date, new Date()) && isAfter18KST()) {
+    alert('18시 이후 당일예약은 관리자에게 문의바랍니다.');
+    return;
+  }
+
+  const newCampaign = { id: nanoid(), ...formState };
+
+  // 옵션 미입력 확인 로직은 그대로 유지
+  if (!formState.productOption.trim()) {
+    setPendingCampaign(newCampaign);
+    return;
+  }
+
+  // 자동 즐겨찾기라면 조용히 저장
+  if (autoFavorite) {
+    await handleSaveTemplate(true);
+  }
+
+  setCampaigns(prev => [...prev, newCampaign]);
+
+  // 자동 즐겨찾기 체크 시에는 입력 폼 유지, 아니면 초기화
+  if (!autoFavorite) {
+    setFormState(initialFormState);
+  }
+};
+
+// 기존 handleConfirmAddCampaign 완전히 교체
+const handleConfirmAddCampaign = async () => {
+  if (!pendingCampaign) return;
+
+  if (autoFavorite) {
+    await handleSaveTemplate(true);
+  }
+
+  setCampaigns(prev => [...prev, pendingCampaign]);
+
+  if (!autoFavorite) {
+    setFormState(initialFormState);
+  }
+  setPendingCampaign(null);
+};
   const handleDeleteCampaign = (id) => setCampaigns(campaigns.filter(c => c.id !== id));
 
   const handleProcessPayment = async () => {
@@ -694,9 +747,20 @@ window.open(url, '_blank');
 
               {/* 폼 입력 + 검색 영역 */}
               <div className="space-y-4 p-4 border rounded-lg h-full">
-                <div className="flex justify-center gap-2">
-                  <Button type="button" size="sm" variant="outline" onClick={handleSaveTemplate}>즐겨찾기 등록</Button>
-                  <Button type="button" size="sm" variant="outline" onClick={() => setShowTemplateDialog(true)}>즐겨찾기 불러오기</Button>
+                <div className="flex items-center justify-center gap-2">
+                <Checkbox
+                    id="auto-fav"
+                    checked={autoFavorite}
+                    onCheckedChange={(v) => setAutoFavorite(!!v)}
+                />
+                <Label htmlFor="auto-fav" className="text-xs sm:text-sm whitespace-nowrap">자동 즐겨찾기</Label>
+
+                <Button type="button" size="sm" variant="outline" onClick={() => handleSaveTemplate(false)}>
+                    즐겨찾기 등록
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => setShowTemplateDialog(true)}>
+                    즐겨찾기 불러오기
+                </Button>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
@@ -1134,48 +1198,140 @@ window.open(url, '_blank');
         </Card>
 
         {/* Dialogs */}
+        {/* =================== 저장된 상품 불러오기 Dialog =================== */}
         <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
-          <DialogContent className="sm:max-w-lg">
+        <DialogContent className="max-w-[960px] w-[95vw] p-6">
             <DialogHeader>
-              <div className="flex items-center justify-between space-x-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
                 <DialogTitle>저장된 상품 불러오기</DialogTitle>
-                <div className="flex items-center space-x-2">
-                  <Input placeholder="검색" value={templateSearch} onChange={e => setTemplateSearch(e.target.value)} className="h-8" />
-                  <Button size="sm" variant="destructive" onClick={handleDeleteSelectedTemplates} disabled={selectedTemplateIds.length === 0}>선택삭제</Button>
+
+                <div className="flex items-center gap-2">
+                <Input
+                    placeholder="검색 (상품명/옵션)"
+                    value={templateSearch}
+                    onChange={e => setTemplateSearch(e.target.value)}
+                    className="h-8 w-44 md:w-56"
+                />
+                <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleDeleteSelectedTemplates}
+                    disabled={selectedTemplateIds.length === 0}
+                >
+                    선택삭제
+                </Button>
                 </div>
-              </div>
-            </DialogHeader>
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {filteredTemplates.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">저장된 상품이 없습니다.</p>
-              ) : (
-                filteredTemplates.map(t => {
-                  const { id, sellerUid, createdAt, updatedAt, ...rest } = t;
-                  return (
-                    <div key={id} className="flex items-center justify-between border-b py-2 space-x-2">
-                      <Checkbox checked={selectedTemplateIds.includes(id)} onCheckedChange={checked => handleSelectTemplate(id, checked)} aria-label="템플릿 선택" />
-                      <div className="flex-1">
-                        <p className="font-medium">{t.productName}</p>
-                        <p className="text-sm text-muted-foreground">{t.productOption}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteTemplate(id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                        <Button size="sm" onClick={() => {
-                          const date = rest.date instanceof Date ? rest.date : rest.date?.seconds ? new Date(rest.date.seconds * 1000) : new Date();
-                          const { date: _, sellerUid: __, createdAt: ___, updatedAt: ____, ...others } = rest;
-                          setFormState((prev) => ({ ...prev, ...others, date }));
-                          setShowTemplateDialog(false);
-                        }}>불러오기</Button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
             </div>
-          </DialogContent>
+            </DialogHeader>
+
+            <div className="mt-4 border rounded-md overflow-hidden">
+            <div className="max-h-[70vh] overflow-y-auto">
+                <Table>
+                <TableHeader className="sticky top-0 bg-background z-10">
+                    <TableRow>
+                    <TableHead className="w-[42px] text-center">
+                        <Checkbox
+                        checked={filteredTemplates.length > 0 && selectedTemplateIds.length === filteredTemplates.length}
+                        onCheckedChange={(checked) => {
+                            if (checked) {
+                            setSelectedTemplateIds(filteredTemplates.map(t => t.id));
+                            } else {
+                            setSelectedTemplateIds([]);
+                            }
+                        }}
+                        aria-label="전체 선택"
+                        />
+                    </TableHead>
+                    <TableHead className="w-[60px] text-center">No</TableHead>
+                    <TableHead>상품명</TableHead>
+                    <TableHead className="w-[120px]">옵션</TableHead>
+                    <TableHead className="w-[90px] text-right">상품가</TableHead>
+                    <TableHead className="w-[80px] text-center">구분</TableHead>
+                    <TableHead className="w-[110px] text-center">리뷰종류</TableHead>
+                    <TableHead className="w-[80px] text-center">체험단</TableHead>
+                    <TableHead className="w-[90px] text-center">관리</TableHead>
+                    </TableRow>
+                </TableHeader>
+
+                <TableBody>
+                    {filteredTemplates.length === 0 ? (
+                    <TableRow>
+                        <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                        저장된 상품이 없습니다.
+                        </TableCell>
+                    </TableRow>
+                    ) : (
+                    filteredTemplates.map((t, idx) => {
+                        const {
+                        id,
+                        productName,
+                        productOption,
+                        productPrice,
+                        deliveryType,
+                        reviewType,
+                        quantity,
+                        } = t;
+
+                        return (
+                        <TableRow key={id} className="hover:bg-muted/40">
+                            <TableCell className="text-center">
+                            <Checkbox
+                                checked={selectedTemplateIds.includes(id)}
+                                onCheckedChange={(checked) => handleSelectTemplate(id, checked)}
+                                aria-label="템플릿 선택"
+                            />
+                            </TableCell>
+                            <TableCell className="text-center text-sm text-muted-foreground">{idx + 1}</TableCell>
+                            <TableCell className="font-medium">{productName}</TableCell>
+                            <TableCell className="truncate">{productOption}</TableCell>
+                            <TableCell className="text-right">{Number(productPrice || 0).toLocaleString()}원</TableCell>
+                            <TableCell className="text-center">
+                            <Badge variant="outline">{deliveryType}</Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                            <Badge>{reviewType}</Badge>
+                            </TableCell>
+                            <TableCell className="text-center">{quantity}</TableCell>
+                            <TableCell className="text-center space-x-1">
+                            <Button
+                                size="xs"
+                                variant="secondary"
+                                onClick={() => {
+                                // 날짜는 템플릿 저장 시점의 것을 쓸 필요 없다고 판단, 현재값 유지
+                                const { date, sellerUid, createdAt, updatedAt, ...others } = t;
+                                setFormState((prev) => ({
+                                    ...prev,
+                                    ...others,
+                                    date: prev.date, // 유지 (원하면 date도 others.date로 대체 가능)
+                                }));
+                                setShowTemplateDialog(false);
+                                }}
+                            >
+                                불러오기
+                            </Button>
+                            <Button
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => handleDeleteTemplate(id)}
+                            >
+                                삭제
+                            </Button>
+                            </TableCell>
+                        </TableRow>
+                        );
+                    })
+                    )}
+                </TableBody>
+                </Table>
+            </div>
+            </div>
+
+            <DialogFooter className="mt-4">
+            <Button className="w-full" onClick={() => setShowTemplateDialog(false)}>닫기</Button>
+            </DialogFooter>
+        </DialogContent>
         </Dialog>
+        {/* =================== /저장된 상품 불러오기 Dialog =================== */}
 
         <Dialog open={showSaveSuccess} onOpenChange={setShowSaveSuccess}>
           <DialogContent className="sm:max-w-md text-center space-y-4">
