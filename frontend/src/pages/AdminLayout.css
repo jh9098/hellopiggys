@@ -290,7 +290,11 @@ main h2 {
   .admin-layout {
     flex-direction: column;
   }
+    font-size: 90%;
+  }
 
+  .admin-layout * {
+    font-size: 90% !important;
   aside {
     width: 100%;
     box-sizing: border-box; /* 패딩을 너비에 포함 */
