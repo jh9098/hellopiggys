@@ -338,6 +338,14 @@ main h2 {
     flex-wrap: wrap;
   }
 
+  .nowrap-cell {
+    white-space: normal;
+  }
+
+  .product-name-cell {
+    word-break: break-word;
+  }
+
   th, td {
     padding: 10px 8px; /* 상하 패딩을 늘려 터치 용이성 확보 */
     font-size: 13px; /* 가독성을 위해 약간 키움 */
