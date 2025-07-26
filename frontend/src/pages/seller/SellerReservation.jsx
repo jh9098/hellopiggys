@@ -1231,7 +1231,10 @@ window.open(url, '_blank');
                     <TableRow>
                     <TableHead className="w-[42px] text-center">
                         <Checkbox
-                        checked={filteredTemplates.length > 0 && selectedTemplateIds.length === filteredTemplates.length}
+                        checked={
+                            filteredTemplates.length > 0 &&
+                            selectedTemplateIds.length === filteredTemplates.length
+                        }
                         onCheckedChange={(checked) => {
                             if (checked) {
                             setSelectedTemplateIds(filteredTemplates.map(t => t.id));
@@ -1244,8 +1247,8 @@ window.open(url, '_blank');
                     </TableHead>
                     <TableHead className="w-[60px] text-center">No</TableHead>
                     <TableHead>상품명</TableHead>
-                    <TableHead className="w-[120px]">옵션</TableHead>
-                    <TableHead className="w-[90px] text-right">상품가</TableHead>
+                    <TableHead className="w-[140px]">옵션</TableHead>
+                    <TableHead className="w-[100px] text-right">상품가</TableHead>
                     <TableHead className="w-[80px] text-center">구분</TableHead>
                     <TableHead className="w-[110px] text-center">리뷰종류</TableHead>
                     <TableHead className="w-[80px] text-center">체험단</TableHead>
@@ -1281,10 +1284,14 @@ window.open(url, '_blank');
                                 aria-label="템플릿 선택"
                             />
                             </TableCell>
-                            <TableCell className="text-center text-sm text-muted-foreground">{idx + 1}</TableCell>
+                            <TableCell className="text-center text-sm text-muted-foreground">
+                            {idx + 1}
+                            </TableCell>
                             <TableCell className="font-medium">{productName}</TableCell>
                             <TableCell className="truncate">{productOption}</TableCell>
-                            <TableCell className="text-right">{Number(productPrice || 0).toLocaleString()}원</TableCell>
+                            <TableCell className="text-right">
+                            {Number(productPrice || 0).toLocaleString()}원
+                            </TableCell>
                             <TableCell className="text-center">
                             <Badge variant="outline">{deliveryType}</Badge>
                             </TableCell>
@@ -1292,30 +1299,35 @@ window.open(url, '_blank');
                             <Badge>{reviewType}</Badge>
                             </TableCell>
                             <TableCell className="text-center">{quantity}</TableCell>
-                            <TableCell className="text-center space-x-1">
-                            <Button
+                            <TableCell className="text-center">
+                            {/* 👉 세로 정렬 + 간격 */}
+                            <div className="flex flex-col items-center gap-1">
+                                <Button
                                 size="xs"
                                 variant="secondary"
+                                className="w-16"
                                 onClick={() => {
-                                // 날짜는 템플릿 저장 시점의 것을 쓸 필요 없다고 판단, 현재값 유지
-                                const { date, sellerUid, createdAt, updatedAt, ...others } = t;
-                                setFormState((prev) => ({
+                                    const { date, sellerUid, createdAt, updatedAt, ...others } = t;
+                                    const today = new Date();
+                                    setFormState(prev => ({
                                     ...prev,
                                     ...others,
-                                    date: prev.date, // 유지 (원하면 date도 others.date로 대체 가능)
-                                }));
-                                setShowTemplateDialog(false);
+                                    date: today,
+                                    }));
+                                    setShowTemplateDialog(false);
                                 }}
-                            >
+                                >
                                 불러오기
-                            </Button>
-                            <Button
+                                </Button>
+                                <Button
                                 size="xs"
                                 variant="ghost"
+                                className="w-16 text-destructive"
                                 onClick={() => handleDeleteTemplate(id)}
-                            >
+                                >
                                 삭제
-                            </Button>
+                                </Button>
+                            </div>
                             </TableCell>
                         </TableRow>
                         );
@@ -1327,10 +1339,13 @@ window.open(url, '_blank');
             </div>
 
             <DialogFooter className="mt-4">
-            <Button className="w-full" onClick={() => setShowTemplateDialog(false)}>닫기</Button>
+            <Button className="w-full" onClick={() => setShowTemplateDialog(false)}>
+                닫기
+            </Button>
             </DialogFooter>
         </DialogContent>
         </Dialog>
+
         {/* =================== /저장된 상품 불러오기 Dialog =================== */}
 
         <Dialog open={showSaveSuccess} onOpenChange={setShowSaveSuccess}>
