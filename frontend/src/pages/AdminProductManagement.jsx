@@ -1,5 +1,7 @@
 // src/pages/AdminProductManagement.jsx
-// 모바일 전용 라벨/옵션 축약 + 관리 버튼 세로 정렬 적용 버전 (전체 코드)
+// 모바일: 결제/상품/리뷰 → "정보" 칼럼으로 합쳐 표시 (현영/실/별 등)
+// 데스크톱: 기존 칼럼 유지
+// 관리 버튼은 이전 답변대로 mobile-vertical 적용 가능
 
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -44,6 +46,15 @@ const limitedReviewOptionsFull = [
   { value: '텍스트', desktop: '텍스트', mobile: '텍' },
 ];
 
+const MOBILE_ABBR = {
+  reviewType: { '현영': '현영', '자율결제': '자율' },
+  productType: { '실배송': '실', '빈박스': '빈' },
+  reviewOption: {
+    '별점': '별', '텍스트': '텍', '포토': '포토',
+    '프리미엄(포토)': '프포', '프리미엄(영상)': '프영'
+  }
+};
+
 const REVIEW_LINK_BASE_URL = 'https://hellopiggys.netlify.app/reviewer/link?pid=';
 
 export default function AdminProductManagementPage() {
@@ -65,7 +76,6 @@ export default function AdminProductManagementPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageGroup, setPageGroup] = useState(0);
 
-  // 모바일 여부 감지
   const [isMobile, setIsMobile] = useState(false);
 
   const itemsPerPage = 20;
@@ -134,6 +144,7 @@ export default function AdminProductManagementPage() {
     return filtered;
   }, [products, filters, sortConfig]);
 
+  // groupMap for checkbox grouping
   const groupMap = useMemo(() => {
     const map = {};
     processedProducts.forEach(p => {
@@ -144,6 +155,7 @@ export default function AdminProductManagementPage() {
     return map;
   }, [processedProducts]);
 
+  // pagination with group rowSpan
   const groupedAndPaginatedProducts = useMemo(() => {
     const groups = [];
     processedProducts.forEach(p => {
@@ -331,12 +343,15 @@ export default function AdminProductManagementPage() {
   const SortIndicator = ({ columnKey }) =>
     sortConfig.key !== columnKey ? null : (sortConfig.direction === 'asc' ? ' ▲' : ' ▼');
 
-  // 라벨 헬퍼
-  const label = (desktop, mobile) => (isMobile ? mobile : desktop);
-
-  // 옵션 렌더 헬퍼
   const renderOptions = (arr) =>
     arr.map(o => <option key={o.value} value={o.value}>{isMobile ? o.mobile : o.desktop}</option>);
+
+  const buildInfoString = (p) => {
+    const rt = MOBILE_ABBR.reviewType[p.reviewType] || p.reviewType || '';
+    const pt = MOBILE_ABBR.productType[p.productType] || p.productType || '';
+    const ro = MOBILE_ABBR.reviewOption[p.reviewOption] || p.reviewOption || '';
+    return [rt, pt, ro].filter(Boolean).join('/');
+  };
 
   return (
     <>
@@ -347,7 +362,6 @@ export default function AdminProductManagementPage() {
         </Button>
       </div>
 
-      {/* 필터/다운로드/삭제는 데스크톱 중심이나 유지 */}
       <div className="toolbar">
         <Button variant="outline" size="sm" onClick={resetFilters}>필터 초기화</Button>
         <Button variant="outline" size="sm" onClick={downloadCsv}>엑셀 다운로드</Button>
@@ -361,7 +375,7 @@ export default function AdminProductManagementPage() {
         <Table className="admin-table">
           <TableHeader>
             <TableRow>
-              {/* 체크박스 컬럼 - 모바일 숨김 */}
+              {/* 체크박스 - 모바일 숨김 */}
               <TableHead className="hide-mobile">
                 <input
                   type="checkbox"
@@ -375,21 +389,29 @@ export default function AdminProductManagementPage() {
               <TableHead className="hide-mobile">상품군</TableHead>
               <TableHead className="hide-mobile">발행여부</TableHead>
 
-              {/* 모바일/데스크톱 공통 - 라벨만 다름 */}
+              {/* 상품명 - 공통 */}
               <TableHead onClick={() => requestSort('productName')} className="sortable">
-                {label('상품명', '상품명')}<SortIndicator columnKey="productName" />
-              </TableHead>
-              <TableHead onClick={() => requestSort('reviewType')} className="sortable">
-                {label('결제 종류', '결제')}<SortIndicator columnKey="reviewType" />
-              </TableHead>
-              <TableHead onClick={() => requestSort('productType')} className="sortable">
-                {label('상품 종류', '상품')}<SortIndicator columnKey="productType" />
-              </TableHead>
-              <TableHead onClick={() => requestSort('reviewOption')} className="sortable">
-                {label('리뷰 종류', '리뷰')}<SortIndicator columnKey="reviewOption" />
+                상품명<SortIndicator columnKey="productName" />
               </TableHead>
 
-              {/* 모바일 숨김 */}
+              {/* 모바일: 정보(결제/상품/리뷰 요약), 데스크톱: 개별 칼럼 */}
+              {isMobile ? (
+                <TableHead>정보</TableHead>
+              ) : (
+                <>
+                  <TableHead onClick={() => requestSort('reviewType')} className="sortable">
+                    결제 종류<SortIndicator columnKey="reviewType" />
+                  </TableHead>
+                  <TableHead onClick={() => requestSort('productType')} className="sortable">
+                    상품 종류<SortIndicator columnKey="productType" />
+                  </TableHead>
+                  <TableHead onClick={() => requestSort('reviewOption')} className="sortable">
+                    리뷰 종류<SortIndicator columnKey="reviewOption" />
+                  </TableHead>
+                </>
+              )}
+
+              {/* 숨김 컬럼들 */}
               <TableHead className="hide-mobile">체험단 개수</TableHead>
               <TableHead className="hide-mobile">옵션</TableHead>
               <TableHead className="hide-mobile">상품가</TableHead>
@@ -399,7 +421,7 @@ export default function AdminProductManagementPage() {
                 진행일자<SortIndicator columnKey="reviewDate" />
               </TableHead>
 
-              {/* 진행상태 - 모바일 표시 */}
+              {/* 진행상태 - 공통 */}
               <TableHead onClick={() => requestSort('progressStatus')} className="sortable">
                 진행상태<SortIndicator columnKey="progressStatus" />
               </TableHead>
@@ -409,11 +431,11 @@ export default function AdminProductManagementPage() {
                 등록날짜<SortIndicator columnKey="createdAt" />
               </TableHead>
 
-              {/* 관리 - 모바일 표시 */}
+              {/* 관리 - 공통 */}
               <TableHead>관리</TableHead>
             </TableRow>
 
-            {/* 일괄 변경 행 - 모바일에서는 숨김 */}
+            {/* 일괄 변경 - 모바일 숨김 */}
             <TableRow className="bulk-row hide-mobile">
               <TableHead></TableHead>
               <TableHead></TableHead>
@@ -446,6 +468,7 @@ export default function AdminProductManagementPage() {
                   <Button size="sm" onClick={() => { bulkUpdate('reviewOption', bulkReviewOption); setBulkReviewOption(''); }}>적용</Button>
                 </div>
               </TableHead>
+              <TableHead></TableHead>
               <TableHead></TableHead>
               <TableHead></TableHead>
               <TableHead></TableHead>
@@ -493,7 +516,10 @@ export default function AdminProductManagementPage() {
           <TableBody>
             {processedProducts.length > 0 ? (
               groupedAndPaginatedProducts.map(p => {
-                const reviewOptionsArray = p.productType === '빈박스' ? limitedReviewOptionsFull : fullReviewOptionsFull;
+                const reviewOptionsArray = p.productType === '빈박스'
+                  ? limitedReviewOptionsFull
+                  : fullReviewOptionsFull;
+
                 return (
                   <TableRow key={p.id}>
                     {/* 체크박스 - 모바일 숨김 */}
@@ -527,40 +553,44 @@ export default function AdminProductManagementPage() {
                     {/* 상품명 */}
                     <TableCell style={{ textAlign: 'left' }}>{p.productName}</TableCell>
 
-                    {/* 결제 종류 */}
-                    <TableCell>
-                      <select
-                        value={p.reviewType || '현영'}
-                        onChange={(e) => handleFieldChange(p.id, 'reviewType', e.target.value)}
-                      >
-                        {renderOptions(reviewTypeOptionsFull)}
-                      </select>
-                    </TableCell>
+                    {/* 모바일: 정보 문자열, 데스크톱: 각 셀 + select */}
+                    {isMobile ? (
+                      <TableCell className="info-cell">{buildInfoString(p)}</TableCell>
+                    ) : (
+                      <>
+                        <TableCell>
+                          <select
+                            value={p.reviewType || '현영'}
+                            onChange={(e) => handleFieldChange(p.id, 'reviewType', e.target.value)}
+                          >
+                            {renderOptions(reviewTypeOptionsFull)}
+                          </select>
+                        </TableCell>
+                        <TableCell>
+                          <select
+                            value={p.productType || '실배송'}
+                            onChange={(e) => handleFieldChange(p.id, 'productType', e.target.value)}
+                          >
+                            {renderOptions(productTypeOptionsFull)}
+                          </select>
+                        </TableCell>
+                        <TableCell>
+                          <select
+                            value={p.reviewOption || '별점'}
+                            onChange={(e) => handleFieldChange(p.id, 'reviewOption', e.target.value)}
+                          >
+                            {renderOptions(reviewOptionsArray)}
+                          </select>
+                        </TableCell>
+                      </>
+                    )}
 
-                    {/* 상품 종류 */}
-                    <TableCell>
-                      <select
-                        value={p.productType || '실배송'}
-                        onChange={(e) => handleFieldChange(p.id, 'productType', e.target.value)}
-                      >
-                        {renderOptions(productTypeOptionsFull)}
-                      </select>
-                    </TableCell>
-
-                    {/* 리뷰 종류 */}
-                    <TableCell>
-                      <select
-                        value={p.reviewOption || '별점'}
-                        onChange={(e) => handleFieldChange(p.id, 'reviewOption', e.target.value)}
-                      >
-                        {renderOptions(reviewOptionsArray)}
-                      </select>
-                    </TableCell>
-
-                    {/* 모바일 숨김 컬럼들 */}
+                    {/* 숨김 칼럼들 */}
                     <TableCell className="hide-mobile">{p.quantity}</TableCell>
                     <TableCell className="hide-mobile">{p.productOption}</TableCell>
-                    <TableCell className="hide-mobile">{p.productPrice ? Number(p.productPrice).toLocaleString() + '원' : ''}</TableCell>
+                    <TableCell className="hide-mobile">
+                      {p.productPrice ? Number(p.productPrice).toLocaleString() + '원' : ''}
+                    </TableCell>
                     <TableCell className="hide-mobile">{p.keywords}</TableCell>
                     <TableCell className="hide-mobile">
                       {p.productUrl ? (
@@ -569,7 +599,7 @@ export default function AdminProductManagementPage() {
                     </TableCell>
                     <TableCell className="hide-mobile">{p.reviewDate}</TableCell>
 
-                    {/* 진행상태 */}
+                    {/* 진행상태 - 공통 */}
                     <TableCell>
                       <select
                         value={p.progressStatus || '진행전'}
