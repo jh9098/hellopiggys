@@ -1,4 +1,5 @@
-/* src/pages/AdminLayout.css (메뉴 그룹핑 스타일 추가) */
+/* src/pages/AdminLayout.css
+   (모바일 전용 액션 버튼 세로 정렬 클래스 추가 포함, 전체 코드) */
 
 .admin-layout {
   display: flex;
@@ -43,7 +44,7 @@ aside nav {
   flex-direction: column;
   gap: 4px;
 }
-/* [추가] 메뉴 섹션 제목 스타일 */
+/* 메뉴 섹션 타이틀 */
 .menu-section-title {
   margin-top: 24px;
   margin-bottom: 8px;
@@ -147,6 +148,7 @@ main h2 {
   color: #fff;
   border-color: #000;
 }
+
 .sub-account-detail-list {
   display: flex;
   flex-direction: column;
@@ -160,7 +162,7 @@ main h2 {
   border: 1px solid #e9ecef;
 }
 
-/* 2단 그리드 및 전체 너비 클래스 추가 */
+/* 2단 그리드 및 전체 너비 클래스 */
 .info-grid.half {
   grid-template-columns: repeat(2, 1fr);
 }
@@ -168,14 +170,15 @@ main h2 {
 .info-grid .full-width {
   grid-column: 1 / -1;
 }
-/* 테이블이 가로로 길어질 경우 스크롤 생성 */
+
+/* 테이블 가로 스크롤 */
 .table-container {
   width: 100%;
   overflow-x: auto;
   margin-top: 16px;
 }
 
-/* 정렬 가능한 헤더에 커서 모양 변경 */
+/* 정렬 가능한 헤더 */
 .sortable {
   cursor: pointer;
   user-select: none;
@@ -184,7 +187,7 @@ main h2 {
   background-color: #f0f0f0;
 }
 
-/* 필터 행 스타일 */
+/* 필터 행 */
 .filter-row th {
   padding: 4px;
   background-color: #f8f9fa;
@@ -200,7 +203,7 @@ main h2 {
   border-radius: 3px;
 }
 
-/* 일괄 변경 행 스타일 */
+/* 일괄 변경 행 */
 .bulk-row th {
   padding: 4px;
   background-color: #f1f3f5;
@@ -222,7 +225,7 @@ main h2 {
   font-size: 12px;
 }
 
-/* 리뷰 확인 버튼 스타일 */
+/* 리뷰 확인 버튼 */
 .link-button {
   background: none;
   border: none;
@@ -236,7 +239,7 @@ main h2 {
   color: #007bff;
 }
 
-/* 반려 버튼 스타일 */
+/* 반려 버튼 */
 .reject-button {
   padding: 4px 8px;
   font-size: 12px;
@@ -249,6 +252,7 @@ main h2 {
 .reject-button:hover {
   background-color: #c82333;
 }
+
 .toolbar .delete-button-toolbar {
   background-color: #e53935;
   color: white;
@@ -269,17 +273,54 @@ main h2 {
   color: #fff;
 }
 
-/* 상품명 왼쪽 정렬 */
+/* 상품명 좌측 정렬 */
 .product-name-cell {
   text-align: left;
 }
 
-/* 본계정/타계정 칼럼 줄바꿈 방지 */
+/* nowrap */
 .nowrap-cell {
   white-space: nowrap;
 }
 
-/* ▼▼▼ 모바일 기본 최적화 ▼▼▼ */
+/* 공통 관리 버튼 셀 */
+.actions-cell {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.actions-cell .edit-btn,
+.actions-cell .delete-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+}
+.actions-cell .edit-btn { background-color: #007bff; }
+.actions-cell .delete-btn { background-color: #dc3545; }
+
+.table-edit-btn,
+.table-delete-btn {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  font-size: 13px;
+}
+.table-edit-btn { background-color: #007bff; }
+.table-delete-btn { background-color: #dc3545; }
+
+/* 특정 칼럼을 모바일에서 숨김 */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none;
+  }
+}
+
+/* 모바일 레이아웃 전반 */
 @media (max-width: 768px) {
   .admin-layout {
     flex-direction: column;
@@ -335,51 +376,10 @@ main h2 {
     padding: 10px 8px;
     font-size: 13px;
   }
-}
 
-/* 공통 관리 버튼 스타일 */
-.actions-cell {
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-}
-.actions-cell .edit-btn,
-.actions-cell .delete-btn {
-  padding: 4px 8px;
-  border: none;
-  border-radius: 4px;
-  color: #fff;
-  cursor: pointer;
-  text-decoration: none;
-}
-.actions-cell .edit-btn { background-color: #007bff; }
-.actions-cell .delete-btn { background-color: #dc3545; }
-
-.table-edit-btn,
-.table-delete-btn {
-  padding: 5px 10px;
-  border: none;
-  border-radius: 4px;
-  color: white;
-  cursor: pointer;
-  font-size: 13px;
-}
-.table-edit-btn { background-color: #007bff; }
-.table-delete-btn { background-color: #dc3545; }
-
-/* 특정 칼럼을 모바일에서 숨김 */
-@media (max-width: 768px) {
-  .hide-mobile {
-    display: none;
-  }
-}
-
-/* ========================================= */
-/* ▼▼▼ /admin/reviews 전용 90% 폰트 축소 ▼▼▼ */
-/* ========================================= */
-@media (max-width: 768px) {
+  /* /admin/reviews 전용 90% 축소는 기존에 적용되어 있음 */
   .admin-reviews-page {
-    font-size: 90%;  /* 기준 글꼴 축소 */
+    font-size: 90%;
   }
   .admin-reviews-page h2 {
     font-size: calc(28px * 0.9);
@@ -399,5 +399,14 @@ main h2 {
   .admin-reviews-page .pagination button {
     font-size: calc(13px * 0.9);
     padding: 5px 10px;
+  }
+
+  /* ▼▼ 추가: 모바일에서 관리 버튼 세로 정렬 ▼▼ */
+  .actions-cell.mobile-vertical {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .actions-cell.mobile-vertical > * {
+    width: 100%;
   }
 }
