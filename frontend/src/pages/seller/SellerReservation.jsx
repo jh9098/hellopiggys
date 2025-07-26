@@ -1252,7 +1252,7 @@ window.open(url, '_blank');
                     <TableHead className="w-[80px] text-center">구분</TableHead>
                     <TableHead className="w-[110px] text-center">리뷰종류</TableHead>
                     <TableHead className="w-[80px] text-center">체험단</TableHead>
-                    <TableHead className="w-[90px] text-center">관리</TableHead>
+                    <TableHead className="w-[120px] text-center">관리</TableHead>
                     </TableRow>
                 </TableHeader>
 
@@ -1300,12 +1300,12 @@ window.open(url, '_blank');
                             </TableCell>
                             <TableCell className="text-center">{quantity}</TableCell>
                             <TableCell className="text-center">
-                            {/* 👉 세로 정렬 + 간격 */}
-                            <div className="flex flex-col items-center gap-1">
+                            {/* 👉 가로 정렬 + 구분선 */}
+                            <div className="flex items-center justify-center gap-2">
                                 <Button
                                 size="xs"
                                 variant="secondary"
-                                className="w-16"
+                                className="px-3"
                                 onClick={() => {
                                     const { date, sellerUid, createdAt, updatedAt, ...others } = t;
                                     const today = new Date();
@@ -1319,10 +1319,13 @@ window.open(url, '_blank');
                                 >
                                 불러오기
                                 </Button>
+
+                                <Separator orientation="vertical" className="h-5" />
+
                                 <Button
                                 size="xs"
                                 variant="ghost"
-                                className="w-16 text-destructive"
+                                className="px-3 text-destructive"
                                 onClick={() => handleDeleteTemplate(id)}
                                 >
                                 삭제
@@ -1345,6 +1348,7 @@ window.open(url, '_blank');
             </DialogFooter>
         </DialogContent>
         </Dialog>
+        {/* =================== /저장된 상품 불러오기 Dialog =================== */}
 
         {/* =================== /저장된 상품 불러오기 Dialog =================== */}
 
