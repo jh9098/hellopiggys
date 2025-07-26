@@ -1,10 +1,11 @@
 # netlify.toml
 
 [build]
-  base    = "frontend"
-  command = "yarn && yarn build"
-  publish = "frontend/dist"
+  # 루트에서 frontend로 들어가 빌드
+  command   = "yarn --cwd frontend install --frozen-lockfile && yarn --cwd frontend build"
+  publish   = "frontend/dist"
   functions = "frontend/netlify/functions"
+  # base 는 쓰지 않습니다 (중복 경로 방지)
 
 ########################################
 # SPA 라우팅
@@ -16,8 +17,6 @@
 
 ########################################
 # 캐시 정책
-# - index.html : 항상 네트워크 (최신)
-# - assets     : 해시가 붙으므로 1년 캐시
 ########################################
 [[headers]]
   for = "/index.html"
@@ -29,7 +28,6 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# (선택) service-worker 파일은 즉시 업데이트
 [[headers]]
   for = "/sw.js"
   [headers.values]
