@@ -22,7 +22,7 @@ aside h1 {
   color: #343a40;
 }
 .admin-user-info {
-  border: 1px solid #dee2e6;
+  border: 1x solid #dee2e6;
   padding: 12px;
   margin-bottom: 24px;
   font-size: 14px;
@@ -101,8 +101,7 @@ main h2 {
   cursor: pointer;
 }
 
-/* 공통 테이블 스타일은 별도 클래스에 적용하여
-   페이지별 테이블 스타일과 충돌하지 않도록 한다 */
+/* 공통 테이블 스타일 */
 .admin-table {
   width: 100%;
   border-collapse: collapse;
@@ -167,7 +166,7 @@ main h2 {
 }
 
 .info-grid .full-width {
-  grid-column: 1 / -1; /* 그리드 전체 너비를 차지하도록 설정 */
+  grid-column: 1 / -1;
 }
 /* 테이블이 가로로 길어질 경우 스크롤 생성 */
 .table-container {
@@ -179,7 +178,7 @@ main h2 {
 /* 정렬 가능한 헤더에 커서 모양 변경 */
 .sortable {
   cursor: pointer;
-  user-select: none; /* 텍스트 선택 방지 */
+  user-select: none;
 }
 .sortable:hover {
   background-color: #f0f0f0;
@@ -196,7 +195,7 @@ main h2 {
   width: 100%;
   padding: 4px;
   font-size: 12px;
-  box-sizing: border-box; /* 패딩과 보더를 너비에 포함 */
+  box-sizing: border-box;
   border: 1px solid #ccc;
   border-radius: 3px;
 }
@@ -223,18 +222,18 @@ main h2 {
   font-size: 12px;
 }
 
-/* 리뷰 확인 버튼 스타일 (기존과 동일하게 유지) */
+/* 리뷰 확인 버튼 스타일 */
 .link-button {
   background: none;
   border: none;
-  color: #dc3545; /* X 표시는 빨간색 */
+  color: #dc3545;
   text-decoration: underline;
   cursor: pointer;
   padding: 0;
   font-weight: bold;
 }
 .link-button.completed {
-  color: #007bff; /* O 표시는 파란색 */
+  color: #007bff;
 }
 
 /* 반려 버튼 스타일 */
@@ -251,25 +250,20 @@ main h2 {
   background-color: #c82333;
 }
 .toolbar .delete-button-toolbar {
-  background-color: #e53935; /* 진한 빨간색 */
+  background-color: #e53935;
   color: white;
 }
-
 .toolbar .delete-button-toolbar:hover {
-  background-color: #c62828; /* 더 진한 빨간색 */
+  background-color: #c62828;
 }
-
 .toolbar .delete-button-toolbar:disabled {
   background-color: #f5f5f5;
   color: #bdbdbd;
 }
-
-/* 선택 항목 리뷰 인증 버튼 스타일 */
 .toolbar .verify-button-toolbar {
   background-color: #f5f5f5;
   color: #bdbdbd;
 }
-
 .toolbar .verify-button-toolbar:enabled {
   background-color: #007bff;
   color: #fff;
@@ -285,7 +279,7 @@ main h2 {
   white-space: nowrap;
 }
 
-/* ▼▼▼ 모바일 최적화 수정 부분 ▼▼▼ */
+/* ▼▼▼ 모바일 기본 최적화 ▼▼▼ */
 @media (max-width: 768px) {
   .admin-layout {
     flex-direction: column;
@@ -293,45 +287,44 @@ main h2 {
 
   aside {
     width: 100%;
-    box-sizing: border-box; /* 패딩을 너비에 포함 */
+    box-sizing: border-box;
     flex-direction: row;
     align-items: center;
-    justify-content: space-between; /* 양쪽 끝으로 정렬 */
-    flex-wrap: wrap; /* 공간 부족 시 다음 줄로 */
+    justify-content: space-between;
+    flex-wrap: wrap;
     border-right: none;
     border-bottom: 1px solid #e9ecef;
     padding: 12px 16px;
-    gap: 16px; /* 요소 사이의 간격 */
+    gap: 16px;
   }
 
   aside h1 {
-    font-size: 18px; /* 모바일에서 헤더 크기 조정 */
+    font-size: 18px;
     margin: 0;
-    flex-shrink: 0; /* 줄어들지 않도록 */
+    flex-shrink: 0;
   }
 
-  /* 네비게이션을 별도 그룹으로 관리 */
   aside nav {
-    order: 3; /* 세 번째 순서로 배치 (줄바꿈 시 아래로) */
+    order: 3;
     width: 100%;
     flex-direction: row;
     flex-wrap: wrap;
     gap: 8px;
-    margin: 10px 0 0 0; /* 상단 여백 추가 */
+    margin: 10px 0 0 0;
   }
   
   .admin-user-info {
-    order: 2; /* 두 번째 순서로 배치 */
+    order: 2;
     margin: 0;
   }
 
   aside nav a {
     padding: 8px 12px;
-    font-size: 13px; /* 가독성을 위해 약간 키움 */
+    font-size: 13px;
   }
 
   main {
-    padding: 24px 16px; /* 모바일에서 좌우 패딩 조정 */
+    padding: 24px 16px;
   }
 
   .toolbar {
@@ -339,8 +332,8 @@ main h2 {
   }
 
   th, td {
-    padding: 10px 8px; /* 상하 패딩을 늘려 터치 용이성 확보 */
-    font-size: 13px; /* 가독성을 위해 약간 키움 */
+    padding: 10px 8px;
+    font-size: 13px;
   }
 }
 
@@ -361,7 +354,7 @@ main h2 {
 }
 .actions-cell .edit-btn { background-color: #007bff; }
 .actions-cell .delete-btn { background-color: #dc3545; }
-/* ▲▲▲ 모바일 최적화 수정 완료 ▲▲▲ */
+
 .table-edit-btn,
 .table-delete-btn {
   padding: 5px 10px;
@@ -370,20 +363,41 @@ main h2 {
   color: white;
   cursor: pointer;
   font-size: 13px;
-  /* position 속성을 아예 사용하지 않아 기본값(static)을 유지합니다. */
 }
-
-.table-edit-btn {
-  background-color: #007bff; /* 파란색 */
-}
-
-.table-delete-btn {
-  background-color: #dc3545; /* 빨간색 */
-}
+.table-edit-btn { background-color: #007bff; }
+.table-delete-btn { background-color: #dc3545; }
 
 /* 특정 칼럼을 모바일에서 숨김 */
 @media (max-width: 768px) {
   .hide-mobile {
     display: none;
+  }
+}
+
+/* ========================================= */
+/* ▼▼▼ /admin/reviews 전용 90% 폰트 축소 ▼▼▼ */
+/* ========================================= */
+@media (max-width: 768px) {
+  .admin-reviews-page {
+    font-size: 90%;  /* 기준 글꼴 축소 */
+  }
+  .admin-reviews-page h2 {
+    font-size: calc(28px * 0.9);
+  }
+  .admin-reviews-page .admin-table {
+    font-size: calc(14px * 0.9);
+  }
+  .admin-reviews-page .admin-table th,
+  .admin-reviews-page .admin-table td {
+    font-size: calc(14px * 0.9);
+    padding: 10px 8px;
+  }
+  .admin-reviews-page .toolbar button {
+    font-size: calc(13px * 0.9);
+    padding: 7px 14px;
+  }
+  .admin-reviews-page .pagination button {
+    font-size: calc(13px * 0.9);
+    padding: 5px 10px;
   }
 }

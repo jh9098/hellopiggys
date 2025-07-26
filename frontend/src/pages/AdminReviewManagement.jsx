@@ -1,4 +1,4 @@
-// src/pages/AdminReviewManagement.jsx (24시간 표기 수정)
+// src/pages/AdminReviewManagement.jsx (24시간 표기 수정 + 모바일 90% 폰트용 래퍼 클래스 추가)
 
 import { useEffect, useState, useMemo } from 'react';
 import { db, collection, getDocs, query, orderBy, updateDoc, doc, where, serverTimestamp, getDoc, deleteDoc } from '../firebaseConfig';
@@ -220,7 +220,8 @@ export default function AdminReviewManagementPage() {
   const SortIndicator = ({ columnKey }) => sortConfig.key !== columnKey ? null : (sortConfig.direction === 'asc' ? ' ▲' : ' ▼');
 
   return (
-    <>
+    // ▼▼ 모바일에서 폰트 90%로 줄이기 위해 래퍼 클래스 추가 ▼▼
+    <div className="admin-reviews-page">
       <h2>리뷰 관리 ({processedRows.length})</h2>
       <div className="toolbar">
         <Button variant="outline" size="sm" onClick={handleVerify} disabled={selected.size === 0}>선택 항목 리뷰 인증</Button>
@@ -246,7 +247,7 @@ export default function AdminReviewManagementPage() {
               <TableHead>리뷰 인증</TableHead>
               <TableHead>작업</TableHead>
             </TableRow>
-              <TableRow className="filter-row">
+            <TableRow className="filter-row">
               <TableHead></TableHead><TableHead className="hide-mobile"></TableHead>
               <TableHead>
                 <select name="status" value={filters.status} onChange={handleFilterChange}>
@@ -263,7 +264,13 @@ export default function AdminReviewManagementPage() {
               <TableHead><Input type="text" name="name" value={filters.name} onChange={handleFilterChange} /></TableHead>
               <TableHead className="hide-mobile"><Input type="text" name="phoneNumber" value={filters.phoneNumber} onChange={handleFilterChange} /></TableHead>
               <TableHead className="hide-mobile"></TableHead><TableHead className="hide-mobile"></TableHead><TableHead className="hide-mobile"></TableHead>
-              <TableHead><select name="reviewConfirm" value={filters.reviewConfirm} onChange={handleFilterChange}><option value="all">전체</option><option value="O">O</option><option value="X">X</option></select></TableHead>
+              <TableHead>
+                <select name="reviewConfirm" value={filters.reviewConfirm} onChange={handleFilterChange}>
+                  <option value="all">전체</option>
+                  <option value="O">O</option>
+                  <option value="X">X</option>
+                </select>
+              </TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
@@ -281,8 +288,19 @@ export default function AdminReviewManagementPage() {
                 <TableCell className="hide-mobile">{r.paymentType || (r.isVatApplied ? '현영' : '자율결제')}</TableCell>
                 <TableCell className="hide-mobile">{r.productType || '-'}</TableCell>
                 <TableCell className="hide-mobile">{r.reviewOption || '-'}</TableCell>
-                <TableCell><Button variant="link" size="sm" className={`link-button ${r.confirmImageUrls?.length > 0 ? 'completed' : ''}`} onClick={() => openDetailModal(r)}>{r.confirmImageUrls?.length > 0 ? 'O' : 'X'}</Button></TableCell>
-                <TableCell><Button variant="destructive" size="sm" onClick={() => handleReject(r.id)} className="reject-button">반려</Button></TableCell>
+                <TableCell>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className={`link-button ${r.confirmImageUrls?.length > 0 ? 'completed' : ''}`}
+                    onClick={() => openDetailModal(r)}
+                  >
+                    {r.confirmImageUrls?.length > 0 ? 'O' : 'X'}
+                  </Button>
+                </TableCell>
+                <TableCell>
+                  <Button variant="destructive" size="sm" onClick={() => handleReject(r.id)} className="reject-button">반려</Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -308,6 +326,6 @@ export default function AdminReviewManagementPage() {
         <Button variant="outline" size="sm" onClick={nextGroup} disabled={(pageGroup + 1) * pagesPerGroup >= totalPages}>{'>>'}</Button>
       </div>
       {isModalOpen && <ReviewDetailModal review={selectedReview} onClose={closeDetailModal} />}
-    </>
+    </div>
   );
 }
