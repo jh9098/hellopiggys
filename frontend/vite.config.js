@@ -1,43 +1,61 @@
-// frontend/vite.config.js (PWA 오류 해결 최종본)
-
+// frontend/vite.config.js
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
+// 빌드 시점 버전 (강제 리로드용)
+const BUILD_ID = new Date().toISOString();
+
 export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // [수정] workbox 설정을 추가하여 PWA 파일 캐싱 제한을 늘립니다.
+      registerType: 'autoUpdate',          // 새 SW 있으면 자동 업데이트
+      injectRegister: 'auto',
+      devOptions: { enabled: false },      // dev 에서는 SW 끔 (권장)
       workbox: {
-        // 서비스 워커가 오프라인 사용을 위해 미리 캐싱할 파일의 최대 크기를 설정합니다.
-        // 기본값 2MB에서 5MB로 상향 조정합니다. (5 * 1024 * 1024)
-        maximumFileSizeToCacheInBytes: 5000000,
+        cleanupOutdatedCaches: true,
+        navigateFallback: '/index.html',
+        // 필요시 allowlist 추가: navigateFallbackAllowlist: [/^\/$/, /^\/seller/, /^\/admin/],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/developers\.kakao\.com\/sdk\/js\/kakao\.js$/,
+            handler: 'NetworkFirst',
+            options: { cacheName: 'kakao-sdk' },
+          },
+          {
+            urlPattern: /^https:\/\/js\.tosspayments\.com\/v1\/payment-widget$/,
+            handler: 'NetworkFirst',
+            options: { cacheName: 'toss-sdk' },
+          },
+          {
+            // Firebase 실시간 통신 캐싱 안 함
+            urlPattern: /^https:\/\/(securetoken|identitytoolkit|firestore)\.googleapis\.com\//,
+            handler: 'NetworkOnly',
+          },
+        ],
       },
       manifest: {
         name: 'Review Platform',
         short_name: 'Review',
         theme_color: '#ffffff',
+        background_color: '#ffffff',
+        display: 'standalone',
+        start_url: '/',
         icons: [
-          {
-            src: '/pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: '/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          },
+          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
         ],
       },
     }),
   ],
+  define: {
+    __BUILD_ID__: JSON.stringify(BUILD_ID),
+  },
   resolve: {
-    alias: [
-      { find: '@', replacement: path.resolve(__dirname, 'src') },
-    ],
+    alias: [{ find: '@', replacement: path.resolve(__dirname, 'src') }],
   },
   build: {
     rollupOptions: {

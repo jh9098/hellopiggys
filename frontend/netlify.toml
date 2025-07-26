@@ -1,9 +1,36 @@
-# 이 파일은 프로젝트 루트(D:/hellopiggy/netlify.toml)에 위치해야 합니다.
+# netlify.toml
 
-# --- 빌드 설정 ---
 [build]
-  # 베이스 디렉토리: 모든 빌드 관련 경로는 이 폴더를 기준으로 합니다.
-  base = "frontend"
+  base    = "frontend"
+  command = "yarn && yarn build"
+  publish = "frontend/dist"
+  functions = "frontend/netlify/functions"
 
-  # 빌드 명령: 'frontend' 폴더 안에서 실행됩니다.
-  # 'yarn && yarn build'도
+########################################
+# SPA 라우팅
+########################################
+[[redirects]]
+  from = "/*"
+  to   = "/index.html"
+  status = 200
+
+########################################
+# 캐시 정책
+# - index.html : 항상 네트워크 (최신)
+# - assets     : 해시가 붙으므로 1년 캐시
+########################################
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# (선택) service-worker 파일은 즉시 업데이트
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
