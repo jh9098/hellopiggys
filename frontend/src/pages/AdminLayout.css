@@ -339,7 +339,8 @@ main h2 {
   }
 
   .nowrap-cell {
-    white-space: normal;
+    white-space: nowrap;
+    font-size: 70%;
   }
 
   .product-name-cell {
