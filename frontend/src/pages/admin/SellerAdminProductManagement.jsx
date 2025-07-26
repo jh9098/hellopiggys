@@ -338,74 +338,85 @@ export default function AdminProductManagementPage() {
   };
 
   const handleConfirmDeposit = async (campaignId, isChecked, skipPrompt = false) => {
+    // 해제 시
     if (!isChecked) {
-        try {
-            await updateDoc(doc(db, 'campaigns', campaignId), { depositConfirmed: false });
-        } catch (err) {
-            console.error('입금 확인 취소 오류:', err);
-            alert("입금 확인 취소 중 오류가 발생했습니다.");
-        }
-        return;
+      try {
+        await updateDoc(doc(db, 'campaigns', campaignId), {
+          depositConfirmed: false,
+          status: '예약 대기' // 필요시
+        });
+      } catch (err) {
+        console.error('입금 확인 취소 오류:', err);
+        alert("입금 확인 취소 중 오류가 발생했습니다.");
+      }
+      return;
     }
 
+    // 체크 시
     if (skipPrompt || window.confirm("이 캠페인의 입금을 확인하고 예약을 최종 확정하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")) {
-        try {
-            const campaignRef = doc(db, 'campaigns', campaignId);
-            const snap = await getDoc(campaignRef);
-            const data = snap.data();
+      try {
+        const campaignRef = doc(db, 'campaigns', campaignId);
+        const snap = await getDoc(campaignRef);
+        const data = snap.data();
 
-            let productId = data.productId;
-            const qty = Number(data.quantity) || 1;
-            const existingSerials = Array.isArray(data.serialNumbers) ? data.serialNumbers : [];
-            const serialNumbers = appendSerialNumbers(existingSerials, qty);
-            if (!productId) {
-                const productRef = doc(collection(db, 'products'));
-                productId = productRef.id;
-                const defaultType = data.paymentType || (data.isVatApplied ? '현영' : '자율결제');
-                await setDoc(productRef, {
-                    productName: data.productName || '',
-                    productType: data.deliveryType || '',
-                    reviewType: defaultType,
-                    paymentType: defaultType,
-                    reviewOption: data.reviewType || '',
-                    quantity: data.quantity || 0,
-                    productOption: data.productOption || '',
-                    productPrice: data.productPrice || '',
-                    keywords: data.keywords || '',
-                    productUrl: data.productUrl || '',
-                    reviewDate: data.date?.seconds
-                      ? new Date(data.date.seconds * 1000)
-                          .toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
-                      : '',
-                    guide: data.reviewGuide || '',
-                    serialNumbers,
-                    progressStatus: '진행전',
-                    createdAt: serverTimestamp()
-                });
-                await updateDoc(campaignRef, { productId });
-            } else {
-                const defaultType = data.paymentType || (data.isVatApplied ? '현영' : '자율결제');
-                await updateDoc(doc(db, 'products', productId), {
-                    guide: data.reviewGuide || '',
-                    reviewType: defaultType,
-                    paymentType: defaultType,
-                    serialNumbers
-                });
-            }
+        let productId = data.productId;
+        const qty = Number(data.quantity) || 1;
+        const existingSerials = Array.isArray(data.serialNumbers) ? data.serialNumbers : [];
+        const serialNumbers = appendSerialNumbers(existingSerials, qty);
 
-            await updateDoc(campaignRef, {
-                status: '예약 확정',
-                depositConfirmed: true,
-                confirmedAt: serverTimestamp(),
-                serialNumbers
-            });
-            alert("캠페인이 '예약 확정' 상태로 변경되었습니다.");
-        } catch (error) {
-            console.error("예약 확정 처리 중 오류:", error);
-            alert(`예약 확정 처리 중 오류가 발생했습니다: ${error.message}`);
+        const defaultType = data.paymentType || (data.isVatApplied ? '현영' : '자율결제');
+
+        if (!productId) {
+          const productRef = doc(collection(db, 'products'));
+          productId = productRef.id;
+          await setDoc(productRef, {
+            productName: data.productName || '',
+            productType: data.deliveryType || '',
+            reviewType: defaultType,
+            paymentType: defaultType,
+            reviewOption: data.reviewType || '',
+            quantity: data.quantity || 0,
+            productOption: data.productOption || '',
+            productPrice: data.productPrice || '',
+            keywords: data.keywords || '',
+            productUrl: data.productUrl || '',
+            reviewDate: data.date?.seconds
+              ? new Date(data.date.seconds * 1000)
+                  .toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
+              : '',
+            guide: data.reviewGuide || '',
+            serialNumbers,
+            progressStatus: '진행전',
+            createdAt: serverTimestamp()
+          });
+          await updateDoc(campaignRef, { productId });
+        } else {
+          await updateDoc(doc(db, 'products', productId), {
+            guide: data.reviewGuide || '',
+            reviewType: defaultType,
+            paymentType: defaultType,
+            serialNumbers
+          });
         }
+
+        // ✅ 여기서 paymentReceived(입금확인요청) 플래그를 false로 내려줌
+        await updateDoc(campaignRef, {
+          status: '예약 확정',
+          depositConfirmed: true,
+          paymentReceived: false,     // ← 핵심
+          depositRequest: false,      // 만약 이런 필드 쓰고 있다면 같이 false
+          confirmedAt: serverTimestamp(),
+          serialNumbers
+        });
+
+        alert("캠페인이 '예약 확정' 상태로 변경되었습니다.");
+      } catch (error) {
+        console.error("예약 확정 처리 중 오류:", error);
+        alert(`예약 확정 처리 중 오류가 발생했습니다: ${error.message}`);
+      }
     }
   };
+
 
   const handleCancelReservation = async (campaignId) => {
     if (!window.confirm("이 캠페인의 예약 확정을 취소하고 '예약 대기' 상태로 되돌리시겠습니까?")) {
