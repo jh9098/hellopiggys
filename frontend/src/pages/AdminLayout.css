@@ -289,11 +289,11 @@ main h2 {
 @media (max-width: 768px) {
   .admin-layout {
     flex-direction: column;
-    font-size: 70%;
+    font-size: 80%;
   }
 
   .admin-layout * {
-    font-size: 70% !important;
+    font-size: 80% !important;
   }
 
   aside {
